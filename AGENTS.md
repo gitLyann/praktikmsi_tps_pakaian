@@ -45,3 +45,19 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+
+# Aturan & Kontekstual Proyek
+
+## Basis Data
+- Menggunakan MySQL database: `praktiksi_tps_pakaian`
+- JANGAN PERNAH jalankan `migrate:fresh` karena database sudah berisi data.
+
+## Arsitektur Aplikasi
+- **Laravel Version:** 11+ / 12+
+- **Roles:** `pelanggan`, `kasir`, `admin` (Manager)
+- **Routes:**
+  - `/` -> Landing Page (welcome)
+  - `/login` & `/register` -> Auth (Register hardcoded untuk 'pelanggan')
+  - `/toko` -> Dashboard Pelanggan (TPS Catalog)
+  - `/kasir/dashboard` -> Dashboard Staff (OAS Restock Request)
+  - `/admin/dashboard` -> Dashboard Manager (OAS Approval)
