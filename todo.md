@@ -9,3 +9,63 @@
 - [x] Modal Konfirmasi Pembelian & Payment Method
 - [x] Monitoring Stok Realtime (Staff & Admin)
 - [x] Sidebar Layout Bootstrap 5 (Staff & Admin)
+- [x] Refactoring Sidebar UI (SantriKoding Style) - Staff & Admin Dashboard
+- [x] Modul KMS Chatbot FAQ Automation (Migration, Model, Seeder, Controller, API, Widget)
+- [x] Refactor Dashboard Staff jadi 5 Tab (Dashboard, Monitoring Stok, Pengajuan Restock, Riwayat Restock, Pengaturan)
+- [x] Tabel Detail Produk Lengkap + Search/Filter Client-Side (Monitoring Stok)
+- [x] Pemisahan Tabel Pending-Only (Pengajuan) vs Riwayat Semua Status (Riwayat Restock)
+- [x] Navigasi Tab Seamless tanpa reload + Sinkronisasi Hash URL (Bootstrap Tab)
+- [x] Card "Pengaturan & Keamanan Akun" (Logout Akun) di menu Pengaturan, hapus Logout dari bawah sidebar
+- [x] Penyesuaian section dashboard: ID polos (`#dashboard` dll), JS navigasi manual show/hide, input search `#search-product`
+- [x] Fitur Tambah Produk Baru (modal Bootstrap + validasi + route `staff.products.store`)
+- [x] Input Category fleksibel (text + datalist, `Category::firstOrCreate` untuk kategori baru)
+- [x] Shortcut "+ Produk Baru" di tab Pengajuan Restock + redirect kembali ke tab asal
+- [x] Tambah Produk dipindah jadi form inline card "Tambah Master Produk Baru" di bawah Pengajuan Restock (modal dihapus)
+- [x] Dropdown Kategori & Type bertingkat (select + opsi "+ Tambah ... Baru..." + input teks kondisional, tanpa jQuery/Select2)
+- [x] Produk baru otomatis terpilih di dropdown "Pilih Produk" via `?produk=<id>`
+- [x] Field "Stok Awal" dihapus — produk baru selalu didaftarkan dengan stok 0, diisi lewat pengajuan restock
+- [x] Redirect `storeRestock` diarahkan eksplisit ke `#pengajuan-restock` (bukan `back()` yang menghilangkan hash)
+- [x] Tab "Riwayat Restock" → "Riwayat Stok" (`#riwayat-stok`) di sidebar staff & admin
+- [x] Audit trail "Riwayat Aktivitas Stok": gabungkan Produk Baru + Pengajuan Restock, urut dari terbaru
+- [x] Fix fatal `format() on null` — null-safe tanggal di staff dashboard, admin dashboard, dan `$riwayatStok`
+- [x] Migration kolom `products.image` (nullable, setelah `color`) + `php artisan migrate --force`
+- [x] Upload foto produk: validasi `mimes:jpg,jpeg,png,webp|max:2048`, simpan ke `public/images/produk` (tanpa `storage:link`)
+- [x] Form staff multipart + field "Foto Produk" + blok `@error('image')`
+- [x] Accessor `Product::image_url` + `'image'` di `$fillable`
+- [x] Rewrite katalog `toko/index.blade.php` jadi grid Shoplytic modern (sidebar, topbar, panel filter, grid responsif)
+- [x] Grid server-rendered `@forelse($products)` dengan `data-nama`/`data-harga`/`data-kategori` (tanpa mock JS array)
+- [x] Filter client-side: checkbox kategori (dari DB), rentang harga, dual-handle slider 0-1.000.000, tombol Terapkan + Reset
+- [x] Dual search tersinkron (`#globalSearch` ↔ `#search`) + counter `#count` + pesan `#noMatch`
+- [x] Dark mode toggle via CSS variable tanpa reload/localStorage
+- [x] Tampilan foto produk di card + fallback emoji per kategori saat foto kosong
+- [x] Modal pembelian di card baru dengan `BUY_URL` dari `route()` dan batas kuantitas = stok
+- [x] Chatbot dipertahankan di katalog baru + `<meta name="csrf-token">` (fix POST 419)
+- [x] `TokoController::index()` eager load `with('category')` + kirim `$categories` untuk filter
+- [x] Fix bug: `'image' => $data['image'] ?? null` ditambahkan ke `Product::create()` (file sempat terupload tapi kolom `image` tetap `NULL`)
+- [x] Verifikasi manual via HTTP kernel (render 200, filter id, upload end-to-end, cleanup data uji) — tanpa `artisan test`
+- [x] Phase 15 — Palet katalog ganti Oranye → Biru Modern (`--accent:#2563eb`, `--accent-soft:#e8f0fe`, track slider `#c7dcfd`, dark mode `#1e3a5f`)
+- [x] Phase 15 — Sidebar direstrukturisasi ala Shopee: 5 menu datar (Overview, Katalog Produk, Keranjang Belanja, Pesanan Saya, Produk Favorit), sub-menu + link "Log Out" dihapus
+- [x] Phase 15 — Helpinan "Bantuan" tetap di `.nav.bottom`
+- [x] Phase 15 — Search bar topbar (`#globalSearch` + CSS `.gsearch`) dihapus, hanya `#search` di header katalog
+- [x] Phase 15 — Logout dipindah dari sidebar ke dalam modal profil
+- [x] Phase 15 — Komponen profil topbar jadi `<button id="profileBtn">` (clickable + keyboard, `aria-haspopup`/`aria-expanded`) membuka modal profil berisi nama, email, role, dan tombol "Keluar dari Akun" (`POST route('logout')` + `@csrf`)
+- [x] Phase 15 — Escape menutup modal pembelian dan modal profil sekaligus
+- [x] Phase 15 — Copy topbar diubah ke "Katalog Produk" / "Temukan pakaian sesuai kebutuhan dan kebutuhanmu."
+- [x] Phase 15 — Verifikasi via HTTP kernel: palet, sidebar, search, logout, modal profil, dan regresi chatbot/buy/filter (tanpa `artisan test`)
+- [x] Phase 16 — Font katalog: **Plus Jakarta Sans** (fallback Inter) + base font 13px → **15px**, line-height 1.5, dan ~23 ukuran turunan diperbesar (judul, card, badge, breadcrumb, modal, filter)
+- [x] Phase 16 — Sizing komponen ikut menyesuaikan (checkbox 15→18px, thumb slider 12→15px, avatar/ic 32/34→36px, minmax card 190→215px, kolom filter 174→196px)
+- [x] Phase 16 — Dark mode high contrast: `--bg:#121827`, `--card:#1f2937`, `--ink:#f3f4f6`, `--line:#374151`, aksen dinaikkan ke `#3b82f6`
+- [x] Phase 16 — Token kontras baru: `--on-accent`, `--alert`, `--danger-soft`, `--danger` (tiap warna punya versi gelap)
+- [x] Phase 16 — Fix deteksi mode gelap (sebelumnya membandingkan `--bg` dengan string yang tidak ada di palet mana pun, jadi selalu salah)
+- [x] Phase 16 — Warna kaku gelap yang tidak terbaca di mode gelap diperbaiki: `.nav a` `#444` → `var(--ink)`, `.checks label` `#555` → `var(--ink)`, `.ic` `#fff` → `var(--card)`
+- [x] Phase 16 — Emoji sidebar diganti **6 ikon SVG inline** (Lucide style, `stroke=currentColor`): LayoutDashboard, ShoppingBag, ShoppingCart, Package, Heart, HelpCircle
+- [x] Phase 16 — Sidebar nav diberi `aria-label`, tiap SVG `aria-hidden="true"`, teks menu dibungkus `<span>`
+- [x] Phase 16 — Route `toko.pesanan` + `TokoController::pesanan()` (filter `customer_id = auth()->id()`)
+- [x] Phase 16 — Halaman baru `resources/views/toko/pesanan.blade.php`: 4 kartu ringkasan, daftar pesanan bernomor, badge status, empty state
+- [x] Phase 16 — Link sidebar: Overview & Katalog → `toko.index`; Pesanan Saya → `toko.pesanan`; Keranjang/Favorit/Bantuan → modal info (tidak ada tabel cart/favorit di skema)
+- [x] Phase 16 — Modal `#infoModal` + object `infoContent` (judul, ikon SVG, teks jujur "fitur dalam pengembangan")
+- [x] Phase 16 — Escape menutup buy modal, info modal, dan modal profil sekaligus
+- [x] Phase 16 — Perbaikan teks changelog yang korup (karakter acak & emoji hilang) di Phase 8, 10, 14, 15, 16
+- [x] Phase 16 — Verifikasi via HTTP kernel: `GET /toko` 200, `GET /toko/pesanan` 200, cabang `@empty` pesanan, regresi chatbot/buy/filter/profil/logout (tanpa `artisan test`)
+
+(End of file - total 13 lines)

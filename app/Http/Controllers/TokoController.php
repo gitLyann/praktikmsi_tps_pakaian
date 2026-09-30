@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 
@@ -11,8 +12,22 @@ class TokoController extends Controller
     // Menampilkan daftar produk dari database ke katalog pembeli
     public function index()
     {
-        $products = Product::all();
-        return view('toko.index', compact('products'));
+        $products = Product::with('category')->latest()->get();
+
+    // Dipakai untuk checkbox filter kategori di sidebar katalog
+    $categories = Category::orderBy('name')->pluck('name');
+
+    return view('toko.index', compact('products', 'categories'));
+    }
+
+    // Halaman "Pesanan Saya": riwayat transaksi milik pengguna yang sedang login
+    public function pesanan()
+    {
+        $transactions = Transaction::where('customer_id', auth()->id())
+            ->latest('date')
+            ->get();
+
+        return view('toko.pesanan', compact('transactions'));
     }
 
     // Memproses pembelian produk (Form POST dengan Flash Message & Database Transaction)

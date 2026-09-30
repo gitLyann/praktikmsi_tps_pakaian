@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\TokoController;
+use App\Http\Controllers\ChatbotController;
 
 // Halaman Utama / Landing Page
 Route::get('/', function () {
@@ -25,15 +26,22 @@ Route::middleware(['auth'])->group(function () {
         // Halaman Pembeli / Catalog Pakaian (TPS)
     Route::get('/toko', [TokoController::class, 'index'])->name('toko.index');
 
+// Riwayat Pesanan Saya (transaksi milik user yang login)
+Route::get('/toko/pesanan', [TokoController::class, 'pesanan'])->name('toko.pesanan');
+
 // Purchase Transaction
 Route::post('/toko/buy/{product_id}', [TokoController::class, 'buyProduct'])->name('toko.buy');
 
     // Dashboard Kasir & Form Restock
     Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');
     Route::post('/staff/restock', [StaffController::class, 'storeRestock'])->name('staff.restock.store');
+    Route::post('/staff/products', [StaffController::class, 'storeProduct'])->name('staff.products.store');
 
     // Dashboard Admin/Manager & Approval OAS
     Route::get('/admin/dashboard', [ManagerController::class, 'index'])->name('admin.dashboard');
     Route::put('/admin/restock/{id}', [ManagerController::class, 'updateStatus'])->name('admin.restock.update');
+
+    // Chatbot API
+    Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 
 });
