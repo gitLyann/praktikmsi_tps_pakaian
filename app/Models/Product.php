@@ -19,6 +19,7 @@ class Product extends Model
         'size',
         'color',
         'image',
+        'description',
         'price',
         'stock'
     ];
@@ -27,6 +28,12 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // Relasi ke daftar favorit produk
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
     }
 
     // Path gambar relatif terhadap folder public, atau null bila produk belum punya foto

@@ -36,4 +36,10 @@ class User extends Authenticatable
     'password',
     'role', // Tambahkan baris ini jika belum ada
     ];
+
+    // Relasi ke produk yang difavoritkan pengguna ini
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
 }

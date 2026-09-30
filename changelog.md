@@ -246,7 +246,8 @@ Error "Call to a member function format() on null" muncul di tabel Riwayat Stok 
 - `resources/views/admin/dashboard.blade.php` — tabel persetujuan punya pola identik, ikut diperbaiki Thoughiefungsi di luar halaman staff
 - `app/Http/Controllers/StaffController.php` → `index()`:
   - Fallback tanggal: `'tanggal' => $req->created_at ?? $req->updated_at` (dan sama untuk produk) agar tetap ada bila `created_at` null
-  - `sortByDesc('tanggal')` diganti `sortByDesc(fn ($row) => $row['tanggal']?->getTimestamp() ?? 0)` —布尔 key numerik, record tanpa timestamp otomatis mendarat di akhir daftar
+  - `sortByDesc('tanggal')` diganti `sortByDesc(fn ($row) => $row['tanggal']?->getTimestamp() ?? 0)` — mengurutkan key numerik, record tanpa timestamp otomatis mendarat di akhir daftar
+
 - `tests/Feature/StaffDashboardTabTest.php` (belum dijalankan): test baru `test_riwayat_stok_tetap_render_untuk_record_tanpa_timestamp` menyisipkan produk + restock dengan `created_at`/`updated_at` null lalu memverifikasi halaman tetap `assertOk()`
 
 ### Temuan yang belum diperbaiki (di luar scope)
@@ -454,3 +455,189 @@ Skrip sementara (`_probe.php`, `_probe2.php`, sudah dihapus), request langsung k
 ### Catatan
 - `buyProduct()` tetap tidak menulis ke `transaction_details`, jadi halaman Pesanan Saya menampilkan transaksi tanpa rincian item. Mengisi tabel itu adalah pekerjaan terpisah (butuh keputusan apakah quantity diotong di `transaction_details` atau tidak) dan sengaja tidak dikerjakan di Phase 16.
 - Halaman Pesanan Saya memakai palet terang saja, tidak punya tombol dark mode seperti katalog. Ini keputusan sadar agar tidak menambah token; bisa menyusul bila diperlukan.
+
+## 2026-10-01 - Phase 17: KMS (Deskripsi & Foto Produk) + Backend Produk Favorit
+
+### Temuan sebelum mengerjakan
+Empat fakta yang mengubah keputusan teknis:
+- `products.image` **sudah ada** dari migration `2026_09_30_120000_add_image_to_products_table.php` (Phase 14) dan sudah pernah dijalankan. Jadi Phase 17 **tidak** membuat migration image lagi, hanya menambah `description`.
+- **Tidak ada middleware role sama sekali** (`bootstrap/app.php` -> `withMiddleware()` kosong). Route produk hanya dijaga `auth`, jadi siapa pun yang login bisa menyentuh route admin. Pengecekan role dibuat langsung di controller lewat `abort_unless(Auth::user()->role === ...)`, tanpa menambah middleware baru.
+- `transaction_details.product_id` (migration `2026_08_26_085133`, baris 14) memakai foreign key **tanpa** `cascade`, sedangkan `restock_requests.product_id` sudah `cascadeOnDelete`. Artinya produk yang pernah terjual akan **ditolak** FK kalau dihapus paksa.
+- `tests/Feature/StaffDashboardTabTest.php` mengunci HTML dashboard staff dengan assertion negatif yang ketat, di antaranya `assertStringNotContainsString('bootstrap.Modal.getOrCreateInstance', $html)` (baris 101) dan `assertStringNotContainsString('name="stock"', $html)` (baris 103).
+
+### 1. Database
+- Migration `2026_10_01_000001_add_description_to_products_table.php`: `$table->text('description')->nullable()->after('image')`. Dipakai `text` (bukan `string`) supaya deskripsi panjang tidak terpotong oleh batas 255 karakter. Nullable supaya 4 produk lama tetap utuh.
+- Migration `2026_10_01_000002_create_favorites_table.php`: tabel `favorites` dengan `user_id` -> `users` dan `product_id` -> `products`, keduanya `cascadeOnDelete`, plus `timestamps`.
+  - **Unique compound `['user_id', 'product_id']`** (`favorites_user_id_product_id_unique`) supaya satu user tidak bisa memfavoritkan produk yang sama dua kali, sekaligus melayani query "produk yang difavoritkan user X".
+  - Konsekuensi: logika toggle **wajib** `first` + `create`/`delete`, **bukan** `updateOrCreate` yang bisa meledak jadi duplicate saat update.
+- Dijalankan `php artisan migrate --force` (tidak pernah `migrate:fresh`). Verifikasi `php artisan db:table`: `products` jadi 12 kolom dengan `description` (text) tepat setelah `image` (varchar 255); `favorites` 5 kolom, 2 FK cascade, 1 unique compound.
+
+### 2. Model
+- `app/Models/Favorite.php` (baru): `$fillable = ['user_id', 'product_id']`, relasi `user()` dan `product()`.
+- `app/Models/Product.php`: `description` masuk `$fillable`, relasi `favorites()` (hasMany).
+- `app/Models/User.php`: relasi `favorites()` (hasMany).
+
+### 3. Fitur Kelola Foto Produk (upload / ganti / hapus)
+Trait `app/Support/HandlesProductImage.php` dipakai bersama oleh `StaffController` dan `ManagerController` supaya logika file tidak diduplikasi:
+- `storeProductImage(?UploadedFile)`: bikin folder bila belum ada, nama file `time()_random8.ext` (mencegah tabrakan nama), return path relatif `images/produk/<nama>`.
+- `syncProductImage($file, $currentPath, $removeCurrent)`: satu pintu untuk tiga kemungkinan.
+- `deleteProductImage($path)`: `unlink` diabaikan bila file sudah tidak ada.
+
+Tiga kemungkinan itu diameterskan lewat checkbox **"Hapus foto"** (`name="remove_image"`, aturan validasi `nullable|boolean`) di overlay edit staff & admin, dengan perilaku berikut:
+
+| Situasi di form | Yang terjadi pada foto | Kolom `products.image` |
+| --- | --- | --- |
+| Tidak ada file baru, checkbox tidak dicentang | Foto lama **dipertahankan** | tetap sama |
+| Ada file baru dipilih | File baru tersimpan, **file lama dihapus** dari disk | diganti ke file baru |
+| Checkbox "Hapus foto" dicentang | File lama **dihapus** dari disk, input file otomatis dinonaktifkan | jadi `NULL` |
+| Produk dihapus (`destroyProduct`) | File foto di-unlink sebagai bagian dari penghapusan | baris produk ikut terhapus |
+
+- Input file otomatis `disabled` ketika checkbox "Hapus foto" dicentang, supaya satu submit tidak pernah mengirim dua aksi yang bertabrakan (hapus + unggah bersamaan).
+- Prinsipnya: **file lama tidak pernah dihapus sebelum file baru benar-benar tersimpan**, supaya produk tidak berakhir tanpa gambar hanya karena gagal simpan.
+- Folder tetap `public/images/produk/` (bukan `storage/app/public`), jadi **tetap tidak perlu `php artisan storage:link`** dan `asset()` langsung bekerja.
+- Sudah diuji alurnya sampai tuntas lewat HTTP kernel: unggah pertama -> foto masuk `images/produk/` dan file ada di disk; update tanpa file baru -> foto lama tetap ada; ganti foto -> path berubah, file baru ada, file lama hilang dari disk; centang "Hapus foto" -> kolom `NULL` dan file terhapus; produk dihapus -> file ikut terhapus.
+
+### 4. Update & delete produk
+- `StaffController::storeProduct()`: validasi tambah `description` (`nullable|string|max:2000`) dan `description` ikut masuk `Product::create()`. Logika upload-inline dipecah ke trait.
+- `StaffController::updateProduct()` (baru): `abort_unless(role in ['staff','admin'], 403)`. Staff boleh mengubah kategori (sama seperti saat membuat produk), nama, type, size, color, harga, deskripsi, dan foto. **`stock` tidak bisa diubah** dari form ini - aturan Phase 11 (stok hanya lewat pengajuan restock) tetap dijaga. Field `_produk_id` dikirim(hidden) hanya untuk membantu JS membuka kembali overlay yang benar saat validasi ditolak.
+- `ManagerController::index()`: kini juga mengirim `$products` + `$categories` karena Manager boleh mengelola master produk.
+- `ManagerController::updateProduct()` (baru): aturan sama dengan staff.
+- `ManagerController::destroyProduct()` (baru): `abort_unless(role === 'admin', 403)`. **Produk yang sudah pernah terjual ditolak hapus** dengan pesan jelas, karena `transaction_details` memakai FK tanpa cascade dan riwayat penjualan tidak boleh ikut terhapus diam-diam. Kalau aman, `restock_requests` dan `favorites` terhapus otomatis oleh cascade, file foto di-unlink dari disk, baru produk dihapus.
+- ~~`ManagerController::storeProduct()`~~: **sudah dihapus** pada revisi Phase 17 (lihat bagian "Revisi" di bawah) karena Manager difokuskan ke RUD + Approval saja. Penambahan master produk hanya lewat `StaffController::storeProduct()`.
+- Route produk (semua di dalam middleware `auth`, dicek role di controller):
+  - `PUT /staff/products/{product}` -> `staff.products.update`
+  - `PUT /admin/products/{product}` -> `admin.products.update`
+  - `DELETE /admin/products/{product}` -> `admin.products.destroy`
+  - ~~`POST /admin/products` -> `admin.products.store`~~: **dihapus** pada revisi Phase 17.
+
+### 5. Halaman pelanggan: detail & favorit
+- `GET /toko/produk/{product}` -> `toko.show` - `TokoController::show()` memuat `with('category')` + mengecek status favorit lewat helper `apakahFavorit()`.
+- `POST /toko/favorit/{product}` -> `toko.favorit.toggle` - `toggleFavorite()` memakai pola `first` + `create`/`delete` (bukan `updateOrCreate`, demi menghormati unique index). Balas JSON `{favorit, jumlah, pesan}` bila request `expectsJson()` (dipakai `fetch()`), dengan fallback `back()->with('success')` untuk submit tanpa JavaScript.
+- `GET /toko/favorit` -> `toko.favorit` - daftar produk yang ditandai pengguna, **diurutkan dari yang paling baru difavoritkan**. Query memakai `join('favorites')` + `orderByDesc('favorites.created_at')` + `select('products.*')`, bukan `whereHas` (lihat catatan bug di bawah).
+- `resources/views/layouts/toko-shell.blade.php` (baru): layout bersama berisi sidebar, topbar, dark mode, modal profil, modal info, dan widget chatbot. Dipakai `toko/show.blade.php` dan `toko/favorit.blade.php` supaya tidak menduplikasi ~200 baris CSS di dua file. Katalog (`toko/index.blade.php`) **tidak** disentuh strukturnya karena sudah bekerja dan diuji Phase 16.
+- `resources/views/toko/show.blade.php` (baru): foto besar, tag kategori/type/warna/ukuran, harga, status stok, deskripsi lengkap (dengan fallback jujur bila kosong), spesifikasi, tombol favorit besar, tombol beli (modal pembelian yang sama seperti katalog), dan link ke halaman favorit.
+- `resources/views/toko/favorit.blade.php` (baru): grid produk favorit dengan tombol hati untuk melepas, plus empty state + CTA "Jelajahi Katalog".
+- `resources/views/toko/index.blade.php`: tombol hati SVG di pojok kanan atas tiap thumbnail, judul kartu jadi link ke `toko.show`, sidebar "Produk Favorit" diarahkan ke `route('toko.favorit')`, entri `infoContent.favorit` dihapus, dan toggle `fetch()` ditambahkan (tombol dikunci selama request supaya klik ganda tidak menyebabkan dua toggle beruntun).
+
+### 6. Form edit tanpa Modal Bootstrap
+- Ekor `tests/Feature/StaffDashboardTabTest.php` melarang `bootstrap.Modal.getOrCreateInstance` (baris 101) dan `name="stock"` (baris 103), serta menghitung presisi `substr_count($html, '<tr data-product-row ') === 2` (baris 113) dan 5 `dashboard-section` (baris 139/141).
+- Karena itu form edit memakai **overlay kustom** (`.produk-overlay`, `position:fixed` + atribut `hidden`) yang **diletakkan DI LUAR** wrapper `#staffDashboard` dan di luar semua `.dashboard-section`. Alasan teknisnya: section dashboard berpindah tab memakai kelas `d-none` (`display:none !important`), sehingga modal di dalamnya akan ikut tersembunyi walau sudah berstatus `.show`.
+- Staff: kolom "Aksi" baru di tabel Monitoring Stok dengan tombol Edit; data form diambil dari atribut `data-*` pada tombol tersebut, jadi tidak ada request tambahan. `colspan` tabel dinaikkan 9 -> 10. Baris produk tetap memakai `data-product-row` (assertion baris 113 aman) dan `data-search` tidak diubah formatnya (assertion baris 115 aman).
+- Overlay diisi JS, ditutup lewat tombol, backdrop, atau Escape. Checkbox "Hapus foto" langsung menonaktifkan input file supaya dua aksi tidak bertabrakan dalam satu submit. Bila validasi ditolak, overlay **dibuka kembali** dengan nilai `old()` sehingga staff tidak perlu mengetik ulang.
+- `layouts/app.blade.php` (dipakai staff & admin): CSS `.produk-overlay`, `.produk-overlay-box/-head/-body/-foot`, `.produk-preview` ditambahkan lewat `@stack('styles')`.
+- Admin: section baru `#kelola-produk` berisi form tambah produk (dengan deskripsi) + tabel daftar produk lengkap (foto, kategori, tipe, ukuran, warna, harga, stok) dengan tombol Edit dan Hapus. Hapus memakai `onsubmit="return confirm(...)"` sesuai permintaan. Sidebar admin dapat menu "Kelola Produk". Anchor `#persetujuan-restock` dan `#riwayat-stok` yang diuji suite tetap dipertahankan.
+
+### 7. Bug yang ditemukan saat verifikasi render (sudah diperbaiki)
+Temuan awal "sintaks PHP OK" ternyata belum cukup: dua bug baru muncul saat request benar-benar dirender, karena `php -l` dan kompilasi Blade tidak menyentuh database maupun resolution variabel.
+- **`/toko/favorit` balas HTTP 500.** Penyebab: `whereHas('favorites')` menghasilkan subquery `EXISTS`, sehingga tabel `favorites` **tidak** di-join ke query luar. MySQL menolak `ORDER BY favorites.created_at` dengan `SQLSTATE[42S22] Unknown column 'favorites.created_at' in 'order clause'`. Diperbaiki dengan `join('favorites', 'favorites.product_id', '=', 'products.id')` + `where('favorites.user_id', ...)` + `orderByDesc('favorites.created_at')` + `select('products.*')` supaya tidak ada benturan kolom `id`/`created_at`.
+- **`POST /toko/favorit/{product}` balas HTTP 500.** Penyebab: `toggleFavorite(Product $product)` memanggil `$request->expectsJson()` padahal `$request` tidak pernah diinjeksi -> `ErrorException: Undefined variable $request` di `TokoController.php:76`. Perilaku DB-nya sebenarnya benar (sudah create/delete), hanya serialization respons yang meledak. Diperbaiki jadi `toggleFavorite(Request $request, Product $product)`; `Illuminate\Http\Request` sudah ada di `use` statement.
+- **`App\Models\TransactionDetail` tidak pernah ada.** `ManagerController` meng-`use` class itu untuk mengecek riwayat penjualan, tapi folder `app/Models` hanya berisi 8 model tanpa `TransactionDetail`. Gate "tolak hapus bila terjual" akan meledak `Class not found` saat dipanggil. Diperbaiki dengan membuat model `TransactionDetail` (`transaction_id`, `product_id`, `quantity`, `subtotal` + cast, relasi `transaction()`/`product()`) dan menambah relasi `Transaction::details()`.
+- **`StaffController::storeProduct()` tidak punya cek role**, padahal `updateProduct()` sudah punya `abort_unless(role in ['staff','admin'])`. Artinya pelanggan yang sudah login bisa menambah produk lewat `POST /staff/products`. Diperbaiki dengan `abort_unless` yang sama.
+- **Overlay admin tidak reopen saat validasi gagal.** Staff sudah punya pola `@if($errors->any() && old('_produk_id'))`; admin belum punya field `_produk_id` sama sekali. Diperbaiki: ditambah `<input type="hidden" name="_produk_id" id="editProdukAdminId">`, diisi JS dari `btn.dataset.editProduk`, lalu reopen overlay + tampilkan pesan error.
+- **`Str` tanpa import ternyata bukan bug.** Dugaan awal "`\Str` tidak ditemukan" ternyata salah: Laravel mendaftarkan alias global `Str` => `Illuminate\Support\Str` di core, sudah diverifikasi `class_exists('Str')` dan avatar sidebar ter-render `"P"`. Tidak ada perubahan kode untuk hal ini.
+
+### Verifikasi (tanpa command test)
+- `php -l` pada 10 file PHP yang diubah: semua `No syntax errors detected`.
+- `php artisan route:list`: 7 route baru terdaftar (`toko.show`, `toko.favorit`, `toko.favorit.toggle`, `staff.products.update`, `admin.products.store`, `admin.products.update`, `admin.products.destroy`).
+- `php artisan db:table products|favorites|transaction_details`: skema sesuai rencana.
+- Kompilasi Blade (`blade.compiler->compileString`) pada 8 template: semua berhasil.
+- **Render nyata lewat HTTP kernel** (bukan `php artisan test`): `/toko` 200, `/toko/produk/{id}` 200, `/toko/favorit` 200 (setelah bug di atas diperbaiki), `/staff/dashboard` 200, `/admin/dashboard` 200.
+- Assertion `StaffDashboardTabTest` dicek satu per satu terhadap HTML hasil render: 11 assertion negatif lolos (tidak ada `bootstrap.Modal`, `name="stock"`, `modalTambahProduk`, `data-reopen`, `Stok Awal`, `<th>Catatan</th>`, `data-bs-toggle="tab"`, `sidebar-footer`, dll) dan 18 assertion positif lolos, termasuk hitungan presisi `dashboard-section` = 5 dan `d-none` = 4.
+- **Alur favorit diuji dua arah**: toggle #1 -> `favorit=true`, 1 baris DB; toggle #2 -> `favorit=false`, 0 baris DB. Unique index ditolak duplikat dengan benar (`Duplicate entry '1-3'`).
+- **Otorisasi diuji dengan role nyata**: pelanggan mendapat **403** untuk `PUT staff.products.update`, `PUT admin.products.update`, `DELETE admin.products.destroy`, `POST admin.products.store`; staff mendapat **403** untuk `DELETE admin.products.destroy`; staff & admin lolos otorisasi (302) untuk route update; tamu **302** ke login untuk `/toko/favorit`.
+- **Gate riwayat penjualan diuji dengan data transaksi sungguhan** (produk uji + `transactions` + `transaction_details` + `favorites`, lalu dibersihkan): `DELETE` ditolak, flash error tampil, produk **tetap ada**, detail & transaksi tetap utuh.
+- **Alur foto diuji penuh** (upload -> update tanpa file -> ganti foto -> hapus foto -> validasi gagal): file baru masuk `public/images/produk/`, foto lama **dipertahankan** saat tidak ada file baru, file lama **dihapus dari disk** saat diganti/dicentang hapus, kolom jadi `null` setelah hapus, dan `stock` **tetap** karena tidak bisa diubah dari form.
+- Semua data uji dibuat dan dibersihkan kembali; database kembali ke 4 produk / 4 kategori / 0 favorit / 0 `transaction_details`, dan folder `images/produk/` kosong.
+- Tidak menjalankan `php artisan test`, `pint`, atau `view:cache` sesuai instruksi.
+
+### Catatan & pekerjaan lanjutan
+- `buyProduct()` **masih** tidak menulis ke `transaction_details`, jadi halaman detail produk tidak menampilkan riwayat "produk ini pernah dibeli" dan tabel `transaction_details` tetap kosong di data lama. Gate "tolak hapus bila terjual" sudah diuji dan terbukti bekerja, tapi di aplikasi nyata baru akan terpicu setelah `buyProduct()` mulai menulis detail transaksi.
+- Overlay edit di staff & admin masih duplikasi markup (hanya ID berbeda) dan sekarang punya blok reopen-after-validate yang juga kembar. Belum di-DRY karena masih perlu diuji manual lewat browser; nanti bisa dijadikan satu partial `@include` dengan prefix ID.
+- Halaman detail & favorit memakai `layouts/toko-shell.blade.php`, sedangkan katalog masih standalone. Kalau nanti katalog ikut memakai shell, CSS inline di `toko/index.blade.php` (~170 baris) bisa dihapus.
+- Gambar produk masih disimpan langsung di `public/images/produk/` tanpa versioning, jadi file lama tidak pernah di-cache-bust. Tidak masalah untuk skala praktikum.
+- Verifikasi baru dilakukan lewat HTTP kernel, jadi perilaku JavaScript (tombol hati `fetch()`, buka/tutup overlay, konfirmasi hapus, chatbot) **belum** diuji di browser sungguhan. Yang sudah pasti benar adalah markup, route, otorisasi, validasi, dan query database.
+
+---
+
+## 2026-10-01 - Revisi Phase 17: Fokus RUD + Approval di Manager, Tombol Preview Detail
+
+> **Catatan:** sub-bagian 2 di bawah ditulis kembali pada revisi berikutnya (lihat "Revisi 2" di akhir dokumen) karena tombol "Lihat" tidak lagi membuka halaman publik, melainkan modal read-only di dalam dashboard.
+
+Dua permintaan revisi setelah Phase 17 selesai diuji. Tidak ada perubahan migration dan tidak ada perubahan pada `StaffDashboardTabTest`.
+
+### 1. Form "Tambah Master Produk" disembunyikan dari dashboard Manager
+- Alasan: halaman Manager difokuskan pada **RUD (lihat, ubah, hapus) + Approval OAS**, bukan penambahan master produk. Penambahan produk tetap ada di dashboard Staff (`POST /staff/products`), jadi tidak ada celah fungsi yang hilang dari sistem.
+- `resources/views/admin/dashboard.blade.php`: seluruh card "Tambah Master Produk Baru" dihapus, termasuk form-nya (`adminKategori`, `adminNama`, `adminHarga`, `adminType`, `adminSize`, `adminColor`, `adminImage`, `adminDeskripsi`) beserta `@error` masing-masing.
+  - Card **"Daftar Master Produk"** tetap ada dan kini menjadi satu-satunya kartu di `#kelola-produk`.
+  - Teks baris kosong diubah dari "Tambahkan produk pertama di atas." menjadi "Master produk ditambahkan dari dashboard Staff." karena tidak lagi ada form di atasnya.
+  - Overlay edit produk **tidak** ikut terpengaruh, jadi kolom deskripsi, ganti foto, dan checkbox "Hapus foto" untuk produk yang sudah ada tetap berfungsi.
+- `routes/web.php`: route `POST /admin/products` (`admin.products.store`) dihapus.
+- `app/Http/Controllers/ManagerController.php`: method `storeProduct()` dihapus, digantikan komentar yang menjelaskan pembagian tanggung jawab. Konsekuensinya `admin.products.store` dan `admin.products.update` yang tadinya punya aturan berbeda (khusus `admin`) sekarang seragam di `updateProduct()`: `abort_unless(role in ['staff','admin'], 403)`.
+- Efek samping yang disengaja: endpoint yang bisa menambah produk dari sisi Manager hilang, sehingga tidak ada lagi cara menambahkan produk tanpa melewati Staff.
+
+### 2. Tombol "Lihat / Preview Detail" di tabel produk Staff & Admin
+- ~~Versi pertama: menuju halaman detail produk yang sudah ada, `route('toko.show', $product->id)` -> `GET /toko/produk/{product}` dengan `target="_blank" rel="noopener"`.~~ **Digantikan** oleh modal read-only in-dashboard, lihat bagian "Revisi 2" di akhir dokumen.
+- Route `toko.show` hanya dilindungi middleware `auth` (tanpa pembatasan role), jadi **sudah diuji dan bisa dibuka staff maupun admin** (HTTP 200, nama produk tampil). Tidak perlu route baru.
+- `resources/views/staff/dashboard.blade.php`: tombol `btn-outline-info btn-sm` dengan ikon `bi-eye` + teks "Lihat" dan `class="btn-lihat-produk"`, ditaruh di sel `Aksi` yang sama **sebelum** tombol Edit.
+- `resources/views/admin/dashboard.blade.php`: tombol `btn-outline-info btn-sm` dengan ikon `bi-eye` saja (kebalikan dari staff yang ikon + teks, karena kolom admin sudah padat Edit + Hapus) dan `class="btn-lihat-produk-admin"`, ditaruh sebelum tombol Edit.
+- Kedua tombol memakai `target="_blank" rel="noopener"` supaya Manager/Staff membuka preview di tab baru dan **tidak kehilangan posisi scroll** di daftar produk. `rel="noopener"` dipakai karena `target="_blank"` tanpa itu membuka `window.opener` ke tab asli.
+- **Jumlah kolom tidak berubah** (tombol masuk ke sel `Aksi` yang sudah ada), jadi `colspan="10"` pada baris kosong staff maupun admin tetap benar dan assertion `substr_count($html, '<tr data-product-row ')` pada `StaffDashboardTabTest` baris 113 tidak terganggu.
+
+### 3. Catatan fitur "Hapus Foto"
+- Fitur hapus foto dipromuskan jadi sub-bagian tersendiri di atas ("Fitur Kelola Foto Produk") dengan tabel empat perilaku, supaya tidak lagi hanya tersirat di dalam catatan trait.
+- Ringkasnya: hapus foto bergantung pada checkbox `remove_image`, tombolnya ada di overlay edit **staff maupun admin**, file lama di-unlink dari disk, dan kolom `image` jadi `NULL`. Form produk baru **tidak** punya tombol hapus foto, karena belum ada file untuk dihapus.
+
+### 4. Insiden: foto produk milik pengguna terhapus saat verifikasi (kronologi & dampak)
+- **Apa yang terjadi**: saat memverifikasi, produk #3 "Kemeja Hitam Polos" terlihat punya `image` terisi. File itu diasumsikan dibuat oleh probe pengujian milik agen, lalu `image` dikembalikan ke `NULL` dan filenya dihapus.
+- **Ternyata salah**: `UploadedFile::fake()->image()` menghasilkan gambar **10x10** piksel (lihat `vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:34`, default `$width = 10, $height = 10`). File yang dihapus berukuran **1024x1024**, yaitu foto asli milik pengguna yang diunggah lewat browser, bukan artefak probe. Teks deskripsi panjang yang menyertaina juga merupakan input asli, bukan string tetap yang dipakai probe.
+- **Kerugian**: file `public/images/produk/1790758786_ttYGgZ65.jpg` hilang permanen. Penghapusan dilakukan `unlink()` dari PHP, jadi tidak masuk Recycle Bin, dan folder `public/images/` tidak pernah dilacak git sehingga tidak ada salinan untuk dipulihkan. Kolom `products.image` sudah dikembalikan `NULL` supaya tidak ada referensi ke file yang hilang. **Deskripsi produk #3 tidak rusak.** Foto perlu diunggah ulang oleh pengguna.
+- **Akar masalah**: asal-usul data ditebak dari pola nama file dan timestamp, bukan dari isi file. Kemungkinan seharusnya diperiksa lebih dulu (dimensi gambar) sebelum bertindak destruktif, atau langsung dikonfirmasi ke pengguna.
+- **Pelajaran untuk sesi berikutnya**: jangan pernah menjalankan bersih-bersih massal pada folder aset atau baris database milik pengguna hanya berdasarkan dugaan bahwa datanya "data uji". Verifikasi dulu dengan sinyal yang tidak ambigu (dimensi file, isi kolom, atau bertanya ke pengguna), dan lebih utamakan membuat data uji dengan nama yang jelas dan/atau di database terpisah agar tidak pernah tertukar dengan data asli.
+
+### 5. Hasil verifikasi revisi (tanpa `php artisan test`)
+- `/staff/dashboard` dan `/admin/dashboard` tetap HTTP 200 setelah perubahan.
+- Semua assertion `StaffDashboardTabTest` diuji ulang terhadap HTML hasil render dan tetap lolos: 11 assertion negatif (L98-104, L108, L136, L142-143), assertion positif L97, L105, L110, serta hitungan presisi L109 `logout` = 1, L113 `<tr data-product-row ` = 2 pada database uji, L139 `dashboard-section` = 5, L141 `d-none` = 4. Format `data-search` (L115) tidak berubah sama sekali.
+- Assertion admin L226-235 juga tetap lolos, termasuk `assertStringNotContainsString('#riwayat-restock"', $html)`.
+- Diverifikasi bahwa form tambah produk **tidak lagi** ada di HTML admin (`Tambah Master Produk Baru`, `id="adminNama"`, dan `action` ke `admin/products` POST semuanya hilang), sementara overlay edit admin masih ada lengkap dengan `name="description"`, tombol hapus `confirm()`, dan section `#kelola-produk`.
+- Diverifikasi `admin.products.store` sudah tidak terdaftar di router dan `ManagerController::storeProduct()` sudah tidak ada.
+- Diverifikasi link preview benar-benar mengarah ke `/toko/produk/{id}` untuk keempat produk di kedua halaman, dan halaman detailnya bisa dibuka dengan role staff maupun admin (HTTP 200). **Catatan: baris ini sudah usang** karena link-nya diganti modal pada "Revisi 2" di bawah.
+
+---
+
+## 2026-10-01 - Revisi 2: Tombol "Lihat" jadi Modal Read-Only In-Dashboard
+
+Permintaan: tombol "Lihat" di tabel produk Staff dan Admin **tidak boleh** memindahkan pengguna ke halaman publik. Staff/Admin harus tetap berada di dashboard masing-masing, dan isi detail harus **read-only** (tanpa form edit, tanpa tombol simpan/hapus, hanya ada tombol Tutup).
+
+### 1. Pendekatan
+- Markup ditulis inline di masing-masing view, **meniru pola overlay Edit yang sudah jalan** (bukan partial bersama) supaya konsisten dengan kode sekarang dan tidak menyentuh alur edit yang sudah terverifikasi.
+- "Read-only" dimaknai secara struktural: **overlay tidak memuat satu pun kontrol form** (`<form>`, `<input>`, `<textarea>`, `<select>`, `type="submit"`). Semua isian dirender sebagai teks di dalam `<dl class="row">`. Ini yang membuat `name="stock"` (forbidden di `StaffDashboardTabTest` L103) mustahil muncul, bukan sekadar tidak diKetik.
+- Overlay memakai CSS `.produk-overlay` yang sudah ada, **bukan** Bootstrap Modal, sesuai framework yang dipakai aplikasi ini.
+- Overlay ditempatkan **di luar** wrapper/tab yang memakai `d-none` (staff: sesudah overlay Edit, sebelum `@endsection`; admin: sesudah overlay Edit), karena `d-none` = `display:none !important` akan membuat modal tak terlihat meski sudah dibuka.
+- Stok ditampilkan sebagai angka polos (tanpa badge status) karena `criticalThreshold` hanya dikirim `StaffController::index()`, bukan `ManagerController::index()`. Menambahkannya berarti mengubah signature controller tanpa perlu.
+
+### 2. Perubahan
+- `resources/views/layouts/app.blade.php`: CSS baru `.produk-detail-media`, `.produk-detail-photo` (320x220, `object-fit: contain`), `.produk-detail-fallback` (kotak "belum punya foto"), `.produk-detail-deskripsi` (`white-space: pre-wrap` supaya baris baru deskripsi tidak collapsed), dan `.produk-detail-kosong` (untuk nilai yang terisi `-`). Kelas `.produk-overlay/-box/-head/-body/-foot` dan `.produk-preview` tidak diubah.
+- `resources/views/staff/dashboard.blade.php`:
+  - Tombol `Lihat` berubah dari `<a href="...">` menjadi `<button type="button" class="btn-lihat-produk">` dengan atribut `data-lihat-produk`, `data-nama`, `data-kategori`, `data-type`, `data-size`, `data-color`, `data-harga`, `data-stok`, `data-deskripsi`, `data-gambar`. `href`, `target`, dan `rel` dihapus. `data-harga` sudah diformat `Rp 150.000` di Blade.
+  - Overlay `#lihatProdukOverlay` ditambahkan (9 field + 1 tombol Tutup).
+  - IIFE JS baru `openLihatOverlay()` / `closeLihatOverlay()`: isi lewat `textContent`, tutup lewat tombol Tutup, klik backdrop, atau `Escape`; fokus pindah ke tombol Tutup saat dibuka dan kembali ke tombol pemicu saat ditutup; scroll `<body>` dikunci selama overlay terbuka.
+- `resources/views/admin/dashboard.blade.php`: sama persis, dengan prefix `lihatProdukAdmin*` dan `class="btn-lihat-produk-admin"` (tetap ikon-saja, tanpa teks, karena kolom admin sudah padat).
+- `app/Http/Controllers/ManagerController.php`: komentar basi di `index()` dikoreksi dari "menambah, mengubah, dan menghapus" menjadi "mengubah dan menghapus", karena `storeProduct()` sudah dihapus pada revisi sebelumnya. Tidak ada perubahan perilaku.
+
+### 3. Batas yang disepakati
+- Tidak ada migration, tidak ada perubahan route, dan halaman publik `/toko/produk/{id}` tidak disentuh (masih bisa diakses lewat URL).
+- Tidak ada tombol "Buka halaman publik" di dalam modal, sesuai permintaan tidak berpindah halaman.
+- Overlay box masih `background: #fff` hardcoded sehingga di dark mode tetap terang. Masalah ini **sudah ada** pada overlay Edit dan sengaja tidak diperbaiki di sini agar perubahan tidak melebar.
+
+### 4. Hasil verifikasi (tanpa `php artisan test`)
+Probe render read-only lewat HTTP kernel terhadap `/staff/dashboard` dan `/admin/dashboard` (role staff & admin), memakai data yang sudah ada tanpa insert/update/delete sama sekali: **144 pemeriksaan, 144 lolos**.
+- 11 assertion negatif `StaffDashboardTabTest` (L98-104, L108, L136, L142-143) tetap absen, termasuk `name="stock"`, `data-reopen`, dan `bootstrap.Modal.getOrCreateInstance`.
+- Hitungan presisi utuh: `dashboard-section` = 5, `dashboard-section d-none` = 4, `logout` = 1, `class="btn btn-outline-danger"` masih ada, `data-product-row` = jumlah produk, `data-search` tidak berubah.
+- Kedua halaman **sudah tidak lagi** memuat `href` ke `/toko/produk/...` maupun `target="_blank"` di tabel produk.
+- Bukti read-only (dipotong per blok overlay): tidak ada `<form>`, `<input>`, `<textarea>`, `<select>`, `type="submit"`, maupun kata "Simpan"/"Hapus"; hanya ada satu tombol Tutup; `role="dialog"` + `aria-modal="true"` ada.
+- Atribut `data-lihat-produk` muncul tepat satu kali per produk di kedua halaman; `data-harga` conforms `Rp <angka>`, `data-stok` conforms angka bulat.
+- Deskripsi panjang produk #3 (245 karakter) utuh di `data-deskripsi` kedua halaman, jadi escaping Blade tidak merusak isi.
+- Overlay Edit di kedua halaman tetap utuh (form, `@csrf`, `method="POST"`, jumlah tombol Edit per produk) - tidak ada regresi.
+- Data dan berkas tidak berubah: 4 produk, 4 kategori, 0 favorit, 0 `transaction_details`, 6 restock, 0 `image` non-null, 0 berkas di `public/images/produk/`.
+- Perilaku JS (buka/tutup, Escape, perpindahan fokus) **belum diverifikasi di browser sungguhan** - batasan yang sama seperti Phase 16/17 dan sudah tercatat di `todo.md`.
+

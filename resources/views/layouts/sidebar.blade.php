@@ -50,6 +50,10 @@
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok Realtime</span>
             </a>
+            <a href="{{ route('admin.dashboard') }}#kelola-produk" class="nav-link {{ $activeRoute === 'produk' ? 'active' : '' }}">
+                <i class="bi bi-pencil-square"></i>
+                <span>Kelola Produk</span>
+            </a>
             <a href="{{ route('admin.dashboard') }}#persetujuan-restock" class="nav-link {{ $activeRoute === 'persetujuan' ? 'active' : '' }}">
                 <i class="bi bi-check-circle"></i>
                 <span>Persetujuan Restock</span>

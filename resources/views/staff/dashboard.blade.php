@@ -11,10 +11,36 @@
         <div class="mb-3">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
             </div>
         </div>
     @endif
+
+    <!-- Alert Error -->
+    @if(session('error'))
+        <div class="mb-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+
+    <!-- Error validasi form edit produk juga ditampilkan di overlay kustom,
+         alert ini sebagai cadangan ketika overlay tidak bisa dibuka kembali. -->
+    @if($errors->any() && !old('_produk_id'))
+        <div class="mb-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <ul class="mb-0 ps-3">
+                    @foreach($errors->all() as $errorMessage)
+                        <li>{{ $errorMessage }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+
 
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
@@ -186,6 +212,7 @@
                                     <th class="text-end">Price</th>
                                     <th class="text-center">Stock</th>
                                     <th class="text-center">Status</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -208,14 +235,49 @@
                                                 <span class="badge bg-success">Stok Aman</span>
                                             @endif
                                         </td>
+                                        <td class="text-center text-nowrap">
+                                            {{-- Preview read-only produk. Tombol (bukan link) supaya staff
+                                                 tetap berada di dashboard, tidak pindah ke halaman
+                                                 publik /toko/produk/{id}. Data diambil dari atribut
+                                                 data-* agar modal cukup diisi oleh JS tanpa request. --}}
+                                            <button type="button" class="btn btn-outline-info btn-sm btn-lihat-produk"
+                                                data-lihat-produk="{{ $product->id }}"
+                                                data-nama="{{ $product->name }}"
+                                                data-kategori="{{ $product->category->name ?? '-' }}"
+                                                data-type="{{ $product->type ?? '-' }}"
+                                                data-size="{{ $product->size ?? '-' }}"
+                                                data-color="{{ $product->color ?? '-' }}"
+                                                data-harga="Rp {{ number_format($product->price, 0, ',', '.') }}"
+                                                data-stok="{{ (int) $product->stock }}"
+                                                data-deskripsi="{{ $product->description ?? '' }}"
+                                                data-gambar="{{ $product->image_url ?? '' }}"
+                                                title="Lihat detail produk">
+                                                <i class="bi bi-eye me-1"></i>Lihat
+                                            </button>
+
+                                            {{-- Data form edit disimpan di atribut data-* agar overlay
+                                                 cukup diisi oleh JS tanpa request ke server lagi --}}
+                                            <button type="button" class="btn btn-outline-primary btn-sm btn-edit-produk"
+                                                    data-edit-produk="{{ $product->id }}"
+                                                    data-nama="{{ $product->name }}"
+                                                    data-kategori="{{ $product->category->name ?? '' }}"
+                                                    data-type="{{ $product->type ?? '' }}"
+                                                    data-size="{{ $product->size ?? '' }}"
+                                                    data-color="{{ $product->color ?? '' }}"
+                                                    data-harga="{{ (int) $product->price }}"
+                                                    data-deskripsi="{{ $product->description ?? '' }}"
+                                                    data-gambar="{{ $product->image_url ?? '' }}">
+                                                <i class="bi bi-pencil-square me-1"></i>Edit
+                                            </button>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr id="productEmptyRow">
-                                        <td colspan="9" class="text-center text-muted">Belum ada produk yang tersedia.</td>
+                                        <td colspan="10" class="text-center text-muted">Belum ada produk yang tersedia.</td>
                                     </tr>
                                 @endforelse
                                 <tr id="productNoMatchRow" class="d-none">
-                                    <td colspan="9" class="text-center text-muted">Produk tidak ditemukan.</td>
+                                    <td colspan="10" class="text-center text-muted">Produk tidak ditemukan.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -403,6 +465,16 @@
                                 @enderror
                             </div>
 
+                            <div class="col-12">
+                                <label for="description" class="form-label">Deskripsi Produk</label>
+                                <textarea name="description" id="description" rows="3" class="form-control"
+                                    maxlength="2000" placeholder="Contoh: Bahan katun combed 30s, adem dan tidak mudah kusut.">{{ old('description') }}</textarea>
+                                <div class="form-text">Opsional. Maksimal 2000 karakter. Deskripsi ini tampil di halaman detail produk.</div>
+                                @error('description')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
                             <div class="col-12 d-flex flex-wrap align-items-center gap-3">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-save me-2"></i>Simpan Produk
@@ -533,6 +605,169 @@
         </div>
     </div>
 
+    {{-- ================= OVERLAY EDIT PRODUK =================
+         Overlay ini sengaja diletakkan DI LUAR wrapper #staffDashboard.
+         Section dashboard memakai kelas d-none (display:none !important) untuk
+         berpindah tab, dan elemen di dalamnya akan ikut tersembunyi walau
+         overlay-nya sendiri sudah .show. --}}
+    <div class="produk-overlay" id="editProdukOverlay" role="dialog" aria-modal="true" aria-labelledby="editProdukTitle" hidden>
+        <div class="produk-overlay-box">
+            <div class="produk-overlay-head">
+                <h5 class="mb-0" id="editProdukTitle">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Produk
+                </h5>
+                <button type="button" class="btn-close" id="editProdukClose" aria-label="Tutup"></button>
+            </div>
+
+            <form action="" method="POST" id="editProdukForm" enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
+
+                {{-- Disembunyikan dari validasi, hanya dipakai JS untuk membuka
+                     kembali overlay yang benar setelah validasi ditolak --}}
+                <input type="hidden" name="_produk_id" id="editProdukId" value="">
+
+                <div class="produk-overlay-body">
+                    <div id="editProdukError" class="alert alert-danger d-none"></div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="editNama" class="form-label">Nama Produk <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="editNama" class="form-control" maxlength="100" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="editKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                            <input type="text" name="category" id="editKategori" class="form-control" maxlength="50" list="editKategoriList" required>
+                            {{-- Ketik kategori bebas tetap bisa, kategori baru dibuat otomatis oleh backend --}}
+                            <datalist id="editKategoriList">
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->name }}"></option>
+                                @endforeach
+                            </datalist>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="editType" class="form-label">Type</label>
+                            <input type="text" name="type" id="editType" class="form-control" maxlength="50">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="editSize" class="form-label">Size</label>
+                            <input type="text" name="size" id="editSize" class="form-control" maxlength="10">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="editColor" class="form-label">Color</label>
+                            <input type="text" name="color" id="editColor" class="form-control" maxlength="30">
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="editHarga" class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="price" id="editHarga" class="form-control" min="0" step="1" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="editDeskripsi" class="form-label">Deskripsi Produk</label>
+                            <textarea name="description" id="editDeskripsi" rows="4" class="form-control" maxlength="2000"
+                                placeholder="Bahan, ukuran, keistimewaan, atau catatan lain tentang produk ini."></textarea>
+                            <div class="form-text">Maksimal 2000 karakter. Tampil di halaman detail produk pelanggan.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="editImage" class="form-label">Ganti Foto Produk</label>
+                            <input type="file" name="image" id="editImage" class="form-control" accept="image/jpeg,image/png,image/webp">
+                            <div class="form-text">Kosongkan bila tidak ingin mengganti foto. Format JPG/PNG/WEBP maksimal 2 MB.</div>
+
+                            <div class="d-flex align-items-center gap-2 mt-2">
+                                <img id="editImagePreview" src="" alt="Foto produk saat ini" class="produk-preview d-none">
+                                <span id="editImageInfo" class="text-muted small">Produk ini belum memiliki foto.</span>
+                            </div>
+
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" value="1" id="editRemoveImage" name="remove_image">
+                                <label class="form-check-label" for="editRemoveImage">Hapus foto produk ini</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3 mb-0 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Stok tidak dapat diubah dari form ini. Perubahan stok hanya dilakukan lewat pengajuan restock.
+                    </div>
+                </div>
+
+                <div class="produk-overlay-foot">
+                    <button type="button" class="btn btn-outline-secondary" id="editProdukBatal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- ================= OVERLAY LIHAT PRODUK (READ-ONLY) =================
+         Sengaja tidak memakai <form> sama sekali: seluruh isi hanya teks baca-saja
+         (Foto, Nama, Kategori, Type, Size, Color, Harga, Stok, Deskripsi) dan satu
+         tombol Tutup, sehingga staff tidak bisa mengedit apa pun dari sini. --}}
+    <div class="produk-overlay" id="lihatProdukOverlay" role="dialog" aria-modal="true" aria-labelledby="lihatProdukTitle" hidden>
+        <div class="produk-overlay-box">
+            <div class="produk-overlay-head">
+                <h5 class="mb-0" id="lihatProdukTitle">
+                    <i class="bi bi-eye me-2"></i>Lihat Produk
+                </h5>
+            </div>
+
+            <div class="produk-overlay-body">
+                <div class="produk-detail-media">
+                    <img id="lihatProdukFoto" class="produk-detail-photo d-none" alt="Foto produk">
+                    <div id="lihatProdukTanpaFoto" class="produk-detail-fallback">
+                        <i class="bi bi-image me-2"></i>Produk ini belum punya foto
+                    </div>
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Nama Produk</dt>
+                    <dd class="col-sm-8" id="lihatProdukNama">-</dd>
+
+                    <dt class="col-sm-4">Kategori</dt>
+                    <dd class="col-sm-8" id="lihatProdukKategori">-</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8" id="lihatProdukType">-</dd>
+
+                    <dt class="col-sm-4">Size</dt>
+                    <dd class="col-sm-8" id="lihatProdukSize">-</dd>
+
+                    <dt class="col-sm-4">Color</dt>
+                    <dd class="col-sm-8" id="lihatProdukColor">-</dd>
+
+                    <dt class="col-sm-4">Harga</dt>
+                    <dd class="col-sm-8 fw-semibold" id="lihatProdukHarga">-</dd>
+
+                    <dt class="col-sm-4">Stok</dt>
+                    <dd class="col-sm-8" id="lihatProdukStok">-</dd>
+                </dl>
+
+                <hr class="my-3">
+
+                <h6 class="mb-2">Deskripsi Produk</h6>
+                <div id="lihatProdukDeskripsi" class="produk-detail-deskripsi">Belum ada deskripsi untuk produk ini.</div>
+
+                <div class="alert alert-secondary mt-3 mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Halaman ini hanya menampilkan data. Untuk mengubah produk gunakan tombol pensil di
+                    baris tabel, dan penambahan stok dilakukan lewat pengajuan restock.
+                </div>
+            </div>
+
+            <div class="produk-overlay-foot">
+                <button type="button" class="btn btn-outline-secondary" id="lihatProdukTutup">Tutup</button>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -636,6 +871,195 @@
                     }
                 });
             }
+
+            /* ================= OVERLAY EDIT PRODUK =================
+               Form edit memakai overlay kustom, bukan Bootstrap Modal, supaya
+               tetap terlihat meski section Monitoring Stok sedang memakai d-none. */
+            const editOverlay = document.getElementById('editProdukOverlay');
+            const editForm = document.getElementById('editProdukForm');
+            const editFields = {
+                nama: document.getElementById('editNama'),
+                kategori: document.getElementById('editKategori'),
+                type: document.getElementById('editType'),
+                size: document.getElementById('editSize'),
+                color: document.getElementById('editColor'),
+                harga: document.getElementById('editHarga'),
+                deskripsi: document.getElementById('editDeskripsi'),
+                image: document.getElementById('editImage'),
+                removeImage: document.getElementById('editRemoveImage'),
+                produkId: document.getElementById('editProdukId'),
+                preview: document.getElementById('editImagePreview'),
+                info: document.getElementById('editImageInfo'),
+                error: document.getElementById('editProdukError'),
+            };
+            const EDIT_URL = @json(route('staff.products.update', ['product' => 0]));
+
+            const setPreview = (src) => {
+                if (src) {
+                    editFields.preview.src = src;
+                    editFields.preview.classList.remove('d-none');
+                    editFields.info.classList.add('d-none');
+                } else {
+                    editFields.preview.removeAttribute('src');
+                    editFields.preview.classList.add('d-none');
+                    editFields.info.classList.remove('d-none');
+                }
+            };
+
+            const openEditOverlay = (btn) => {
+                editForm.action = EDIT_URL + btn.dataset.editProduk;
+                editFields.nama.value = btn.dataset.nama || '';
+                editFields.kategori.value = btn.dataset.kategori || '';
+                editFields.type.value = btn.dataset.type || '';
+                editFields.size.value = btn.dataset.size || '';
+                editFields.color.value = btn.dataset.color || '';
+                editFields.harga.value = btn.dataset.harga || '';
+                editFields.deskripsi.value = btn.dataset.deskripsi || '';
+                editFields.image.value = '';
+                editFields.removeImage.checked = false;
+                editFields.image.disabled = false;
+                editFields.produkId.value = btn.dataset.editProduk || '';
+                editFields.error.classList.add('d-none');
+                setPreview(btn.dataset.gambar || '');
+
+                editOverlay.hidden = false;
+                document.body.style.overflow = 'hidden';
+                editFields.nama.focus();
+            };
+
+            const closeEditOverlay = () => {
+                editOverlay.hidden = true;
+                document.body.style.overflow = '';
+            };
+
+            if (editOverlay && editForm) {
+                document.querySelectorAll('.btn-edit-produk').forEach(btn => {
+                    btn.addEventListener('click', () => openEditOverlay(btn));
+                });
+
+                document.getElementById('editProdukClose').addEventListener('click', closeEditOverlay);
+                document.getElementById('editProdukBatal').addEventListener('click', closeEditOverlay);
+                editOverlay.addEventListener('click', (e) => { if (e.target === editOverlay) closeEditOverlay(); });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !editOverlay.hidden) closeEditOverlay();
+                });
+
+                // Mencentang "hapus foto" langsung menyembunyikan pratinjau dan
+                // menonaktifkan input file, supaya tidak ada dua aksi yang bertabrakan.
+                editFields.removeImage.addEventListener('change', () => {
+                    setPreview('');
+                    editFields.image.disabled = editFields.removeImage.checked;
+                });
+            }
+
+            // Bila validasi update ditolak, buka kembali overlay dengan nilai
+            // yang tadi sudah diketik supaya staff tidak perlu mengetik ulang.
+            @if($errors->any() && old('_produk_id'))
+                (function () {
+                    const btn = document.querySelector('[data-edit-produk="{{ old('_produk_id') }}"]');
+                    if (!btn) return;
+
+                    openEditOverlay(btn);
+
+                    // Nilai old() mengalahkan nilai default dari baris tabel,
+                    // karena itu yang terakhir diketik staff sebelum submit.
+                    editFields.nama.value = @json(old('name'));
+                    editFields.kategori.value = @json(old('category'));
+                    editFields.type.value = @json(old('type'));
+                    editFields.size.value = @json(old('size'));
+                    editFields.color.value = @json(old('color'));
+                    editFields.harga.value = @json(old('price'));
+                    editFields.deskripsi.value = @json(old('description'));
+
+                    editFields.error.textContent = @json($errors->first());
+                    editFields.error.classList.remove('d-none');
+                })();
+            @endif
+        })();
+
+        /* ================= OVERLAY LIHAT PRODUK (READ-ONLY) =================
+           Dua IIFE terpisah supaya overlay ini tetap jalan walau markup tabel
+           produk tidak ada (mis. staff belum punya produk). */
+        (function () {
+            const lihatOverlay = document.getElementById('lihatProdukOverlay');
+            const editOverlay = document.getElementById('editProdukOverlay');
+            if (!lihatOverlay) return;
+
+            const lihatFields = {
+                nama: document.getElementById('lihatProdukNama'),
+                kategori: document.getElementById('lihatProdukKategori'),
+                type: document.getElementById('lihatProdukType'),
+                size: document.getElementById('lihatProdukSize'),
+                color: document.getElementById('lihatProdukColor'),
+                harga: document.getElementById('lihatProdukHarga'),
+                stok: document.getElementById('lihatProdukStok'),
+                deskripsi: document.getElementById('lihatProdukDeskripsi'),
+                foto: document.getElementById('lihatProdukFoto'),
+                tanpaFoto: document.getElementById('lihatProdukTanpaFoto'),
+            };
+            const KOSONG = '-';
+            const DESKRIPSI_KOSONG = 'Belum ada deskripsi untuk produk ini.';
+            let triggerTerakhir = null;
+
+            // Isi memakai textContent supaya nama/deskripsi yang mengandung
+            // tanda kutip atau tag tidak di-parse sebagai HTML.
+            const setTeks = (el, nilai, fallback) => {
+                const isi = (nilai || '').trim();
+                el.textContent = isi && isi !== KOSONG ? isi : fallback;
+                el.classList.toggle('produk-detail-kosong', !isi || isi === KOSONG);
+            };
+
+            const setFoto = (src) => {
+                if (src) {
+                    lihatFields.foto.src = src;
+                    lihatFields.foto.classList.remove('d-none');
+                    lihatFields.tanpaFoto.classList.add('d-none');
+                } else {
+                    lihatFields.foto.removeAttribute('src');
+                    lihatFields.foto.classList.add('d-none');
+                    lihatFields.tanpaFoto.classList.remove('d-none');
+                }
+            };
+
+            const openLihatOverlay = (btn) => {
+                setTeks(lihatFields.nama, btn.dataset.nama, KOSONG);
+                setTeks(lihatFields.kategori, btn.dataset.kategori, KOSONG);
+                setTeks(lihatFields.type, btn.dataset.type, KOSONG);
+                setTeks(lihatFields.size, btn.dataset.size, KOSONG);
+                setTeks(lihatFields.color, btn.dataset.color, KOSONG);
+                setTeks(lihatFields.harga, btn.dataset.harga, KOSONG);
+                setTeks(lihatFields.stok, btn.dataset.stok, KOSONG);
+                setTeks(lihatFields.deskripsi, btn.dataset.deskripsi, DESKRIPSI_KOSONG);
+                setFoto(btn.dataset.gambar || '');
+
+                // Jaring pengaman: jangan sampai dua overlay terbuka bersamaan
+                // karena keduanya mengunci scroll <body>.
+                if (editOverlay && !editOverlay.hidden) {
+                    editOverlay.hidden = true;
+                }
+
+                triggerTerakhir = btn;
+                lihatOverlay.hidden = false;
+                document.body.style.overflow = 'hidden';
+                document.getElementById('lihatProdukTutup').focus();
+            };
+
+            const closeLihatOverlay = () => {
+                lihatOverlay.hidden = true;
+                document.body.style.overflow = '';
+                if (triggerTerakhir) triggerTerakhir.focus();
+                triggerTerakhir = null;
+            };
+
+            document.querySelectorAll('.btn-lihat-produk').forEach(btn => {
+                btn.addEventListener('click', () => openLihatOverlay(btn));
+            });
+
+            document.getElementById('lihatProdukTutup').addEventListener('click', closeLihatOverlay);
+            lihatOverlay.addEventListener('click', (e) => { if (e.target === lihatOverlay) closeLihatOverlay(); });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !lihatOverlay.hidden) closeLihatOverlay();
+            });
         })();
     </script>
 @endpush

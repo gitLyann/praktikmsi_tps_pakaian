@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\RestockRequest;
+use App\Support\HandlesProductImage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class StaffController extends Controller
 {
+    use HandlesProductImage;
     // Menampilkan halaman dashboard staff beserta data produk dan riwayat restock
     public function index()
     {
@@ -82,6 +83,9 @@ class StaffController extends Controller
     // Menyimpan produk baru ke tabel products (Monitoring Stok - Staff)
     public function storeProduct(Request $request)
     {
+        // Hanya Staff (dan Admin) yang boleh menambah produk.
+        abort_unless(in_array(Auth::user()->role, ['staff', 'admin'], true), 403);
+
         // Stok sengaja tidak diambil dari request: produk baru selalu didaftarkan dengan stok 0.
         // Pengisian stok fisik dilakukan lewat pengajuan restock setelah produk tersimpan.
         $data = $request->validate([
@@ -91,23 +95,12 @@ class StaffController extends Controller
             'size' => 'nullable|string|max:10',
             'color' => 'nullable|string|max:30',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'description' => 'nullable|string|max:2000',
             'price' => 'required|numeric|min:0',
         ]);
 
         // Foto produk disimpan ke public/images/produk supaya bisa langsung diakses tanpa storage:link
-        if ($request->hasFile('image')) {
-            $folder = public_path('images/produk');
-
-            if (! is_dir($folder)) {
-                mkdir($folder, 0755, true);
-            }
-
-            $extension = strtolower($request->file('image')->getClientOriginalExtension());
-            $namaFile = time() . '_' . Str::random(8) . '.' . $extension;
-            $request->file('image')->move($folder, $namaFile);
-
-            $data['image'] = 'images/produk/' . $namaFile;
-        }
+        $data['image'] = $this->storeProductImage($request->file('image'));
 
         // Kategori boleh dipilih dari datalist atau diketik bebas,
         // sehingga otomatis dibuatkan apabila belum ada di database
@@ -120,6 +113,7 @@ class StaffController extends Controller
             'size' => $data['size'] ?? null,
             'color' => $data['color'] ?? null,
             'image' => $data['image'] ?? null,
+            'description' => $data['description'] ?? null,
             'price' => $data['price'],
             'stock' => 0,
         ]);
@@ -130,6 +124,47 @@ class StaffController extends Controller
             ->to(route('staff.dashboard') . '?produk=' . $product->id . '#pengajuan-restock')
             ->with('success', 'Produk baru berhasil ditambahkan: ' . $product->name
             . '. Stok awal 0, silakan ajukan restock untuk mengisi stok fisik.');
+    }
+
+    // Memperbarui master produk yang sudah ada (Monitoring Stok - Staff)
+    public function updateProduct(Request $request, Product $product)
+    {
+        // Saat ini belum ada middleware role, jadi pengecekan dilakukan langsung di controller.
+        abort_unless(in_array(Auth::user()->role, ['staff', 'admin'], true), 403);
+
+        $data = $request->validate([
+            'category' => 'required|string|max:50',
+            'name' => 'required|string|max:100',
+            'type' => 'nullable|string|max:50',
+            'size' => 'nullable|string|max:10',
+            'color' => 'nullable|string|max:30',
+            'description' => 'nullable|string|max:2000',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'remove_image' => 'nullable|boolean',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        // Stok tidak bisa diubah dari form ini: perubahan stok hanya lewat pengajuan restock.
+        $category = Category::firstOrCreate(['name' => trim($data['category'])]);
+
+        $product->update([
+            'category_id' => $category->id,
+            'name' => $data['name'],
+            'type' => $data['type'] ?? null,
+            'size' => $data['size'] ?? null,
+            'color' => $data['color'] ?? null,
+            'description' => $data['description'] ?? null,
+            'image' => $this->syncProductImage(
+                $request->file('image'),
+                $product->image,
+                $request->boolean('remove_image')
+            ),
+            'price' => $data['price'],
+        ]);
+
+        return redirect()
+            ->to(route('staff.dashboard') . '#monitoring-stok')
+            ->with('success', 'Produk berhasil diperbarui: ' . $product->name . '.');
     }
 
     // Memproses pengajuan restock dari formulir web (OAS Function - Staff)

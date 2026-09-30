@@ -34,4 +34,10 @@ class Transaction extends Model
     {
         return $this->belongsTo(User::class, 'employee_id');
     }
+
+    // Relasi ke detail/barang yang dibeli pada transaksi ini
+    public function details()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
 }

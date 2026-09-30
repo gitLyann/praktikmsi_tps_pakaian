@@ -97,6 +97,99 @@
                 display: block;
             }
         }
+
+        /* Overlay kustom (bukan Bootstrap Modal) untuk form edit produk.
+           Sengaja memakai position:fixed + hidden attribute supaya tidak
+           ikut tersembunyi bersama section dashboard yang memakai d-none. */
+        .produk-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px 16px;
+            z-index: 1080;
+            overflow-y: auto;
+        }
+        .produk-overlay[hidden] {
+            display: none;
+        }
+        .produk-overlay-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 720px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+        .produk-overlay-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 18px 22px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .produk-overlay-body {
+            padding: 22px;
+        }
+        .produk-overlay-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 22px;
+            border-top: 1px solid #e9ecef;
+        }
+        .produk-preview {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid #e9ecef;
+        }
+
+        /* Overlay read-only "Lihat Produk". Memakai .produk-overlay yang sama
+           dengan form edit, hanya menambahkan blok tampilan baca-saja. */
+        .produk-detail-media {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+        .produk-detail-photo {
+            width: 100%;
+            max-width: 320px;
+            height: 220px;
+            object-fit: contain;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+        }
+        .produk-detail-fallback {
+            width: 100%;
+            max-width: 320px;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 1px dashed #ced4da;
+            border-radius: 12px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        /* white-space: pre-wrap supaya baris baru di deskripsi tidak collapsed */
+        .produk-detail-deskripsi {
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #495057;
+        }
+        .produk-detail-kosong {
+            color: #6c757d;
+            font-style: italic;
+        }
     </style>
     @stack('styles')
 </head>

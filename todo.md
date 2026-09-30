@@ -68,4 +68,60 @@
 - [x] Phase 16 — Perbaikan teks changelog yang korup (karakter acak & emoji hilang) di Phase 8, 10, 14, 15, 16
 - [x] Phase 16 — Verifikasi via HTTP kernel: `GET /toko` 200, `GET /toko/pesanan` 200, cabang `@empty` pesanan, regresi chatbot/buy/filter/profil/logout (tanpa `artisan test`)
 
-(End of file - total 13 lines)
+- [x] Phase 17 - Migration `2026_10_01_000001_add_description_to_products_table.php` (TEXT nullable, `after('image')`) - `products.image` sudah ada dari Phase 14, jadi tidak dibuat ulang
+- [x] Phase 17 - Migration `2026_10_01_000002_create_favorites_table.php` (user_id & product_id cascade, unique compound `user_id+product_id`, timestamps)
+- [x] Phase 17 - Jalankan `php artisan migrate --force` (bukan `migrate:fresh`) - 2 migration DONE
+- [x] Phase 17 - Model `Favorite` + relasi `Product::favorites()` dan `User::favorites()`
+- [x] Phase 17 - Trait `app/Support/HandlesProductImage.php` (`storeProductImage`, `syncProductImage`, `deleteProductImage`) - hapus file lama hanya setelah file baru tersimpan
+- [x] Phase 17 - Folder gambar tetap `public/images/produk/` (tanpa `storage:link`)
+- [x] Phase 17 - `StaffController::storeProduct()` menerima `description`; logika upload dipindah ke trait
+- [x] Phase 17 - `StaffController::updateProduct()` (baru) - `abort_unless` role staff/admin, boleh ganti kategori, `stock` tetap terkunci
+- [x] Phase 17 - `ManagerController::storeProduct()` + `updateProduct()` + `destroyProduct()` (baru) - `storeProduct`/`destroyProduct` khusus role admin
+- [x] Phase 17 - Delete produk **ditolak** bila ada `transaction_details` (FK tanpa cascade) agar riwayat penjualan tetap utuh
+- [x] Phase 17 - Route: `toko.show`, `toko.favorit`, `toko.favorit.toggle`, `staff.products.update`, `admin.products.store`, `admin.products.update`, `admin.products.destroy`
+- [x] Phase 17 - `TokoController::show()` / `toggleFavorite()` / `favorit()` (baru) - toggle pakai `first`+`create`/`delete` (bukan `updateOrCreate`) demi unique index, balas JSON untuk `fetch()`
+- [x] Phase 17 - Layout bersama `resources/views/layouts/toko-shell.blade.php` (sidebar, topbar, dark mode, modal profil, modal info, chatbot) - katalog tidak diubah strukturnya
+- [x] Phase 17 - Halaman `toko/show.blade.php` (foto besar, deskripsi, spesifikasi, favorit, tombol beli) dan `toko/favorit.blade.php` (grid + empty state)
+- [x] Phase 17 - Katalog: tombol hati SVG per card, judul card link ke detail, sidebar Favorit -> `route('toko.favorit')`, entri `infoContent.favorit` dihapus
+- [x] Phase 17 - Form edit pakai **overlay kustom** (bukan Modal Bootstrap) karena `StaffDashboardTabTest` melarang `bootstrap.Modal.getOrCreateInstance`; overlay di luar `.dashboard-section` agar tidak ikut `d-none`
+- [x] Phase 17 - Overlay buka kembali dengan nilai `old()` bila validasi ditolak; checkbox "Hapus foto" menonaktifkan input file
+- [x] Phase 17 - Admin: section `#kelola-produk` (form tambah + tabel produk) dengan tombol Edit dan Hapus (`confirm()`), menu sidebar "Kelola Produk"
+- [x] Phase 17 - Verifikasi tanpa `artisan test`: `php -l` 10 file OK, `route:list` 7 route baru terdaftar, `db:table` schema sesuai
+- [x] Phase 17 - **BUG 1** `/toko/favorit` HTTP 500 - `whereHas` + `latest('favorites.created_at')` gagal (`Unknown column`) karena tabel tidak di-join; diperbaiki dengan `join('favorites')` + `orderByDesc` + `select('products.*')`
+- [x] Phase 17 - **BUG 2** `POST /toko/favorit/{product}` HTTP 500 - `toggleFavorite()` memakai `$request` tanpa diinjeksi (`Undefined variable $request`); diperbaiki jadi `toggleFavorite(Request $request, Product $product)`
+- [x] Phase 17 - **BUG 3** `App\Models\TransactionDetail` tidak pernah ada padahal dipakai `ManagerController`; model dibuat + relasi `Transaction::details()`
+- [x] Phase 17 - **BUG 4** `StaffController::storeProduct()` tidak punya cek role (pelanggan bisa tambah produk); ditambah `abort_unless(role in ['staff','admin'])`
+- [x] Phase 17 - Overlay admin kini punya hidden `_produk_id` dan reopen + pesan error saat validasi ditolak
+- [x] Phase 17 - Verifikasi render nyata (bukan `artisan test`): `/toko`, `/toko/produk/{id}`, `/toko/favorit`, `/staff/dashboard`, `/admin/dashboard` semua HTTP 200
+- [x] Phase 17 - Assertion `StaffDashboardTabTest` diceck satu per satu terhadap HTML render: 11 negatif + 18 positif lolos, `dashboard-section`=5, `d-none`=4, `logout`=1, `produk-overlay`=1
+- [x] Phase 17 - Otorisasi diuji dengan role nyata: pelanggan 403 di semua route produk, staff 403 untuk `admin.products.destroy`, tamu 302 ke login
+- [x] Phase 17 - Gate riwayat penjualan diuji dengan transaksi nyata: delete ditolak, produk + `transaction_details` + `transactions` tetap utuh
+- [x] Phase 17 - Alur foto diuji penuh: upload, update tanpa file (foto lama bertahan), ganti foto (file lama terhapus), hapus foto (kolom null + file terhapus), dan `stock` tetap terkunci
+- [x] Phase 17 - Semua data uji dibersihkan: DB kembali ke 4 produk / 4 kategori / 0 favorit / 0 `transaction_details`, folder `images/produk/` kosong
+
+### Revisi Phase 17 (RUD + Preview Detail)
+- [x] Revisi - Form "Tambah Master Produk" **dihapus** dari `admin/dashboard.blade.php`; kartu "Daftar Master Produk" jadi satu-satunya kartu di `#kelola-produk`; teks baris kosong diarahkan ke dashboard Staff
+- [x] Revisi - Route `admin.products.store` dihapus dari `routes/web.php` dan `ManagerController::storeProduct()` dihapus; Manager kini fokus RUD + Approval
+- [x] Revisi - Tombol "Lihat" (preview detail) ditambahkan di sel `Aksi` tabel produk **Staff** (`btn-lihat-produk`) dan **Admin** (`btn-lihat-produk-admin`), menuju `route('toko.show', $product->id)` dengan `target="_blank" rel="noopener"` - **berlaku hanya untuk versi pertama, sudah diganti modal (lihat "Revisi 2" di bawah)**
+- [x] Revisi - Jumlah kolom tidak berubah (`colspan="10"` tetap benar), `StaffDashboardTabTest` diuji ulang dan semua assertion tetap lolos
+- [x] Revisi - Diverifikasi `/toko/produk/{id}` bisa dibuka role staff maupun admin (HTTP 200)
+- [x] Revisi - Catatan ditambahkan ke `changelog.md`: section "Fitur Kelola Foto Produk" (tabel 4 perilaku termasuk hapus foto) + section "Revisi Phase 17" berisi kronologi insiden
+- [ ] Revisi - **Foto produk #3 "Kemeja Hitam Polos" terhapus permanen** oleh agen saat verifikasi (salah mengira data uji). `products.image` sudah di-`NULL`, deskripsi aman, tapi file `public/images/produk/1790758786_ttYGgZ65.jpg` (1024x1024) tidak bisa dipulihkan - **perlu diunggah ulang oleh pengguna**
+
+### Revisi 2 (Tombol "Lihat" jadi Modal Read-Only In-Dashboard)
+- [x] Tombol "Lihat" di Staff & Admin diubah dari `<a href>` + `target="_blank"` menjadi `<button type="button">` yang membuka modal read-only, **tanpa navigasi** ke halaman publik
+- [x] Overlay memakai CSS `.produk-overlay` yang sudah ada (bukan Bootstrap Modal), ditempatkan di luar wrapper/tab `d-none` seperti overlay Edit
+- [x] Isi modal: Foto, Nama, Kategori, Type, Size, Color, Harga, Stok, Deskripsi - semuanya teks baca-saja di dalam `<dl>`, **tanpa `<form>`/`<input>`/`<textarea>`/`<select>`**, hanya satu tombol Tutup (tanpa Simpan/Hapus)
+- [x] Foto memakai `image_url` dengan fallback "Produk ini belum punya foto"; deskripsi memakai `textContent` + `white-space: pre-wrap` supaya baris baru tidak collapsed
+- [x] Interaksi: tutup lewat tombol Tutup, klik backdrop, atau `Escape`; fokus ke tombol Tutup saat dibuka dan kembali ke tombol pemicu saat ditutup; scroll body dikunci selama overlay terbuka
+- [x] CSS baru di `layouts/app.blade.php`: `.produk-detail-media`, `.produk-detail-photo`, `.produk-detail-fallback`, `.produk-detail-deskripsi`, `.produk-detail-kosong`
+- [x] `ManagerController::index()` - komentar basi dikoreksi (tidak lagi menyebut Manager boleh menambah produk)
+- [x] Verifikasi: probe render read-only (144 pemeriksaan, 144 lolos) - 11 assertion negatif tetap absen termasuk `name="stock"`; hitungan presisi utuh; kedua halaman sudah tidak memuat `href` ke `/toko/produk/`; overlay Edit tidak mengalami regresi
+- [x] Verifikasi: tidak ada perubahan data/berkas (4 produk, 4 kategori, 0 favorit, 0 `transaction_details`, 6 restock, 0 `image` non-null, 0 berkas di `public/images/produk/`)
+- [x] `changelog.md` - section "Revisi 2" ditulis; sub-bagian 2 lama ditandai usang; karakter korup di `changelog.md:249` diperbaiki
+
+### Tersisa
+- [ ] Phase 17 - **Belum diverifikasi di browser** - perilaku JavaScript (tombol hati `fetch()`, buka/tutup overlay edit, `confirm()` hapus, chatbot, buka/tutup modal read-only + Escape + perpindahan fokus) masih perlu dicek manual
+- [ ] Phase 17 - `buyProduct()` masih tidak mengisi `transaction_details`, jadi aturan "tolak hapus bila terjual" belum terpicu oleh data sekarang
+- [ ] Phase 17 - Overlay staff & admin (edit + lihat) masih duplikasi markup - bisa dijadikan partial `@include` dengan prefix ID
+- [ ] Dark mode - `.produk-overlay-box` masih `background: #fff` hardcoded, jadi overlay tetap terang saat mode gelap aktif (sudah bug sejak overlay Edit; belum diperbaiki)
