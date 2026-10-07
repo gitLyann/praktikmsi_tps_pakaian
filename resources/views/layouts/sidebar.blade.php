@@ -1,7 +1,7 @@
 <div class="sidebar-header">
     <a href="#" class="sidebar-brand d-flex align-items-center gap-2">
-        <i class="bi bi-shop text-primary fs-3"></i>
-        <span>TPS Pakaian</span>
+        <i class="lm-mark">L</i>
+        <span>La Mamora.</span>
     </a>
     <span class="badge bg-primary bg-opacity-10 text-primary ms-3 mt-2 d-inline-block">
         {{ ucfirst(Auth::user()->role ?? 'user') }}
@@ -18,9 +18,13 @@
                 <span>Dashboard</span>
             </a>
         @else
-            <a href="{{ route($dashboardRoute) }}" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
+            <a href="{{ route($dashboardRoute) }}#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
+            </a>
+            <a href="{{ route('admin.dashboard') }}#analisis-mis" class="nav-link {{ $activeRoute === 'analisis' ? 'active' : '' }}">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span>Analisis Penjualan</span>
             </a>
         @endif
     </div>
@@ -107,19 +111,34 @@
     </div>
 </div>
 
-<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-secondary text-white">
-                <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-gear me-2"></i>Pengaturan</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small">Fitur pengaturan akan segera hadir.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+@if(Auth::user()->role !== 'staff')
+    {{-- Modal Pengaturan khusus role non-staff (admin/manager).
+         Staff memakai section #pengaturan di halamannya sendiri, jadi modal ini
+         sengaja tidak dirender untuk role staff agar jumlah form logout di
+         halaman staff tetap satu (lihat StaffDashboardTabTest). --}}
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-gear me-2"></i>Pengaturan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Mengakhiri sesi aktif pada perangkat ini. Anda akan diarahkan kembali
+                        ke halaman login dan perlu masuk ulang untuk membuka dashboard.
+                    </p>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout Akun
+                        </button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+@endif

@@ -1,15 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\StaffController;
-use App\Http\Controllers\ManagerController;
-use App\Http\Controllers\TokoController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TokoController;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
 // Halaman Utama / Landing Page
 Route::get('/', function () {
-    return view('welcome');
+    $products = Product::with('category')->latest()->get();
+    $categories = Category::orderBy('name')->get();
+    $stats = [
+        'produk' => Product::count(),
+        'pelanggan' => User::where('role', 'pelanggan')->count(),
+        'kategori' => Category::count(),
+    ];
+
+    return view('welcome', compact('products', 'categories', 'stats'));
 });
 
 // Route Auth
@@ -23,21 +34,21 @@ Route::post('/register', [AuthController::class, 'register']);
 // Halaman Berdasarkan Role (Hanya bisa dibuka jika sudah login)
 Route::middleware(['auth'])->group(function () {
 
-        // Halaman Pembeli / Catalog Pakaian (TPS)
+    // Halaman Pembeli / Catalog Pakaian (TPS)
     Route::get('/toko', [TokoController::class, 'index'])->name('toko.index');
 
-// Riwayat Pesanan Saya (transaksi milik user yang login)
-Route::get('/toko/pesanan', [TokoController::class, 'pesanan'])->name('toko.pesanan');
+    // Riwayat Pesanan Saya (transaksi milik user yang login)
+    Route::get('/toko/pesanan', [TokoController::class, 'pesanan'])->name('toko.pesanan');
 
-// Purchase Transaction
-Route::post('/toko/buy/{product_id}', [TokoController::class, 'buyProduct'])->name('toko.buy');
+    // Purchase Transaction
+    Route::post('/toko/buy/{product_id}', [TokoController::class, 'buyProduct'])->name('toko.buy');
 
-// Detail produk (foto + deskripsi lengkap)
-Route::get('/toko/produk/{product}', [TokoController::class, 'show'])->name('toko.show');
+    // Detail produk (foto + deskripsi lengkap)
+    Route::get('/toko/produk/{product}', [TokoController::class, 'show'])->name('toko.show');
 
-// Produk Favorit: daftar & aksi tambah/hapus favorit
-Route::get('/toko/favorit', [TokoController::class, 'favorit'])->name('toko.favorit');
-Route::post('/toko/favorit/{product}', [TokoController::class, 'toggleFavorite'])->name('toko.favorit.toggle');
+    // Produk Favorit: daftar & aksi tambah/hapus favorit
+    Route::get('/toko/favorit', [TokoController::class, 'favorit'])->name('toko.favorit');
+    Route::post('/toko/favorit/{product}', [TokoController::class, 'toggleFavorite'])->name('toko.favorit.toggle');
 
     // Dashboard Kasir & Form Restock
     Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');

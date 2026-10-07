@@ -7,6 +7,7 @@ use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TokoController extends Controller
 {
@@ -106,32 +107,46 @@ class TokoController extends Controller
     {
         $product = Product::findOrFail($product_id);
 
-        // Ambil quantity dari input (default 1 jika tidak diisi)
-        $quantity = $request->input('quantity', 1);
+        // Ambil quantity dari input (default 1 jika tidak diisi), minimal 1
+        $quantity = max(1, (int) $request->input('quantity', 1));
 
-        // Validasi stok produk cukup
-        if ($product->stock <= 0) {
-            return back()->with('error', 'Stok produk habis, tidak dapat melakukan pembelian.');
+        // Validasi stok produk cukup untuk jumlah yang diminta
+        if ($product->stock < $quantity) {
+            return back()->with('error', 'Stok produk tidak mencukupi untuk jumlah yang diminta. Stok tersisa: ' . $product->stock . '.');
         }
 
-        // Kurangi stok produk
-        $product->stock -= $quantity;
-        $product->save();
-
-        // Simpan record transaksi ke database
         $paymentMethod = $request->input('payment_method', 'online');
+        $total = $product->price * $quantity;
 
-        Transaction::create([
-            'customer_id' => auth()->user()->id,
-            'employee_id' => null,
-            'date' => now(),
-            'total' => $product->price * $quantity,
-            'payment_method' => $paymentMethod,
-            'status' => 'completed',
-        ]);
+        // Stok, transaksi, dan detail disimpan atomik supaya tidak ada
+        // transaksi tanpa detail (atau stok berkurang tanpa transaksi).
+        DB::transaction(function () use ($product, $quantity, $paymentMethod, $total) {
+            // Kurangi stok produk
+            $product->stock -= $quantity;
+            $product->save();
+
+            // Simpan record transaksi ke database
+            $transaction = Transaction::create([
+                'customer_id' => auth()->user()->id,
+                'employee_id' => null,
+                'date' => now(),
+                'total' => $total,
+                'payment_method' => $paymentMethod,
+                'status' => 'completed',
+            ]);
+
+            // Simpan item belanja ke transaction_details
+            // (tidak ada tabel keranjang: 1 pembelian = 1 produk + qty,
+            //  bila ada keranjang multi-item nanti cukup loop per baris)
+            $transaction->details()->create([
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'subtotal' => $total,
+            ]);
+        });
 
         // Kembali dengan pesan sukses
-        return back()->with('success', 'Selamat! Pembelian berhasil. Stok tersisa: ' . $product->stock . '. Total bayar: Rp ' . number_format($product->price * $quantity, 0, ',', '.'));
+        return back()->with('success', 'Selamat! Pembelian berhasil. Stok tersisa: ' . $product->stock . '. Total bayar: Rp ' . number_format($total, 0, ',', '.'));
     }
 
     // Helper kecil untuk mengecek apakah produk sudah ada di favorit pengguna

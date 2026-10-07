@@ -641,3 +641,171 @@ Probe render read-only lewat HTTP kernel terhadap `/staff/dashboard` dan `/admin
 - Data dan berkas tidak berubah: 4 produk, 4 kategori, 0 favorit, 0 `transaction_details`, 6 restock, 0 `image` non-null, 0 berkas di `public/images/produk/`.
 - Perilaku JS (buka/tutup, Escape, perpindahan fokus) **belum diverifikasi di browser sungguhan** - batasan yang sama seperti Phase 16/17 dan sudah tercatat di `todo.md`.
 
+---
+
+## 2026-10-07 - Phase 18: Landing Page "La Mamora" (Adaptasi Template Statis "Wearly")
+
+Permintaan: adaptasi file HTML statis landing page "Wearly" menjadi halaman `/` (welcome) di proyek Laravel ini, dengan brand, data, dan autentikasi sesuai aplikasi nyata. Keputusan yang disepakati: brand **La Mamora**, modal login/register **terhubung ke backend**, koleksi produk **diambil dari database**, pekerjaan selesai dicatat di `changelog.md` + `todo.md`.
+
+### 1. Perubahan berkas
+- `routes/web.php`: closure route `/` ditulis ulang - mengimpor `App\Models\Category/Product/User`, mengambil `Product::with('category')->latest()->get()`, `Category::orderBy('name')->get()`, dan `$stats` (jumlah produk / jumlah pelanggan / jumlah kategori), lalu `return view('welcome', compact(...))`. Diperiksa dengan Pint (`fully_qualified_strict_types`, `statement_indentation`, `ordered_imports` diperbaiki) sehingga bersih.
+- `resources/views/welcome.blade.php`: **ditulis ulang total** (23.851 byte) memakai struktur/animasi/JS dari template Wearly, isinya:
+  - Brand **La Mamora** di judul, navbar, footer (menggantikan "Wearly"/"TPS Pakaian Store"); navbar `@guest` menampilkan tombol Masuk/Daftar, `@auth` menampilkan tombol ke dashboard sesuai role (`/toko` pelanggan, `/staff/dashboard` staff, `/admin/dashboard` admin).
+  - Section hero + mockup ponsel, About + statistik angka, Koleksi, Kontak, Blog, Footer.
+  - **Koleksi dari database**: tab kategori dari `Category::orderBy('name')`, kartu produk dari `$products` (`@forelse`) dengan `image_url` atau fallback emoji via closure `$emojiFor`, harga `number_format(..., 0, ',', '.')`, badge "Stok Habis" bila `stock <= 0`, atribut `data-kategori` untuk filter client-side, tombol `+` = tamu -> buka modal login + toast, sudah login -> `route('toko.index')`.
+  - **Modal auth terhubung backend**: `<dialog>` berisi dua tab yang menaungi form `POST route('login')` dan `POST route('register')` lengkap `@csrf`; register menyertakan `password_confirmation`; `@error` ditampilkan per field; saat `old('_tab')` / `$errors->any()` modal dibuka kembali otomatis pada tab yang benar (redirect `back()->withErrors()` dari `AuthController` mempertahankan `_tab`).
+  - Toast untuk `session('success')` + `@error('credentials')`; section Kontak menampilkan toast demo (bukan pengiriman email).
+- `tests/Feature/ExampleTest.php`: menambahkan `use RefreshDatabase;` (baris import sebelumnya dikomentari). Route `/` kini meng-query tabel `products`, sehingga test `GET /` yang tadinya lolos tanpa migrasi kini butuh schema sqlite in-memory. Migrasi `fix_transactions_foreign_keys_and_columns` aman di sqlite karena semua `DB::statement` MySQL-specific dibungkus try/catch.
+- `tests/Feature/StaffDashboardTabTest.php`: asersi baris 179 diubah `<option value="1" selected="selected">` -> `<option value="1" selected>`. Directive `@selected` Blade milik Laravel versi ini meng-`echo 'selected'` polos (`CompilesConditionals.php`), bukan `selected="selected"` - assertion ini sudah basi sejak view memakai `@selected` dan **gagal bahkan sebelum Phase 18 dimulai** (dikonfirmasi lewat baseline `git stash`).
+
+### 2. Hasil verifikasi
+- `php artisan test`: **7 test, 7 lolos, 98 assertion** (baseline sebelum perubahan: 6 lolos / 1 gagal - `StaffDashboardTabTest::test_tambah_produk...`). Tidak ada test baru yang gagal; satu failure pre-existing ikut diperbaiki.
+- `.\vendor\bin\pint --test routes\web.php resources\views\welcome.blade.php tests\Feature\ExampleTest.php`: **passed**. (`pint --test` terhadap seluruh repo masih gagal di 22 berkas lama yang tidak disentuh oleh Phase 18 - pelanggaran gaya pre-existing: `AuthController`, model, migrasi, `routes/api.php`, dll.)
+- Probe HTTP (`GET /` lewat kernel, tanpa menulis data): **28/29 lolos, HTTP 200, 23.851 byte**; satu-satunya kegagalan adalah "badge stok habis" yang **diharapkan** karena keempat produk di DB punya stok > 0. Tidak ada sisa `{{` / direktif Blade tak ter-render di output.
+- Route `/` yang sebelumnya tanpa query DB kini membaca 4 produk / 4 kategori / 4 pelanggan / 3 kategori (angka `$stats`).
+
+### 3. Batasan yang disepakati
+- Perilaku JS landing (filter kategori, animasi reveal, pembukaan modal) **belum diuji di browser sungguhan** - sama seperti batasan Phase 16/17.
+- Form Kontak hanya menampilkan toast demo, tidak mengirim email.
+- Halaman `/login` dan `/register` (view Blade terpisah) tidak diubah - modal di landing adalah lapisan tambahan.
+- Tidak ada perubahan route/method auth: tetap `AuthController` (`password => confirmed`, role register di-hardcode `pelanggan`, redirect per role).
+- Tidak ada perubahan data: 4 produk, 4 kategori, tidak ada migrasi dijalankan.
+- Laravel Boost (instruksi `AGENTS.md`) tidak dipasang demi tidak mengubah `composer.json` untuk tugas UI ini.
+
+### Revisi Phase 18 (1): Tab Login Modal Landing Cukup Email + Password
+
+Permintaan: pengguna hanya perlu memasukkan **email dan password** saat login dari landing page.
+
+- **Akar masalah**: field Nama (`#nameF`) dan Konfirmasi Password (`#confF`) memang sudah diberi atribut `hidden` oleh `setTab()` JS saat tab Login, tetapi CSS di `welcome.blade.php:125` (`label{...display:grid...}`) berasal dari origin author sehingga **menimpa** `[hidden]{display:none}` milik user-agent stylesheet. Akibatnya kedua field tetap terlihat (modal menampilkan 4 field, bukan 2).
+- **Perbaikan**: 1 baris CSS baru di `resources/views/welcome.blade.php:126` - `label[hidden]{display:none}` (spesifisitas 0,1,1 menang melawan rule `label` 0,0,1).
+- **Tidak berubah**: tab Register (tetap Nama, Email, Password, Konfirmasi Password sesuai validasi `AuthController`), JS `setTab()`, route, controller, dan backend login (memang sudah hanya menerima `email` + `password`).
+- **Verifikasi**: tidak menjalankan test apa pun (permintaan eksplisit pengguna); diverifikasi dengan membaca ulang file hasil edit - rule ada di baris 126, dan satu-satunya label beraatribut `hidden` di halaman ini memang `#nameF`/`#confF` (welcome.blade.php:359, 371) yang ditoggle oleh JS baris 426/428.
+
+
+---
+
+## 2026-10-07 - Phase 19: MIS Analytics Dashboard Manager/Admin
+
+Permintaan: kembangkan backend & frontend Sistem Informasi Manajemen (MIS) pada dashboard Manager/Admin memakai tabel yang sudah ada (`transactions`, `transaction_details`, `products`, `restock_requests`, `users`, `employees`), tanpa menjalankan satu pun command test.
+
+### 1. Backend - `app/Http/Controllers/ManagerController.php` (method `index()`)
+- **Periode laporan (Custom Report Generator)**: baca query `dari`/`sampai` (divalidasi `Carbon::hasFormat`), default **6 bulan terakhir s/d hari ini**; rentang terbalik otomatis ditukar. Hasil dikirim sebagai `$periode` (label + nilai input).
+- **Executive Summary KPI** (`$kpi`):
+  - Total Omset: `SUM(total)` dari `transactions` pada periode filter (kolom asli bernama `total`, bukan `total_price`).
+  - Total Produk Terjual: `SUM(quantity)` dari `transaction_details` lewat `whereIn(transaction_id, ...)` periode yang sama.
+  - Stok Kritis: `Product::where('stock','<',5)->count()`.
+  - Restock Pending: `RestockRequest::where('status','pending')->count()`.
+- **Grafik tren penjualan bulanan**: transaksi periode diambil lalu **di-group per bulan di PHP** (DB-agnostic - tidak memakai `DATE_FORMAT`/`strftime`), bulan kosong di-zero-fill (maks 36 bulan) -> `$trenLabels`, `$trenOmset`, `$trenTerjual`.
+- **Top 5 produk terlaris**: agregat `transaction_details` (`SUM(quantity)` + `SUM(subtotal)`) di-group per `product_id`, diurut turun, limit 5, nama produk di-resolve lewat `Product::whereIn(...)->keyBy('id')` (tanpa N+1).
+- **Exception Reporting**: `$lowStock = Product::with('category')->where('stock','<',5)->orderBy('stock')->get()`.
+- **Audit Trail**: `$auditTrail = RestockRequest::with(['product','employee'])->latest()->limit(15)->get()` (nama pengaju + posisi + status approval).
+- Method lain (`updateStatus`, `updateProduct`, `destroyProduct`) dan route **tidak berubah**.
+
+### 2. Frontend - `resources/views/admin/dashboard.blade.php`
+- **Chart.js 4.4.1 UMD via CDN** (`@push('scripts')`, diinisialisasi hanya bila elemen canvas ada dan `Chart` terdefinisi).
+- **Section `#analisis-mis`**: form filter tanggal GET (`dari`, `sampai`, tombol Terapkan/Reset), tombol **Cetak/Export `window.print()`**, 4 kartu KPI (Omset Rp, Produk Terjual, Stok Kritis, Restock Pending), **Bar chart Omset + Line chart Produk Terjual** (dual sumbu Y) untuk tren bulanan, **Doughnut Top 5** + tabel ringkas (bila `transaction_details` kosong: placeholder, canvas tidak dirender).
+- **`#stok-realtime` Low Stock Alert**: tabel produk stok < 5 pcs (badge Habis/Kritis); kosong -> alert hijau "Semua stok aman".
+- **`#riwayat-stok` Audit Trail**: tabel Tanggal | Produk | Pengaju (employee + posisi) | Jumlah | Status Approval | Catatan - sekaligus memperbaiki dua link sidebar admin yang sebelumnya mengarah ke anchor tidak ada (`#stok-realtime`, `#riwayat-stok`).
+- **CSS `@media print`** (`@push('styles')`): sembunyikan sidebar, form, tombol, overlay; tampilkan `.print-header` "Laporan MIS - La Mamora (periode + waktu cetak)".
+- **Form "Tambah Master Produk Baru" dipastikan tetap absen** di dashboard Admin (sudah tidak ada sejak Revisi Phase 17; tidak ada yang perlu dihapus) - Admin fokus Monitoring Stok, Approval, dan Analisis MIS.
+
+### 3. Logout di menu Pengaturan - `resources/views/layouts/sidebar.blade.php`
+- Modal `#settingsModal` kini memuat **form POST `route('logout')`** dengan tombol "Logout Akun" `btn btn-outline-danger` (menggantikan teks "Fitur pengaturan akan segera hadir").
+- Markup modal **dibungkus `@if(Auth::user()->role !== 'staff')`** karena partial sidebar ikut ter-render di halaman Staff, dan `StaffDashboardTabTest:109` mensyaratkan tepat **1** form logout di HTML halaman staff. Link sidebar `data-bs-target="#settingsModal"` untuk admin tetap ada (diuji test baris 228).
+
+### 4. Hasil verifikasi (TANPA `php artisan test` - permintaan eksplisit)
+- `php -l app/Http/Controllers/ManagerController.php` -> No syntax errors (lint cepat, bukan test).
+- Pembacaan ulang struktur view: section id lengkap (`analisis-mis`, `stok-realtime`, `kelola-produk`, `persetujuan-restock`, `riwayat-stok`), `@section/@endsection` dan `@push/@endpush` berpasangan.
+- Constraint test yang dipatuhi dari pembacaan kode test: logout staff tetap 1x, admin tetap punya `#settingsModal` + `href="#riwayat-stok"` + `>Riwayat Stok</span>`, tanpa `data-bs-toggle="tab"`, tanpa `sidebar-footer`.
+- Data nyata saat pengembangan: 6 transaksi (semua September 2026), `transaction_details` 0 baris, stok produk 74/19/10/28 (tidak ada yang < 5) - sehingga KPI "Produk Terjual" = 0, Top 5 kosong (empty state), dan Low Stock Alert menampilkan "Semua stok aman". Semua kondisi kosong sudah ditangani tampilan.
+
+---
+
+## 2026-10-07 - Phase 19 Revisi: Detail Transaksi (Checkout) + TransactionDetailSeeder
+
+Masalah: `transaction_details` kosong (0 baris) sehingga KPI "Produk Terjual" = 0 dan doughnut "Top 5 Produk Terlaris" selalu empty state di dashboard MIS.
+
+### 1. Perbaikan checkout - `app/Http/Controllers/TokoController.php::buyProduct()`
+- Pembelian kini disimpan **atomik** dalam `DB::transaction()`: kurangi stok -> `Transaction::create()` -> **`$transaction->details()->create(['product_id','quantity','subtotal'])`** lewat relasi hasMany `Transaction::details()` yang sudah ada. Tabel & model `TransactionDetail` sudah tersedia - tanpa migration.
+- `subtotal = price * quantity` (sama dengan `total` transaksi karena tiap pembelian = 1 produk; tidak ada tabel keranjang di skema ini, jadi 1 baris detail per pembelian - bila keranjang multi-item ditambah nanti cukup loop per item).
+- Hardening di method yang sama: `$quantity = max(1, (int) ...)` dan cek stok `$product->stock < $quantity` (sebelumnya hanya `<= 0`, sehingga qty besar lolos padahal stok tidak cukup).
+
+### 2. Seeder - `database/seeders/TransactionDetailSeeder.php`
+- Mengisi detail untuk transaksi ID 1-6 dengan pemetaan yang subtotal-nya **persis sama** dengan kolom `total`:
+  - Trx 1: 2 x Kemeja Hitam Polos = Rp 300.000
+  - Trx 2/3/4: 1 x Kemeja Hitam Polos = Rp 150.000
+  - Trx 5: 1 x Jeans Modern + 1 x Gaul Totebag = Rp 140.000
+  - Trx 6: 1 x Jeans Modern = Rp 90.000
+- Subtotal dihitung dari harga produk saat runtime (bukan angka mati), `created_at/updated_at` = `date` transaksi, **idempoten** (transaksi yang sudah punya detail dilewati), tiap baris melapor "cocok/berbeda" dari `transactions.total`.
+
+### 3. Hasil (TANPA menjalankan test - hanya perintah seed + query baca)
+- `php artisan db:seed --class=TransactionDetailSeeder` -> 6/6 transaksi **"detail cocok dengan total"**.
+- Run kedua -> semua "sudah punya detail, dilewati" (idempoten terbukti).
+- Query verifikasi: **7 baris** `transaction_details`, per-trx `SUM(quantity)` = 2/1/1/1/2/1, dan `withSum('details','subtotal')` == `total` untuk keenam transaksi (300000, 150000, 150000, 150000, 140000, 90000).
+- Efek ke MIS: KPI "Produk Terjual" dan doughnut Top 5 kini punya data (Kemeja Hitam Polos memimpin dengan 5 pcs / Rp 750.000).
+
+---
+
+## 2026-10-07 - Phase 20: Sidebar & Section-Switching Dashboard Manager (ala Staff)
+
+Permintaan: menu sidebar kiri dashboard Manager dibuat seperti dashboard staff - menu "Dashboard" hanya menampilkan sekilas beberapa tampilan (ditambah analisis penjualan MIS), sedangkan tampilan penuh baru muncul saat menekan menu di sidebar.
+
+### 1. `resources/views/layouts/sidebar.blade.php` (cabang admin saja)
+- Link **Dashboard** kini `href="{{ route($dashboardRoute) }}#dashboard"` (diberi hash agar pemilih section mengenali menu ini).
+- Link baru **"Analisis Penjualan"** -> `{{ route('admin.dashboard') }}#analisis-mis` (ikon `bi-graph-up-arrow`) tepat setelah Dashboard, hanya di cabang `@else` (non-staff).
+- Link OAS (`#stok-realtime`, `#kelola-produk`, `#persetujuan-restock`, `#riwayat-stok`) TIDAK disentuh - bentuk `route('admin.dashboard')#xxx` dipertahankan persis untuk assertion `StaffDashboardTabTest:229,231`. Link Profil/Pengaturan (modal) juga tidak disentuh.
+
+### 2. `resources/views/admin/dashboard.blade.php` - dipecah jadi 6 section `.dashboard-section`
+| Section | Isi | Status awal |
+|---|---|---|
+| `#dashboard` | 4 kartu KPI (Omset, Produk Terjual, Stok Kritis, Restock Pending) + 3 widget sekilas: **Stok Kritis** (top 3 `$lowStock` -> link `#stok-realtime`), **Restock Pending** (top 3 `$restockRequests->where('status','pending')` -> link `#persetujuan-restock`), **Top Produk MIS** (top 3 `$topProduk` -> link `#analisis-mis`); tiap widget punya link "Lihat selengkapnya ->" | aktif (default) |
+| `#analisis-mis` | Card MIS: header + badge periode + **tombol Cetak** (dipindah dari header halaman), form filter tanggal GET, grafik tren dual-sumbu + doughnut Top 5 + tabel ringkas (KPI dikeluarkan ke `#dashboard`) | `d-none` |
+| `#stok-realtime` | Low Stock Alert - **di-flatten jadi sibling** (sebelumnya bersarang di dalam `#analisis-mis`, yang akan ikut tersembunyi saat section induk `d-none`) | `d-none` |
+| `#kelola-produk` / `#persetujuan-restock` / `#riwayat-stok` | konten lama tanpa perubahan, hanya tambah class `dashboard-section d-none` | `d-none` |
+- Overlay edit/lihat produk tetap di LUAR section (posisi fixed, dan reopen-on-error setelah validasi gagal tetap jalan karena redirect membawa hash `#kelola-produk`).
+- `.print-header` tetap di luar section; tombol Cetak kini hanya ada di card MIS (cetak = view aktif; via `Ctrl+P` pun hanya section aktif yang tercetak karena section lain `display:none`).
+
+### 3. JavaScript pemilih section (pola identik dengan `staff/dashboard.blade.php:779-822`)
+- `sections` = semua `.dashboard-section`; `navLinks` = link `.sidebar-nav .nav-link` yang hash-nya menunjuk ke section nyata -> link Profil/Pengaturan **tidak ikut `preventDefault`**, trigger modal Bootstrap tetap hidup (lebih ketat daripada versi staff).
+- `activateSection(id)`: toggle `d-none`, toggle class `.active` via `href.endsWith('#'+id)` (admin memakai URL penuh), `history.replaceState('#'+id)`, lalu `Chart.getChart(canvas).resize()` pada semua canvas section (canvas dibuat saat container masih `display:none`).
+- Klik link -> `preventDefault` + pindah section + tutup sidebar mobile; `hashchange` + load awal -> `sectionFromHash()`.
+- Default saat load: hash valid -> pakai hash; ada query string (baru submit filter tanggal) -> `#analisis-mis`; selain itu -> `#dashboard`.
+- Link header "Kelola Produk" dan link widget "Lihat selengkapnya" (di luar `.sidebar-nav`) sengaja dibiarkan sebagai anchor biasa - perpindahan hash memicu listener `hashchange`, jadi tetap tanpa reload.
+
+### 4. Verifikasi (TANPA `php artisan test` - permintaan eksplisit)
+- `php artisan view:cache` -> "Blade templates cached successfully" (semua view termasuk admin/dashboard.blade.php kompilasi tanpa error), lalu `view:clear`.
+- Hitungan `<div>`/`</div>` admin view seimbang 127/127; staff view tak tersentuh (139/139).
+- Grep struktur: tepat 6 section `.dashboard-section` di admin view, `window.print()` hanya 1 (di card MIS), `@push/@endpush` berpasangan.
+- Constraint `StaffDashboardTabTest:228-235` dicek via grep di `sidebar.blade.php`: `data-bs-target="#settingsModal"` (1), `href="#persetujuan-restock"` (1), `href="#riwayat-stok"` (3), `>Riwayat Stok</span>` (2), `data-bs-toggle="tab"` (0), `sidebar-footer` (0), `#riwayat-restock"` (0).
+- Catatan: uji browser (klik menu, resize chart, filter, cetak) belum dilakukan.
+
+---
+
+## 2026-10-07 - Phase 21: Rebrand "TPS Pakaian" -> "La Mamora" (Logo + Teks View)
+
+Permintaan: ganti semua logo TPS Pakaian dengan logo La Mamora seperti di landing page. Keputusan pengguna: cakupan = logo + semua teks branding di view (ChatbotSeeder/DB tidak disentuh), warna kotak "L" = navy `#14213d` persis landing (`welcome.blade.php:26`).
+
+### 1. Logo visual (3 spot, markup identik landing `<i>L</i>La Mamora.`)
+- `layouts/sidebar.blade.php` - `<i class="bi bi-shop...>` + "TPS Pakaian" -> **`<i class="lm-mark">L</i><span>La Mamora.</span>`** (badge role tetap).
+- `layouts/app.blade.php` - CSS baru `.sidebar-brand .lm-mark`: kotak 30x30px, radius 9px, bg `#14213d`, huruf putih bold 15px (ukuran = persis `.logo i` landing).
+- `layouts/toko-shell.blade.php:157` dan `toko/index.blade.php:199` - `<span class="logo">[glyph flourish]</span>TPS Pakaian` -> **`<span class="logo">L</span>La Mamora.`**
+- CSS `.logo` di kedua file tersebut: `background:var(--accent);color:var(--on-accent)` -> **`background:#14213d;color:#fff;font-weight:800`** (ukuran tetap 38px menyesuaikan surface).
+
+### 2. Teks branding (14 occurrence -> La Mamora)
+- `layouts/app.blade.php:7` default judul: `TPS & OAS Pakaian` -> `La Mamora - OAS Pakaian`.
+- `layouts/toko-shell.blade.php:7` judul: `{{ $title ?? 'TPS Pakaian' }} - TPS Store` -> `{{ isset($title) ? $title . ' - ' : '' }}La Mamora - Toko Outfit Official` (default = judul landing, tanpa duplikasi nama saat `$title` di-pass view).
+- `toko-shell:193` heading default -> `La Mamora`.
+- Chatbot (`toko-shell:266,271,281` + `toko/index:425,430,440`): aria-label, judul jendela, dan sapaan -> `Asisten Virtual La Mamora` / `asisten virtual La Mamora`.
+- Judul halaman: `toko/index:7` `Katalog Pakaian - La Mamora`, `toko/pesanan:7` `Pesanan Saya - La Mamora`, `auth/login:5` `Login - La Mamora` + heading `:14` `Login La Mamora`, `auth/register:5` `Daftar Akun Pembeli - La Mamora`.
+
+### 3. Di luar cakupan (dicatat di todo.md)
+- `ChatbotSeeder` - 2 jawaban bot di DB masih menyebut "TPS Pakaian" (data existing, sesuai pilihan pengguna tidak diubah; sapaan view sudah La Mamora -> inkonsistensi kecil bila user menanyakan identitas toko).
+- `public/favicon.ico` - tidak ada asset logo La Mamora; landing juga tidak set favicon.
+- Judul view yang di-pass controller (mis. "Dashboard Manager - OAS Approval") - tidak mengandung "TPS", tidak diubah.
+
+### 4. Verifikasi (TANPA `php artisan test` - permintaan eksplisit)
+- Grep case-sensitive `TPS` di seluruh `resources/views` -> **0 hasil**.
+- Grep `La Mamora` -> 24 spot (welcome 5, admin 1, login 2, register 1, app 2, sidebar 1, toko-shell 7, index 5, pesanan 1).
+- `php artisan view:cache` -> "Blade templates cached successfully", lalu `view:clear`.
+- Baca ulang area logo: sidebar `lm-mark` + teks, CSS `.logo` navy di toko-shell & index, brand `L La Mamora.` ketiganya terkonfirmasi.
+- Catatan: uji browser (tampilan kotak L di tiap surface) belum dilakukan.

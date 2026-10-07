@@ -28,16 +28,298 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h3 class="mb-0"><i class="bi bi-check-circle me-2"></i>Dashboard Manager</h3>
-        <a href="{{ route('admin.dashboard') }}#kelola-produk" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-box-seam me-1"></i> Kelola Produk
-        </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('admin.dashboard') }}#kelola-produk" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-box-seam me-1"></i> Kelola Produk
+            </a>
+        </div>
+    </div>
+
+    {{-- Header khusus tampilan cetak (muncul hanya di @media print) --}}
+    <div class="print-header">
+        <h4 class="mb-1">Laporan MIS - La Mamora</h4>
+        <p class="mb-0">Periode {{ $periode['dari_label'] }} - {{ $periode['sampai_label'] }} · Dicetak {{ now()->format('d/m/Y H:i') }}</p>
+    </div>
+
+    {{-- ================= SECTION: DASHBOARD (Sekilas Lintas Menu) ================= --}}
+    <div class="dashboard-section" id="dashboard">
+        {{-- KPI Executive Summary --}}
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                            <i class="bi bi-cash-stack fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small text-uppercase">Total Omset</div>
+                            <div class="h4 mb-0 fw-bold">Rp {{ number_format($kpi['omset'], 0, ',', '.') }}</div>
+                            <div class="text-muted" style="font-size:.72rem">Periode berjalan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                            <i class="bi bi-cart-check fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small text-uppercase">Produk Terjual</div>
+                            <div class="h4 mb-0 fw-bold">{{ number_format($kpi['produk_terjual']) }} pcs</div>
+                            <div class="text-muted" style="font-size:.72rem">Dari transaction_details</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                            <i class="bi bi-exclamation-triangle fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small text-uppercase">Stok Kritis</div>
+                            <div class="h4 mb-0 fw-bold">{{ $kpi['stok_kritis'] }} produk</div>
+                            <div class="text-muted" style="font-size:.72rem">Stok &lt; 5 pcs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                            <i class="bi bi-hourglass-split fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small text-uppercase">Restock Pending</div>
+                            <div class="h4 mb-0 fw-bold">{{ $kpi['restock_pending'] }} pengajuan</div>
+                            <div class="text-muted" style="font-size:.72rem">Menunggu keputusan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Widget sekilas: cuplikan dari tiap menu OAS & MIS --}}
+        @php($pendingList = $restockRequests->where('status', 'pending'))
+        <div class="row g-3">
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-warning bg-opacity-10 text-dark fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-exclamation-triangle me-2"></i>Stok Kritis</span>
+                        <span class="badge bg-warning text-dark">{{ $lowStock->count() }} produk</span>
+                    </div>
+                    <div class="card-body">
+                        @if($lowStock->isEmpty())
+                            <p class="text-muted small mb-2"><i class="bi bi-check-circle me-1"></i>Semua stok aman - tidak ada produk di bawah 5 pcs.</p>
+                        @else
+                            <ul class="list-unstyled mb-2">
+                                @foreach($lowStock->take(3) as $item)
+                                    <li class="d-flex justify-content-between align-items-center small py-1 border-bottom">
+                                        <span class="fw-semibold">{{ $item->name }}</span>
+                                        <span class="fw-bold text-danger">{{ $item->stock }} pcs</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        <a href="{{ route('admin.dashboard') }}#stok-realtime" class="small fw-semibold text-decoration-none">Lihat selengkapnya →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-info bg-opacity-10 text-dark fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-hourglass-split me-2"></i>Restock Pending</span>
+                        <span class="badge bg-info text-dark">{{ $pendingList->count() }} pengajuan</span>
+                    </div>
+                    <div class="card-body">
+                        @if($pendingList->isEmpty())
+                            <p class="text-muted small mb-2"><i class="bi bi-check-circle me-1"></i>Tidak ada pengajuan menunggu keputusan.</p>
+                        @else
+                            <ul class="list-unstyled mb-2">
+                                @foreach($pendingList->take(3) as $req)
+                                    <li class="d-flex justify-content-between align-items-center small py-1 border-bottom">
+                                        <span class="fw-semibold">{{ $req->product->name ?? 'Produk N/A' }}</span>
+                                        <span class="text-muted">{{ $req->jumlah_restock }} pcs</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        <a href="{{ route('admin.dashboard') }}#persetujuan-restock" class="small fw-semibold text-decoration-none">Lihat selengkapnya →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-primary bg-opacity-10 text-primary fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-trophy me-2"></i>Top Produk</span>
+                        <span class="badge bg-primary text-white">Periode berjalan</span>
+                    </div>
+                    <div class="card-body">
+                        @if($topProduk->isEmpty())
+                            <p class="text-muted small mb-2">Belum ada data penjualan pada periode ini.</p>
+                        @else
+                            <ul class="list-unstyled mb-2">
+                                @foreach($topProduk->take(3) as $top)
+                                    <li class="d-flex justify-content-between align-items-center small py-1 border-bottom">
+                                        <span class="fw-semibold">{{ $top->nama }}</span>
+                                        <span class="text-muted">{{ (int) $top->terjual }} pcs</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        <a href="{{ route('admin.dashboard') }}#analisis-mis" class="small fw-semibold text-decoration-none">Buka Analisis Penjualan →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ================= SECTION: ANALISIS PENJUALAN (MIS) ================= --}}
+    <div id="analisis-mis" class="dashboard-section d-none">
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Analisis Penjualan</h5>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-white text-primary">Periode {{ $periode['dari_label'] }} - {{ $periode['sampai_label'] }}</span>
+                    <button type="button" class="btn btn-light btn-sm no-print" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Cetak / Export Laporan
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {{-- Filter tanggal (Custom Report Generator) --}}
+                <form action="{{ route('admin.dashboard') }}" method="GET" class="row g-2 align-items-end mb-4 no-print">
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <label for="filterDari" class="form-label small text-muted mb-1">Dari Tanggal</label>
+                        <input type="date" name="dari" id="filterDari" class="form-control" value="{{ $periode['dari_input'] }}">
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <label for="filterSampai" class="form-label small text-muted mb-1">Sampai Tanggal</label>
+                        <input type="date" name="sampai" id="filterSampai" class="form-control" value="{{ $periode['sampai_input'] }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Terapkan</button>
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                    <div class="col-auto ms-md-auto">
+                        <span class="text-muted small">Default: 6 bulan terakhir</span>
+                    </div>
+                </form>
+
+                {{-- Grafik MIS --}}
+                <div class="row g-3">
+                    <div class="col-12 col-lg-8">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-light fw-bold">
+                                <i class="bi bi-graph-up me-2"></i>Tren Penjualan Bulanan
+                            </div>
+                            <div class="card-body">
+                                @if(count($trenLabels))
+                                    <div style="position:relative;height:300px">
+                                        <canvas id="chartTren"></canvas>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted py-5">Tidak ada periode untuk ditampilkan.</div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-light fw-bold">
+                                <i class="bi bi-pie-chart me-2"></i>Produk Terlaris (Top 5)
+                            </div>
+                            <div class="card-body">
+                                @if($topProduk->isNotEmpty())
+                                    <div style="position:relative;height:300px">
+                                        <canvas id="chartTopProduk"></canvas>
+                                    </div>
+                                    <table class="table table-sm table-borderless mb-0 mt-2">
+                                        <tbody>
+                                            @foreach($topProduk as $top)
+                                                <tr>
+                                                    <td class="ps-0 small">{{ $top->nama }}</td>
+                                                    <td class="text-end small fw-semibold">{{ (int) $top->terjual }} pcs</td>
+                                                    <td class="text-end small text-muted pe-0">Rp {{ number_format((float) $top->omset, 0, ',', '.') }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                @else
+                                    <div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                        Belum ada data <code>transaction_details</code> pada periode ini,
+                                        jadi diagram produk terlaris belum bisa dibuat.
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ===== Exception Reporting: Low Stock Alert (stok < 5 pcs) ===== --}}
+    <div id="stok-realtime" class="dashboard-section d-none mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Peringatan Stok Menipis (Stok &lt; 5 pcs)</h5>
+                <span class="badge bg-dark">{{ $lowStock->count() }} produk</span>
+            </div>
+            <div class="card-body">
+                @if($lowStock->isEmpty())
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle me-2"></i>Semua stok aman - tidak ada produk dengan stok di bawah 5 pcs.
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nama Produk</th>
+                                    <th>Kategori</th>
+                                    <th class="text-end">Harga</th>
+                                    <th class="text-center">Sisa Stok</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lowStock as $product)
+                                    <tr>
+                                        <td>{{ $product->id }}</td>
+                                        <td class="fw-semibold">{{ $product->name }}</td>
+                                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ $product->category->name ?? '-' }}</span></td>
+                                        <td class="text-end">Rp {{ number_format($product->price, 0, ',', '.') }}</td>
+                                        <td class="text-center fw-bold text-danger">{{ $product->stock }} pcs</td>
+                                        <td class="text-center">
+                                            @if($product->stock <= 0)
+                                                <span class="badge bg-danger">Habis</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">Kritis</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- ================= KELOLA PRODUK (KMS) =================
          Form "Tambah Master Produk" sengaja disembunyikan: halaman Manager fokus
          pada RUD (lihat, ubah, hapus) + Approval OAS. Penambahan master produk
          dilakukan lewat dashboard Staff. --}}
-    <div id="kelola-produk" class="mb-4">
+    <div id="kelola-produk" class="dashboard-section d-none">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Daftar Master Produk</h5>
@@ -142,7 +424,7 @@
     </div>
 
     {{-- ================= PERSETUJUAN RESTOCK (OAS) ================= --}}
-    <div id="persetujuan-restock">
+    <div id="persetujuan-restock" class="dashboard-section d-none">
         <h4 class="mb-3"><i class="bi bi-check-circle me-2"></i>Persetujuan Restock Barang (OAS)</h4>
 
         <div class="card shadow-sm border-0">
@@ -195,6 +477,63 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center text-muted">Belum ada pengajuan restock.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ================= MIS: AUDIT TRAIL / ACTIVITY LOG RESTOCK ================= --}}
+    <div id="riwayat-stok" class="dashboard-section d-none">
+        <h4 class="mb-3"><i class="bi bi-clock-history me-2"></i>Audit Trail Pengajuan Restock</h4>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Riwayat Pengajuan &amp; Status Approval</h5>
+                <span class="badge bg-light text-dark">{{ $auditTrail->count() }} catatan</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Produk</th>
+                                <th>Pengaju (Staff)</th>
+                                <th class="text-center">Jumlah</th>
+                                <th class="text-center">Status Approval</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($auditTrail as $log)
+                                <tr>
+                                    <td class="text-nowrap">{{ $log->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
+                                    <td class="fw-semibold">{{ $log->product->name ?? 'Produk N/A' }}</td>
+                                    <td>
+                                        {{ $log->employee->name ?? 'Staff N/A' }}
+                                        @if(optional($log->employee)->position)
+                                            <div class="text-muted small">{{ $log->employee->position }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">{{ $log->jumlah_restock }} pcs</td>
+                                    <td class="text-center">
+                                        @if($log->status === 'pending')
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        @elseif($log->status === 'approved')
+                                            <span class="badge bg-success">Approved</span>
+                                        @else
+                                            <span class="badge bg-danger">Rejected</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-muted small">{{ $log->catatan ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Belum ada aktivitas restock tercatat.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -362,7 +701,183 @@
     </div>
 @endsection
 
+@push('styles')
+    <style>
+        /* Hanya tampil saat dicetak (window.print) */
+        .print-header { display: none; }
+
+        @media print {
+            .sidebar,
+            .sidebar-overlay,
+            .no-print,
+            form,
+            .btn,
+            .produk-overlay { display: none !important; }
+
+            .main-content { padding: 0; background: #fff; }
+            body { background: #fff; }
+
+            .print-header { display: block; margin-bottom: 16px; }
+
+            .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; break-inside: avoid; }
+            .card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            a[href]:after { content: none !important; }
+        }
+    </style>
+@endpush
+
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        /* ============ PEMILIH SECTION (pola sama dengan dashboard staff) ============ */
+        (function () {
+            const sections = Array.from(document.querySelectorAll('.dashboard-section'));
+            if (!sections.length) return;
+
+            // Hanya link sidebar yang hash-nya menunjuk ke section nyata.
+            // Link Profil/Pengaturan (modal Bootstrap) sengaja tidak ikut
+            // supaya preventDefault tidak mematikan trigger modal.
+            const navLinks = Array.from(document.querySelectorAll('.sidebar-nav .nav-link')).filter(link => {
+                const hash = (link.getAttribute('href') || '').split('#')[1] || '';
+                return Boolean(hash) && sections.some(section => section.id === hash);
+            });
+
+            const defaultSectionId = () => {
+                // Baru submit filter tanggal MIS -> langsung ke menu Analisis Penjualan
+                if (window.location.search) return 'analisis-mis';
+                return 'dashboard';
+            };
+
+            const activateSection = id => {
+                if (!sections.some(section => section.id === id)) return;
+
+                sections.forEach(section => {
+                    section.classList.toggle('d-none', section.id !== id);
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', (link.getAttribute('href') || '').endsWith('#' + id));
+                });
+
+                if (window.location.hash !== '#' + id) {
+                    history.replaceState(null, '', '#' + id);
+                }
+
+                // Canvas chart dibuat saat container masih display:none,
+                // jadi paksa resize setelah sectionnya tampil.
+                if (typeof Chart !== 'undefined') {
+                    document.querySelectorAll('.dashboard-section canvas').forEach(canvas => {
+                        const instance = Chart.getChart(canvas);
+                        if (instance) instance.resize();
+                    });
+                }
+            };
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    activateSection((link.getAttribute('href') || '').split('#')[1]);
+
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebarOverlay');
+                    if (sidebar && sidebar.classList.contains('show')) {
+                        sidebar.classList.remove('show');
+                        if (overlay) overlay.classList.remove('show');
+                    }
+                });
+            });
+
+            const sectionFromHash = () => {
+                const id = window.location.hash.slice(1);
+                activateSection(sections.some(section => section.id === id) ? id : defaultSectionId());
+            };
+
+            sectionFromHash();
+            window.addEventListener('hashchange', sectionFromHash);
+        })();
+    </script>
+    <script>
+        (function () {
+            if (typeof Chart === 'undefined') return;
+
+            /* Tren penjualan bulanan: bar Omset (sumbu kiri) + line Produk Terjual (sumbu kanan) */
+            const tren = document.getElementById('chartTren');
+            if (tren) {
+                new Chart(tren, {
+                    data: {
+                        labels: @json($trenLabels),
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Omset (Rp)',
+                                data: @json($trenOmset),
+                                backgroundColor: 'rgba(13, 110, 253, .65)',
+                                borderColor: 'rgba(13, 110, 253, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                type: 'line',
+                                label: 'Produk Terjual (pcs)',
+                                data: @json($trenTerjual),
+                                borderColor: 'rgba(255, 165, 0, 1)',
+                                backgroundColor: 'rgba(255, 165, 0, .15)',
+                                tension: .3,
+                                fill: false,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                position: 'left',
+                                ticks: {
+                                    callback: value => 'Rp ' + new Intl.NumberFormat('id-ID').format(value)
+                                }
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                grid: { drawOnChartArea: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            /* Diagram produk terlaris (hanya dirender bila datanya ada) */
+            const top = document.getElementById('chartTopProduk');
+            if (top) {
+                const WARNA = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1'];
+                new Chart(top, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @json($topProduk->pluck('nama')),
+                        datasets: [{
+                            data: @json($topProduk->pluck('terjual')->map(fn ($v) => (int) $v)),
+                            backgroundColor: WARNA
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
     <script>
         (function () {
             const overlay = document.getElementById('editProdukAdminOverlay');

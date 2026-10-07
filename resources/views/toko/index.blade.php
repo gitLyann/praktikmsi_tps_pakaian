@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Katalog Pakaian - TPS Store</title>
+    <title>Katalog Pakaian - La Mamora</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root{
@@ -24,7 +24,7 @@
         /* Sidebar */
         .sidebar{background:var(--card);border-radius:var(--radius);padding:22px 18px;display:flex;flex-direction:column;position:sticky;top:16px;height:calc(100vh - 32px)}
         .brand{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:800;padding:0 6px 26px;letter-spacing:-.02em}
-        .logo{width:38px;height:38px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent);font-size:19px;flex-shrink:0}
+        .logo{width:38px;height:38px;border-radius:11px;background:#14213d;color:#fff;display:grid;place-items:center;font-size:17px;font-weight:800;flex-shrink:0}
         .nav{display:flex;flex-direction:column;gap:3px}
         .nav a{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:11px;color:var(--ink);text-decoration:none;position:relative;font-size:14.5px;font-weight:500}
         .nav a svg{width:19px;height:19px;flex-shrink:0;stroke-width:1.9}
@@ -196,7 +196,7 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
-        <div class="brand"><span class="logo">❦</span>TPS Pakaian</div>
+        <div class="brand"><span class="logo">L</span>La Mamora.</div>
         <nav class="nav" aria-label="Navigasi utama">
             {{-- Ikon SVG inline (stroke=currentColor) supaya warna otomatis mengikuti state active/hover --}}
             <a href="{{ route('toko.index') }}">
@@ -422,12 +422,12 @@
         <span class="chatbot-fab-icon-close" id="fabIconClose" style="display:none">✕</span>
     </button>
 
-    <div class="chatbot-window" id="chatbotWindow" role="dialog" aria-label="Asisten Virtual TPS" style="display:none">
+    <div class="chatbot-window" id="chatbotWindow" role="dialog" aria-label="Asisten Virtual La Mamora" style="display:none">
         <div class="chatbot-header d-flex align-items-center justify-content-between">
             <div style="display:flex;align-items:center;gap:10px">
                 <span style="font-size:1.4rem">🤖</span>
                 <div>
-                    <div style="font-weight:700;font-size:.9rem">Asisten Virtual TPS</div>
+                    <div style="font-weight:700;font-size:.9rem">Asisten Virtual La Mamora</div>
                     <small style="opacity:.75">Siap membantu Anda 24/7</small>
                 </div>
             </div>
@@ -437,7 +437,7 @@
         <div class="chatbot-messages" id="chatbotMessages" role="log" aria-live="polite">
             <div class="chatbot-message bot">
                 <div class="message-bubble">
-                    <p style="margin:0">Halo! 👋 Saya asisten virtual TPS Pakaian. Ada yang bisa saya bantu?</p>
+                    <p style="margin:0">Halo! 👋 Saya asisten virtual La Mamora. Ada yang bisa saya bantu?</p>
                     <small>Tanyakan tentang: jam operasional, cara beli, pembayaran, retur, pengiriman, ukuran, promo, atau kontak CS.</small>
                 </div>
             </div>

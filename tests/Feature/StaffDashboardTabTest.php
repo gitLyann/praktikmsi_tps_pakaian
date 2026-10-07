@@ -176,7 +176,7 @@ class StaffDashboardTabTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('<option value="'.$product->id.'" selected="selected">', $html);
+        $this->assertStringContainsString('<option value="'.$product->id.'" selected>', $html);
         $this->assertStringContainsString('Jaket Bomber (Stok Saat Ini: 0)', $html);
     }
 

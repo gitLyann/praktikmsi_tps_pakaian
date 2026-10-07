@@ -120,8 +120,66 @@
 - [x] Verifikasi: tidak ada perubahan data/berkas (4 produk, 4 kategori, 0 favorit, 0 `transaction_details`, 6 restock, 0 `image` non-null, 0 berkas di `public/images/produk/`)
 - [x] `changelog.md` - section "Revisi 2" ditulis; sub-bagian 2 lama ditandai usang; karakter korup di `changelog.md:249` diperbaiki
 
+### Phase 18 (Landing Page "La Mamora")
+- [x] Phase 18 - Route `/` di `routes/web.php` menyediakan data DB ke view: `products` (+`category`), `categories`, `stats` (produk/pelanggan/kategori); import model ditambahkan; Pint bersih
+- [x] Phase 18 - `resources/views/welcome.blade.php` ditulis ulang total dari template statis "Wearly" - hero, About + statistik angka, Koleksi, Kontak, Blog, Footer
+- [x] Phase 18 - Brand **La Mamora** menggantikan "Wearly"/"TPS Pakaian Store" (judul, navbar, footer)
+- [x] Phase 18 - Koleksi **DB-driven**: tab kategori dari `Category`, kartu produk dari `$products` dengan `image_url`/fallback emoji, harga Rupiah `number_format`, badge "Stok Habis", filter kategori client-side (`data-kategori`)
+- [x] Phase 18 - Tombol `+` kartu produk: tamu -> buka modal login + toast; sudah login -> `route('toko.index')`
+- [x] Phase 18 - Modal `<dialog>` auth terhubung backend: form `POST /login` + `/register` dengan `@csrf`, `password_confirmation`, render `@error` per field, auto-reopen via `old('_tab')` saat `AuthController` mengembalikan `back()->withErrors()`
+- [x] Phase 18 - Navbar `@guest` (Masuk/Daftar) vs `@auth` (tombol dashboard per role: pelanggan `/toko`, staff `/staff/dashboard`, admin `/admin/dashboard`)
+- [x] Phase 18 - Toast `session('success')` + `@error('credentials')`; section Kontak tampil toast demo (tanpa pengiriman email)
+- [x] Phase 18 - `ExampleTest` diberi `RefreshDatabase` karena `/` kini query tabel `products` di sqlite in-memory test
+- [x] Phase 18 - `StaffDashboardTabTest:179` assertion diperbaiki `selected="selected"` -> `selected` (directive `@selected` Laravel ini meng-`echo 'selected'` polos; failure pre-existing yang terkonfirmasi lewat baseline `git stash`)
+- [x] Phase 18 - Verifikasi: `php artisan test` **7/7 lolos** (baseline: 6/7), Pint passed di semua berkas yang disentuh, probe HTTP `GET /` **28/29** (1 kegagalan = badge stok habis, wajar karena semua stok > 0), 0 direktif Blade sisa di output
+- [x] Phase 18 - `changelog.md` ditulis (section Phase 18: perubahan, verifikasi, batasan)
+- [x] Phase 18 Revisi 1 - Tab login modal landing kini **hanya Email + Password** - fix bug CSS `label[hidden]{display:none}` (rule `label{display:grid}` author-origin menimpa `[hidden]` UA, sehingga Nama & Konfirmasi Password tetap tampil); tab Register tidak berubah; tanpa menjalankan test apapun (permintaan pengguna)
+
+### Phase 19 (MIS Analytics Dashboard Manager/Admin)
+- [x] Phase 19 - `ManagerController::index()` - filter periode GET `dari`/`sampai` (default 6 bulan terakhir, rentang terbalik otomatis ditukar) -> `$periode`
+- [x] Phase 19 - KPI Executive Summary (`$kpi`): Omset = `SUM(total)` transaksi periode, Produk Terjual = `SUM(quantity)` `transaction_details`, Stok Kritis = produk `stock < 5`, Restock Pending = `restock_requests` status pending
+- [x] Phase 19 - Tren penjualan bulanan di-group di PHP (DB-agnostic), zero-fill per bulan -> `$trenLabels/$trenOmset/$trenTerjual`
+- [x] Phase 19 - Top 5 terlaris dari agregat `transaction_details` (tanpa N+1, nama produk di-resolve lewat `whereIn` + `keyBy`)
+- [x] Phase 19 - Exception reporting `$lowStock` (produk stok < 5) + Audit trail `$auditTrail` (restock + nama employee pengaju + status)
+- [x] Phase 19 - Chart.js 4.4.1 CDN via `@push('scripts')`, diinit dengan guard `typeof Chart` + keberadaan canvas
+- [x] Phase 19 - UI `#analisis-mis`: form filter tanggal GET (Terapkan/Reset), tombol Cetak `window.print()`, 4 kartu KPI, bar chart Omset + line chart Terjual (dual sumbu), doughnut Top 5 + tabel ringkas (empty state bila `transaction_details` kosong)
+- [x] Phase 19 - `#stok-realtime` Low Stock Alert (tabel + badge Habis/Kritis; kosong -> alert "Semua stok aman") - sekaligus memperbaiki link sidebar mati
+- [x] Phase 19 - `#riwayat-stok` Audit Trail (Tanggal, Produk, Pengaju+posisi, Jumlah, Status Approval, Catatan) - memenuhi assertion test `href="#riwayat-stok"` & `>Riwayat Stok</span>`
+- [x] Phase 19 - CSS `@media print` via `@push('styles')`: sembunyikan sidebar/form/tombol/overlay, tampilkan `.print-header` Laporan MIS + periode
+- [x] Phase 19 - Form "Tambah Master Produk Baru" dipastikan tetap absen di dashboard Admin (sudah tidak ada sejak Revisi Phase 17)
+- [x] Phase 19 - Modal `#settingsModal` (sidebar) kini berisi tombol/logout form POST `route('logout')`, dibungkus `@if(role !== 'staff')` agar jumlah form logout di halaman staff tetap 1 (StaffDashboardTabTest:109)
+- [x] Phase 19 - Verifikasi tanpa test: `php -l` controller OK, struktur section id + `@push/@endpush` dicek via grep, constraint test dibaca dari kode test
+- [x] Phase 19 Revisi - `buyProduct()` kini menyimpan **`transaction_details`** (product_id, quantity, subtotal) dalam `DB::transaction()` atomik + hardening qty (`max(1, int)`) dan cek stok `< qty`
+- [x] Phase 19 Revisi - Seeder baru `database/seeders/TransactionDetailSeeder.php` - isi detail trx ID 1-6, subtotal = harga produk x qty (cocok dengan `total`), idempoten (skip bila sudah ada)
+- [x] Phase 19 Revisi - Seeder dijalankan: `php artisan db:seed --class=TransactionDetailSeeder` -> 6/6 "detail cocok dengan total"; run kedua semua dilewati; verifikasi baca: 7 baris, `SUM(subtotal)==total` untuk semua transaksi
+
 ### Tersisa
+- [ ] Phase 18 - **Belum diverifikasi di browser** - perilaku JS landing (filter kategori koleksi, animasi reveal, buka/tutup `<dialog>` auth, auto-reopen saat validasi gagal, toast) masih perlu dicek manual
+- [ ] Phase 18 - Form Kontak landing hanya toast demo, belum mengirim email
+- [ ] Phase 18 - Halaman `/login` & `/register` (Blade terpisah) tidak disentuh - masih tampilan Bootstrap lama, berbeda dengan modal landing
+- [ ] Phase 18 - `pint --test` seluruh repo masih gagal di 22 berkas pre-existing yang tidak disentuh (AuthController, model, migrasi, `routes/api.php`, dll) - tidak diperbaiki agar diff tidak melebar
+- [ ] Phase 18 - Laravel Boost tidak dipasang (dilewati demi tidak mengubah `composer.json` untuk tugas UI) - `AGENTS.md` masih mewajibkannya untuk sesi berikutnya
+- [ ] Phase 19 - **Belum diverifikasi di browser** - render Chart.js, filter tanggal GET, tombol Cetak (`window.print`), dan modal Pengaturan + logout masih perlu dicek manual; test suite **tidak dijalankan** sesuai permintaan (hanya `php -l`)
+- [x] Phase 19 - ~~KPI "Produk Terjual" dan doughnut Top 5 = 0/kosong~~ **Selesai di Phase 19 Revisi**: `buyProduct()` menyimpan `transaction_details` + seeder mengisi data lama (Kemeja Hitam Polos kini top seller 5 pcs)
+- [ ] Phase 19 - Chart.js dimuat dari CDN jsdelivr sehingga grafik butuh koneksi internet saat halaman dibuka
 - [ ] Phase 17 - **Belum diverifikasi di browser** - perilaku JavaScript (tombol hati `fetch()`, buka/tutup overlay edit, `confirm()` hapus, chatbot, buka/tutup modal read-only + Escape + perpindahan fokus) masih perlu dicek manual
-- [ ] Phase 17 - `buyProduct()` masih tidak mengisi `transaction_details`, jadi aturan "tolak hapus bila terjual" belum terpicu oleh data sekarang
+- [x] Phase 17 - ~~`buyProduct()` masih tidak mengisi `transaction_details`~~ **Selesai di Phase 19 Revisi**: checkout kini menyimpan detail + Seeder `TransactionDetailSeeder` mengisi trx ID 1-6 (7 baris)
 - [ ] Phase 17 - Overlay staff & admin (edit + lihat) masih duplikasi markup - bisa dijadikan partial `@include` dengan prefix ID
 - [ ] Dark mode - `.produk-overlay-box` masih `background: #fff` hardcoded, jadi overlay tetap terang saat mode gelap aktif (sudah bug sejak overlay Edit; belum diperbaiki)
+
+### Phase 20 (Sidebar & Section-Switching Dashboard Manager)
+- [x] Phase 20 - Link sidebar admin: Dashboard diberi `#dashboard`, link baru **Analisis Penjualan** -> `#analisis-mis`; link OAS dipertahankan bentuk `route('admin.dashboard')#xxx` (wajib untuk StaffDashboardTabTest:229,231)
+- [x] Phase 20 - View admin dipecah jadi 6 section `.dashboard-section`: `#dashboard` (4 KPI + 3 widget sekilas: Stok Kritis / Restock Pending / Top Produk, masing-masing dengan link "Lihat selengkapnya"), `#analisis-mis` (filter + grafik + tombol Cetak), `#stok-realtime` (di-flatten dari bersarang), `#kelola-produk`, `#persetujuan-restock`, `#riwayat-stok`
+- [x] Phase 20 - Tombol Cetak dipindah dari header halaman ke card MIS; overlay edit/lihat dan `.print-header` tetap di luar section
+- [x] Phase 20 - JS pemilih section (pola staff: show/hide + sync hash + tutup sidebar mobile), navLinks difilter agar link modal Profil/Pengaturan tidak kena `preventDefault`; default load = hash > `#analisis-mis` (bila ada query filter) > `#dashboard`; canvas chart di-`resize()` saat section tampil
+- [x] Phase 20 - Verifikasi tanpa test: `php artisan view:cache` sukses (lalu `view:clear`), `<div>` admin view seimbang 127/127, 6 section via grep, constraint test terpenuhi via grep sidebar, staff view tidak tersentuh
+- [ ] Phase 20 - **Belum diverifikasi di browser** - klik menu sidebar, render chart setelah pindah section, filter tanggal, cetak, dan modal Profil/Pengaturan masih perlu dicek manual; test suite **tidak dijalankan** sesuai permintaan
+
+### Phase 21 (Rebrand TPS Pakaian -> La Mamora)
+- [x] Phase 21 - Logo sidebar admin/staff: `<i class="lm-mark">L</i>La Mamora.` + CSS `.sidebar-brand .lm-mark` (kotak navy #14213d 30px, radius 9px, huruf putih - persis `.logo i` landing)
+- [x] Phase 21 - Logo dashboard pelanggan (`toko-shell:157`) & katalog (`index:199`): glyph `? TPS Pakaian` -> `L La Mamora.`; CSS `.logo` diganti bg navy #14213d (sebelumnya var(--accent) biru)
+- [x] Phase 21 - 14 teks branding diganti: judul tab (app default, toko-shell, index, pesanan, login, register), heading default toko-shell, heading login, aria-label + judul + sapaan chatbot (toko-shell & index)
+- [x] Phase 21 - Verifikasi tanpa test: grep case-sensitive `TPS` di resources/views = 0, grep `La Mamora` = 24 spot, `php artisan view:cache` sukses lalu `view:clear`
+- [ ] Phase 21 - **Belum diverifikasi di browser** - tampilan kotak "L" navy di sidebar/katalog/dashboard pelanggan masih perlu dicek manual; test suite **tidak dijalankan** sesuai permintaan
+- [ ] Phase 21 - `ChatbotSeeder` (DB) masih menyebut "TPS Pakaian" di 2 jawaban bot - tidak diubah sesuai cakupan yang dipilih; bila perlu konsisten, update isi `replies` + seed ulang
+- [ ] Phase 21 - `public/favicon.ico` tidak diganti (tidak ada asset logo La Mamora; landing juga tanpa favicon)
