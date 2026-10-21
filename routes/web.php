@@ -8,6 +8,7 @@ use App\Http\Controllers\DssSupplierController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\SupplierMasterController;
 use App\Http\Controllers\TokoController;
 use Illuminate\Support\Facades\Route;
 
@@ -85,6 +86,17 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/dss/pemasok/{supplier}/aktif', [DssSupplierController::class, 'toggle'])->name('admin.dss.suppliers.toggle');
         Route::post('/admin/dss/pemasok/{supplier}/penawaran', [DssSupplierController::class, 'storeOffer'])->name('admin.dss.suppliers.offers.store');
         Route::delete('/admin/dss/pemasok/{supplier}/penawaran/{offer}', [DssSupplierController::class, 'destroyOffer'])->name('admin.dss.suppliers.offers.destroy');
+    });
+
+    // Master Supplier - data pemasok untuk admin & staff.
+    // Hapus hanya boleh dilakukan admin, staff boleh tambah dan ubah.
+    Route::middleware(['role:staff,admin'])->group(function () {
+        Route::get('/master-supplier', [SupplierMasterController::class, 'index'])->name('supplier.master');
+        Route::post('/master-supplier', [SupplierMasterController::class, 'store'])->name('supplier.master.store');
+        Route::put('/master-supplier/{supplier}', [SupplierMasterController::class, 'update'])->name('supplier.master.update');
+        Route::delete('/master-supplier/{supplier}', [SupplierMasterController::class, 'destroy'])
+            ->middleware('role:admin')
+            ->name('supplier.master.destroy');
     });
 
     // Chatbot API

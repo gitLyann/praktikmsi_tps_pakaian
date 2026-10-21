@@ -790,11 +790,24 @@ body.lm-dashboard .alert-info {
    Layout dashboard
    ========================================================================== */
 
+/* Topbar bersifat sticky, jadi area konten harus memakai sisa tinggi
+   viewport. Kalau min-height tetap 100vh, halaman selalu lebih tinggi dari
+   layar sehingga bagian atas konten terasa terpotong saat digulir. */
 body.lm-dashboard .main-content {
     flex: 1;
-    min-height: 100vh;
+    min-height: calc(100vh - var(--lm-topbar-height));
     background-color: var(--lm-sky-2);
     padding: var(--lm-space-6);
+}
+
+/* Anchor/hash tidak boleh placing section di belakang topbar sticky. */
+html.lm-dashboard-root {
+    scroll-padding-top: calc(var(--lm-topbar-height) + var(--lm-space-4));
+}
+
+body.lm-dashboard .dashboard-section,
+body.lm-dashboard [data-dss-section] {
+    scroll-margin-top: calc(var(--lm-topbar-height) + var(--lm-space-4));
 }
 
 body.lm-dashboard .sidebar {

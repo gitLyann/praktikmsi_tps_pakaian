@@ -312,6 +312,39 @@
                                     <label for="jumlah_restock" class="form-label">Jumlah Restock (Qty)</label>
                                     <input type="number" name="jumlah_restock" id="jumlah_restock" class="form-control" min="1" placeholder="Masukkan jumlah" required>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="supplier_id" class="form-label">Pilih Supplier</label>
+                                    <select name="supplier_id" id="supplier_id" class="form-select">
+                                        <option value="">-- Belum Ditentukan --</option>
+                                        @foreach($suppliers as $supplier)
+                                            <option value="{{ $supplier->id }}" @selected((int) old('supplier_id') === $supplier->id)>
+                                                {{ $supplier->name }} ({{ $supplier->code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">
+                                        Data harga beli, lead time, dan minimal order disimpan sebagai penawaran
+                                        pemasok untuk produk ini. Belum ada suppliernya?
+                                        <a href="{{ route('supplier.master') }}" target="_blank" rel="noopener">Tambah di Master Supplier</a>.
+                                    </div>
+                                </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12 col-sm-6">
+                                        <label for="supplier_price" class="form-label">Harga Beli (Rp)</label>
+                                        <input type="number" name="supplier_price" id="supplier_price" class="form-control" min="0" step="1"
+                                            value="{{ old('supplier_price') }}" placeholder="0">
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label for="supplier_lead_time_days" class="form-label">Lead Time (hari)</label>
+                                        <input type="number" name="supplier_lead_time_days" id="supplier_lead_time_days" class="form-control" min="1" max="60"
+                                            value="{{ old('supplier_lead_time_days', 7) }}">
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label for="supplier_min_order_qty" class="form-label">Minimal Order (pcs)</label>
+                                        <input type="number" name="supplier_min_order_qty" id="supplier_min_order_qty" class="form-control" min="1"
+                                            value="{{ old('supplier_min_order_qty', 10) }}">
+                                    </div>
+                                </div>
                                 <button type="submit" class="btn btn-warning w-100 fw-bold"><i class="bi bi-send me-2"></i>Kirim Pengajuan ke Manager</button>
                             </form>
                         </div>
@@ -473,6 +506,45 @@
                                 @error('description')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
+                            </div>
+
+                            <div class="col-12">
+                                <hr class="my-1">
+                                <h6 class="mb-3"><i class="bi bi-truck me-1"></i>Supplier &amp; Penawaran Beli</h6>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="product_supplier_id" class="form-label">Pilih Supplier</label>
+                                <select name="supplier_id" id="product_supplier_id" class="form-select">
+                                    <option value="">-- Belum Ditentukan --</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}" @selected((int) old('supplier_id') === $supplier->id)>
+                                            {{ $supplier->name }} ({{ $supplier->code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">
+                                    Opsional. Belum ada suppliernya?
+                                    <a href="{{ route('supplier.master') }}" target="_blank" rel="noopener">Tambah di Master Supplier</a>.
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="product_supplier_price" class="form-label">Harga Beli (Rp)</label>
+                                <input type="number" name="supplier_price" id="product_supplier_price" class="form-control" min="0" step="1"
+                                    value="{{ old('supplier_price') }}" placeholder="0">
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label for="product_supplier_lead_time" class="form-label">Lead Time (hari)</label>
+                                <input type="number" name="supplier_lead_time_days" id="product_supplier_lead_time" class="form-control" min="1" max="60"
+                                    value="{{ old('supplier_lead_time_days', 7) }}">
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label for="product_supplier_moq" class="form-label">Minimal Order (pcs)</label>
+                                <input type="number" name="supplier_min_order_qty" id="product_supplier_moq" class="form-control" min="1"
+                                    value="{{ old('supplier_min_order_qty', 10) }}">
                             </div>
 
                             <div class="col-12 d-flex flex-wrap align-items-center gap-3">
@@ -777,7 +849,16 @@
             if (!staffDashboard) return;
 
             const sections = Array.from(staffDashboard.querySelectorAll('.dashboard-section'));
-            const navLinks = Array.from(document.querySelectorAll('.sidebar-nav .nav-link[data-bs-target]'));
+
+            // Hanya link sidebar yang hash-nya menunjuk ke section nyata yang
+            // di-intercept. Link Profil/Pengaturan (modal Bootstrap) memakai
+            // data-bs-target ke modal, jadi harus dibiarkan normal.
+            const navLinks = Array.from(document.querySelectorAll('.sidebar-nav .nav-link[data-bs-target]'))
+                .filter(link => {
+                    const hash = (link.getAttribute('href') || '').split('#')[1] || '';
+                    return Boolean(hash) && sections.some(section => section.id === hash);
+                });
+
             const defaultSectionId = 'dashboard';
 
             // Sembunyikan section yang sedang aktif, tampilkan section yang diklik (tanpa reload)
@@ -789,19 +870,22 @@
                 });
 
                 navLinks.forEach(link => {
-                    link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+                    link.classList.toggle('active', (link.getAttribute('href') || '').endsWith('#' + id));
                 });
 
                 if (window.location.hash !== `#${id}`) {
                     history.replaceState(null, '', `#${id}`);
                 }
+
+                // Section yang baru tampil selalu dimulai dari paling atas.
+                window.scrollTo(0, 0);
             };
 
             // Sidebar staff -> pindah section, lalu tutup sidebar di layar kecil
             navLinks.forEach(link => {
                 link.addEventListener('click', event => {
                     event.preventDefault();
-                    activateSection(link.getAttribute('href').slice(1));
+                    activateSection((link.getAttribute('href') || '').split('#')[1]);
 
                     const sidebar = document.getElementById('sidebar');
                     const overlay = document.getElementById('sidebarOverlay');

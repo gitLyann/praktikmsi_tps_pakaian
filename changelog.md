@@ -1,22 +1,22 @@
-# Changelog - Laravel TPS & OAS
+﻿# Changelog - Laravel TPS & OAS
 
 ## 2026-09-17 - Phase 1: Role Refactoring & Database Update
-- Renamed `app/Http/Controllers/KasirController.php` → `app/Http/Controllers/StaffController.php`
-- Renamed `resources/views/kasir/` → `resources/views/staff/`
-- Updated `routes/web.php`: `/kasir/` → `/staff/`, controller references updated
+- Renamed `app/Http/Controllers/KasirController.php` â†’ `app/Http/Controllers/StaffController.php`
+- Renamed `resources/views/kasir/` â†’ `resources/views/staff/`
+- Updated `routes/web.php`: `/kasir/` â†’ `/staff/`, controller references updated
 - Updated `resources/views/staff/dashboard.blade.php`: navbar text, form action route
 - Created migration `2026_09_17_145733_update_role_kasir_to_staff.php` - updated user roles from 'kasir' to 'staff' in DB
 - Ran `php artisan migrate` successfully
 
 ## 2026-09-17 - Phase 2: Single Portal Login
 - Updated `resources/views/welcome.blade.php`: removed role-specific navbar buttons, single "Masuk ke Aplikasi" login button
-- Updated `app/Http/Controllers/AuthController.php`: role redirection - pelanggan→/toko, staff→/staff/dashboard, admin→/admin/dashboard
+- Updated `app/Http/Controllers/AuthController.php`: role redirection - pelangganâ†’/toko, staffâ†’/staff/dashboard, adminâ†’/admin/dashboard
 
 ## 2026-09-17 - Phase 3: Fitur Transaksi Pembeli (Ditenhapi/Major Enhancement)
 - Added route `POST /toko/buy/{product_id}` named `toko.buy`
 - Created `app/Models/Transaction.php` - New Eloquent model for transactions table
-  - Kolom: `id`, `customer_id` (FK → users), `employee_id` (FK → users, NULLABLE), `date` (datetime), `total` (decimal 10,2), `status` (enum: pending/processing/completed/cancelled)
-  - Relasi: `customer()` → User, `employee()` → User
+  - Kolom: `id`, `customer_id` (FK â†’ users), `employee_id` (FK â†’ users, NULLABLE), `date` (datetime), `total` (decimal 10,2), `status` (enum: pending/processing/completed/cancelled)
+  - Relasi: `customer()` â†’ User, `employee()` â†’ User
 - Updated `app/Http/Controllers/TokoController.php`:
   - Enhanced `buyProduct()` method menerima parameter quantity dari form input (default 1)
   - Validasi stok produk sebelum pembelian
@@ -25,7 +25,7 @@
     * `customer_id` = auth()->user()->id
     * `employee_id` = NULL (transaksi mandiri pelanggan)
     * `date` = now()
-    * `total` = $product->price × $quantity (menggunakan kolom `total`, bukan `total_payment`)
+    * `total` = $product->price Ã— $quantity (menggunakan kolom `total`, bukan `total_payment`)
     * `payment_method` = input dari user (default 'online')
     * `status` = 'completed' (gunakan enum yang sudah ada, bukan 'success')
   - Kembali dengan flash message sukses beserta total bayar
@@ -40,9 +40,9 @@
 
 ## 2026-09-17 - Phase 3.5: Perbaikan Foreign Key & Verifikasi Database
 - **Migrasi `2026_09_17_155756_fix_transactions_foreign_keys_and_columns`** berhasil dijalankan
-- **Perbaikan FK `customer_id`**: Direpoint dari `customers` table → `users` table via raw SQL `ALTER TABLE`
-- **Perbaikan FK `employee_id`**: Direpoint dari `employees` table → `users` table, dibuat **NULLABLE** untuk transaksi pelanggan mandiri
-- **Kolom `total`**: Tersedia dengan tipe `decimal(10,2)` dan nilainya diisi `harga × quantity` di controller
+- **Perbaikan FK `customer_id`**: Direpoint dari `customers` table â†’ `users` table via raw SQL `ALTER TABLE`
+- **Perbaikan FK `employee_id`**: Direpoint dari `employees` table â†’ `users` table, dibuat **NULLABLE** untuk transaksi pelanggan mandiri
+- **Kolom `total`**: Tersedia dengan tipe `decimal(10,2)` dan nilainya diisi `harga Ã— quantity` di controller
 - **Kolom `payment_method`**: Tersedia, diisi berdasarkan input user dari modal (default 'online')
 - **Kolom `status`**: Tersedia dengan enum nilai `pending/processing/completed/cancelled`, diisi `'completed'` di controller
 - Verifikasi: `php artisan migrate:status` menunjukkan migration `2026_09_17_155756_fix_transactions_foreign_keys_and_columns` status **Ran**
@@ -88,7 +88,7 @@
 - Created Controller `app/Http/Controllers/ChatbotController.php`:
   - Method `message(Request $request)` with LIKE-based query matching
   - Returns matched reply or default fallback message
-- Added route `POST /chatbot/message` → `ChatbotController@message` (named `chatbot.message`)
+- Added route `POST /chatbot/message` â†’ `ChatbotController@message` (named `chatbot.message`)
 - Added Floating Chatbot Widget to `resources/views/toko/index.blade.php`:
   - FAB button (bottom-right) with `bi-chat-dots-fill` icon
   - Custom floating card (position: fixed) with chat window
@@ -102,9 +102,9 @@
 
 ## 2026-09-30 - Phase 7: Refactor Dashboard & Navigasi Staff (Tab-Based)
 ### Model & Backend
-- Created `app/Models/Category.php` - model untuk tabel `categories` (`id`, `name`, timestamps) + relasi `products()` → `hasMany(Product::class)`
-- Updated `app/Models/Product.php`: ditambahkan relasi `category()` → `belongsTo(Category::class)`
-- Updated `app/Http/Controllers/StaffController.php` → `index()`:
+- Created `app/Models/Category.php` - model untuk tabel `categories` (`id`, `name`, timestamps) + relasi `products()` â†’ `hasMany(Product::class)`
+- Updated `app/Models/Product.php`: ditambahkan relasi `category()` â†’ `belongsTo(Category::class)`
+- Updated `app/Http/Controllers/StaffController.php` â†’ `index()`:
   - `$products` = `Product::with('category')->orderBy('id')->get()` (eager loading kategori)
   - `$topProducts` = 5 produk pertama (untuk ringkasan dashboard)
   - `$criticalThreshold` = `5` (ambang stok kritis, dikirim ke view agar badge & widget konsisten)
@@ -120,26 +120,26 @@
   - **Dihapus** CSS `.sidebar-footer` dan `.sidebar-footer .btn` (dead code)
 - `resources/views/layouts/sidebar.blade.php`:
   - Tombol Logout dihapus dari bawah sidebar (sekarang hanya lewat menu Pengaturan)
-  - Menu **Dashboard** (role staff) → `data-bs-target="#dashboard"`, href `#dashboard`
-  - Menu **Monitoring Stok** → href & target `#monitoring-stok` (sebelumnya `#stok-produk`)
-  - Menu **Pengajuan Restock** → href & target `#pengajuan-restock`
-  - Menu **Riwayat Restock** → href & target `#riwayat-restock`
-  - Menu **Pengaturan** → kondisi per role: staff memakai section `#pengaturan`, role lain tetap membuka modal `#settingsModal`
+  - Menu **Dashboard** (role staff) â†’ `data-bs-target="#dashboard"`, href `#dashboard`
+  - Menu **Monitoring Stok** â†’ href & target `#monitoring-stok` (sebelumnya `#stok-produk`)
+  - Menu **Pengajuan Restock** â†’ href & target `#pengajuan-restock`
+  - Menu **Riwayat Restock** â†’ href & target `#riwayat-restock`
+  - Menu **Pengaturan** â†’ kondisi per role: staff memakai section `#pengaturan`, role lain tetap membuka modal `#settingsModal`
   - Atribut `data-bs-toggle="tab"` sengaja **dihapus** dari link staff; perpindahan section diurus JS manual agar tidak ada dua handler (Bootstrap data-API + JS)
   - Semua atribut tab hanya di-render untuk role `staff` agar dashboard admin & pelanggan tidak berubah
 
 ### Dashboard Staff (5 section)
 - `resources/views/staff/dashboard.blade.php` dipecah menjadi 5 section (`<div class="dashboard-section">`) di dalam wrapper `#staffDashboard`; hanya `#dashboard` yang tampil awal, section lain memakai `d-none`
-  1. **`#dashboard`** (default aktif) — ringkasan singkat:
+  1. **`#dashboard`** (default aktif) â€” ringkasan singkat:
      - 3 widget statistik: Total Produk, Stok Kritis, Restock Pending
      - "Ringkasan Stok Produk" (maks 5 produk) dengan kategori, varian, harga, sisa stok
      - "Ringkasan Pengajuan Terbaru" (tabel 5 pengajuan terakhir + badge status)
-  2. **`#monitoring-stok`** — tabel detail produk lengkap: `ID | Nama Produk | Kategori | Type | Size | Color | Price | Stock | Status`, plus input **Search/Filter client-side** (`#search-product`, info jumlah hasil di `#search-product-info`) untuk cari nama/ukuran/warna produk dengan baris "Produk tidak ditemukan"
-  3. **`#pengajuan-restock`** — atas: Form Pengajuan Restock Barang (OAS); bawah: "Daftar Pengajuan Menunggu Keputusan (Pending Only)" yang **hanya** menampilkan status `pending`
-  4. **`#riwayat-restock`** — tabel lengkap seluruh riwayat (Pending/Approved/Rejected) dengan badge `bg-warning text-dark` / `bg-success` / `bg-danger`, kolom ID, Tanggal, Produk + varian, Jumlah, Status, Catatan, serta rekap jumlah per status di header
-  5. **`#pengaturan`** — Card "Pengaturan & Keamanan Akun" berisi form POST `route('logout')` + `@csrf` dengan tombol `btn btn-outline-danger` ("Logout Akun"), berdampingan dengan Card "Informasi Akun"
-- Badge status stok 3 tingkat: `stock == 0` → **Stok Habis** (danger), `stock <= 5` → **Stok Kritis** (warning), selainnya **Stok Aman** (success)
-- JS (`@push('scripts')`) — navigasi section manual, tanpa reload:
+  2. **`#monitoring-stok`** â€” tabel detail produk lengkap: `ID | Nama Produk | Kategori | Type | Size | Color | Price | Stock | Status`, plus input **Search/Filter client-side** (`#search-product`, info jumlah hasil di `#search-product-info`) untuk cari nama/ukuran/warna produk dengan baris "Produk tidak ditemukan"
+  3. **`#pengajuan-restock`** â€” atas: Form Pengajuan Restock Barang (OAS); bawah: "Daftar Pengajuan Menunggu Keputusan (Pending Only)" yang **hanya** menampilkan status `pending`
+  4. **`#riwayat-restock`** â€” tabel lengkap seluruh riwayat (Pending/Approved/Rejected) dengan badge `bg-warning text-dark` / `bg-success` / `bg-danger`, kolom ID, Tanggal, Produk + varian, Jumlah, Status, Catatan, serta rekap jumlah per status di header
+  5. **`#pengaturan`** â€” Card "Pengaturan & Keamanan Akun" berisi form POST `route('logout')` + `@csrf` dengan tombol `btn btn-outline-danger` ("Logout Akun"), berdampingan dengan Card "Informasi Akun"
+- Badge status stok 3 tingkat: `stock == 0` â†’ **Stok Habis** (danger), `stock <= 5` â†’ **Stok Kritis** (warning), selainnya **Stok Aman** (success)
+- JS (`@push('scripts')`) â€” navigasi section manual, tanpa reload:
   - `activateSection(id)`: sembunyikan section aktif (`d-none`), tampilkan section yang diklik, sinkronkan kelas `.active` pada nav sidebar
   - `event.preventDefault()` pada klik menu sidebar agar browser tidak melakukan anchor jump bawaan
   - `history.replaceState` untuk memperbarui hash tanpa menambah riwayat browser
@@ -153,54 +153,54 @@
 - `tests/Feature/StaffDashboardTabTest.php`: 2 test / 38 assertion memverifikasi 5 section, tabel pending-only tidak memuat Approved/Rejected, riwayat memuat 3 status, tepat 1 form logout, dan sidebar role admin/pelanggan tetap memakai modal
 
 ## 2026-09-30 - Phase 8: Fitur Tambah Produk Baru (Staff)
-- `routes/web.php`: tambah route `POST /staff/products` → `StaffController@storeProduct` (named `staff.products.store`), di dalam grup `auth`
+- `routes/web.php`: tambah route `POST /staff/products` â†’ `StaffController@storeProduct` (named `staff.products.store`), di dalam grup `auth`
 - `app/Http/Controllers/StaffController.php`:
   - Import `App\Models\Category`; `index()` kini mengirim `$categories = Category::orderBy('name')->get()` untuk dropdown kategori
   - Method baru `storeProduct()` dengan validasi:
-    * `category_id` → `required|exists:categories,id`
-    * `name` → `required|string|max:100`
-    * `type` → `nullable|string|max:50`
-    * `size` → `nullable|string|max:10`
-    * `color` → `nullable|string|max:30`
-    * `price` → `required|numeric|min:0`
-    * `stock` → `nullable|integer|min:0` (default 0)
+    * `category_id` â†’ `required|exists:categories,id`
+    * `name` â†’ `required|string|max:100`
+    * `type` â†’ `nullable|string|max:50`
+    * `size` â†’ `nullable|string|max:10`
+    * `color` â†’ `nullable|string|max:30`
+    * `price` â†’ `required|numeric|min:0`
+    * `stock` â†’ `nullable|integer|min:0` (default 0)
   - `max:` mengikuti panjang kolom di skema tabel `products`; `type`/`size`/`color` opsional sesuai kolom yang `nullable`
   - Redirect ke `route('staff.dashboard') . '#monitoring-stok'` (bukan `back()`, karena browser membuang fragment dari header `Referer`) + flash message sukses
 - `resources/views/staff/dashboard.blade.php` (section `#monitoring-stok`):
   - Tombol `btn btn-primary` "Tambah Produk Baru" di atas tabel, sejajar dengan input search
   - Modal Bootstrap `#modalTambahProduk`: form berisi **Category** (dropdown dari `$categories`), **Nama Produk**, **Type** (text + `<datalist>` Atasan/Bawahan/Aksesoris), **Size**, **Color**, **Harga** (number `step="0.01"`), **Stok Awal** (default 0)
   - Alert error + `old(...)` pada seluruh field + `@error` per field agar input staff tidak hilang saat validasi gagal
-  - Modal ditempatkan **di luar** wrapper `#staffDashboard` (wajib: section yang tidak aktif memakai `d-none` → `display:none !important`, yang membuat `.modal` di dalamnya tak terlihat meski sudah `.show`)
+  - Modal ditempatkan **di luar** wrapper `#staffDashboard` (wajib: section yang tidak aktif memakai `d-none` â†’ `display:none !important`, yang membuat `.modal` di dalamnya tak terlihat meski sudah `.show`)
   - JS: `data-reopen` + `bootstrap.Modal.getOrCreateInstance(...).show()` membuka kembali modal otomatis setelah redirect validasi gagal
-- Dropdown Pengajuan Restock tidak perlu diubah — sudah meng-loop `$products`, dan `storeProduct()` me-redirect sehingga `index()` mengambil ulang data produk terbaru
+- Dropdown Pengajuan Restock tidak perlu diubah â€” sudah meng-loop `$products`, dan `storeProduct()` me-redirect sehingga `index()` mengambil ulang data produk terbaru
 
 ## 2026-09-30 - Phase 9: Category Fleksibel & Shortcut Produk Baru
-- `app/Http/Controllers/StaffController.php` → `storeProduct()`:
+- `app/Http/Controllers/StaffController.php` â†’ `storeProduct()`:
   - Validasi `category_id|exists:categories,id` diganti menjadi `category|required|string|max:50` (nama kategori, `max:50` mengikuti kolom `categories.name`)
-  - `Category::firstOrCreate(['name' => trim($data['category'])])` — staff boleh memilih dari datalist **atau** mengetik kategori baru; kategori otomatis dibuat bila belum ada, lalu `->id` dipakai untuk `products.category_id`
+  - `Category::firstOrCreate(['name' => trim($data['category'])])` â€” staff boleh memilih dari datalist **atau** mengetik kategori baru; kategori otomatis dibuat bila belum ada, lalu `->id` dipakai untuk `products.category_id`
   - Redirect memakai hidden field `_return` (section asal staff) yang di-whitelist terhadap 5 ID section yang valid, default `monitoring-stok`
 - `resources/views/staff/dashboard.blade.php`:
-  - Field **Category** pada `#modalTambahProduk` diubah dari `<select>` kaku menjadi `<input type="text" list="category-list">` + `<datalist id="category-list">` berisi kategori yang sudah ada; `@error('category_id')` → `@error('category')`; ditambahkan helper "Kategori yang belum ada akan dibuat otomatis"
+  - Field **Category** pada `#modalTambahProduk` diubah dari `<select>` kaku menjadi `<input type="text" list="category-list">` + `<datalist id="category-list">` berisi kategori yang sudah ada; `@error('category_id')` â†’ `@error('category')`; ditambahkan helper "Kategori yang belum ada akan dibuat otomatis"
   - Hidden input `_return` (`#product-form-return`) pada form modal
-  - JS: event `show.bs.modal` mengisi `_return` dengan ID section yang sedang aktif (`document.querySelector('.dashboard-section:not(.d-none)')`), sehingga setelah simpan staff kembali ke tab asalnya — `#pengajuan-restock` bila modal dibuka dari tab itu, `#monitoring-stok` bila dari tab Monitoring
+  - JS: event `show.bs.modal` mengisi `_return` dengan ID section yang sedang aktif (`document.querySelector('.dashboard-section:not(.d-none)')`), sehingga setelah simpan staff kembali ke tab asalnya â€” `#pengajuan-restock` bila modal dibuka dari tab itu, `#monitoring-stok` bila dari tab Monitoring
   - Tab `#pengajuan-restock`: tombol kecil `btn-outline-primary` "+ Produk Baru" di sebelah kanan label "Pilih Produk" yang membuka `#modalTambahProduk` (`type="button"` agar tidak ikut submit form restock)
 - Catatan teknis: `categories.name` dan `products.name` belum punya unique index, sehingga `firstOrCreate` aman untuk pemakaian normal tetapi tetap race-prone bila dua staff mengetik kategori identik bersamaan
 
 ## 2026-09-30 - Phase 10: Tambah Produk Inline + Dropdown Select Bertingkat
-Pemuatan produk dipindah dari tab Monitoring Stok ke tab Pengajuan Restock agar alur "daftar barang → buat barang → ajukan restock" berada dalam satu halaman.
+Pemuatan produk dipindah dari tab Monitoring Stok ke tab Pengajuan Restock agar alur "daftar barang â†’ buat barang â†’ ajukan restock" berada dalam satu halaman.
 
 - Penataan lokasi (semua di `resources/views/staff/dashboard.blade.php`):
   - Tombol "Tambah Produk Baru" dihapus dari header Monitoring Stok (kolom search dilebarkan ke `col-lg-5`)
   - Tombol "+ Produk Baru" dihapus dari header label "Pilih Produk" di Form Pengajuan Restock
   - Seluruh modal `#modalTambahProduk` (beserta hidden `_form`, `_return`, dan atribut `data-reopen`) dihapus
   - Card baru **"Tambah Master Produk Baru"** dipasang di bawah Form + Tabel Pengajuan Restock, berisi form inline `POST staff/products.store` dengan blok `@if($errors->any())` dan seluruh input produk
-- UI Kategori & Type — dropdown select bertingkat (menggantikan `<datalist>` bawaan browser):
+- UI Kategori & Type â€” dropdown select bertingkat (menggantikan `<datalist>` bawaan browser):
   - `<select id="category-select">` memuat kategori yang sudah ada plus opsi teratas `+ Tambah Kategori Baru...`; `<select id="type-select">` memuat Atasan/Bawahan/Aksesoris plus `+ Tambah Type Baru...`
   - `<select>` sengaja **tanpa** atribut `name` dan hanya berfungsi sebagai kendali UI; nilainya selalu dibawa oleh `<input name="category">` / `<input name="type">` di bawahnya, sehingga kontrak backend tetap berupa satu string nama
   - Memilih opsi `__baru__` memunculkan (`d-none` dilepas) input teks kecil di bawah dropdown; memilih kategori/type yang ada menyembunyikannya dan menyalin nilai terpilih ke input
   - State awal setelah validasi gagal dihitung di Blade (`$isNewCategory` / `$isNewType`): bila `old()` tidak ada di daftar, select disetel ke `+ Tambah ...` dan input teks ditampilkan
-  - Implementasi JS tetap vanilla (`setupSelectBertingkat`) — tanpa jQuery/Select2 agar konsisten dengan gaya halaman ini
-- Auto-select produk baru — `app/Http/Controllers/StaffController.php`:
+  - Implementasi JS tetap vanilla (`setupSelectBertingkat`) â€” tanpa jQuery/Select2 agar konsisten dengan gaya halaman ini
+- Auto-select produk baru â€” `app/Http/Controllers/StaffController.php`:
   - Logika whitelist `_return` dihapus; hasil `Product::create()` disimpan ke `$product`
   - Redirect dipatok ke section Pengajuan Restock dengan penanda `?produk=<id>#pengajuan-restock`
   - Blade menandai option tersebut dengan `@selected(request()->integer('produk') === $product->id)`, sehingga produk yang baru dibuat langsung terpilih di dropdown "Pilih Produk"
@@ -214,7 +214,7 @@ Field "Stok Awal" dihapus dari Form Tambah Master Produk Baru. Stok tidak lagi b
   - Blok `Stok Awal` (label, `<input name="stock">`, `@error('stock')`) dihapus dari card "Tambah Master Produk Baru"
   - `Size` dan `Harga` dilebarkan dari `col-6 col-md-3` menjadi `col-12 col-md-6` supaya tetap mengisi baris penuh
   - Teks lama "Kosongkan atau isi 0 bila produk belum ada stoknya." diganti catatan di samping tombol Simpan: `*Catatan: Produk baru akan didaftarkan dengan stok 0. Untuk mengisi stok fisik, silakan ajukan restock setelah produk disimpan.*`
-- `app/Http/Controllers/StaffController.php` → `storeProduct()`:
+- `app/Http/Controllers/StaffController.php` â†’ `storeProduct()`:
   - Aturan validasi `'stock' => 'nullable|integer|min:0'` dihapus
   - `Product::create()` memakai `'stock' => 0` secara hardcoded, sehingga nilai `stock` pada request diabaikan sepenuhnya walau tetap dikirim
 - `tests/Feature/StaffDashboardTabTest.php` (belum dijalankan): `stock` sengaja dikirim `5` pada payload untuk membuktikan backend mengabaikannya (`assertSame(0, $product->stock)`), plus assert `name="stock"` dan `Stok Awal` tidak lagi muncul di HTML
@@ -225,28 +225,28 @@ Tab "Riwayat Restock" diubah menjadi "Riwayat Stok", dan isinya digabung menjadi
 
 - `app/Http/Controllers/StaffController.php`:
   - `storeRestock()`: `redirect()->back()` diganti redirect eksplisit `->to(route('staff.dashboard') . '#pengajuan-restock')`. Sebelumnya fragment hash ikut hilang saat `back()`, sehingga staff selalu mendarat di tab Dashboard.
-  - `index()`: menambah variabel `$riwayatStok` — `Collection` hasil `merge()` antara aktivitas **Pengajuan Restock** (dari `$allRestocks`) dan **Produk Baru** (dari `$products`), diurutkan `->sortByDesc('tanggal')->values()`. Varian baru ikut ditambahkan ke `compact()`.
+  - `index()`: menambah variabel `$riwayatStok` â€” `Collection` hasil `merge()` antara aktivitas **Pengajuan Restock** (dari `$allRestocks`) dan **Produk Baru** (dari `$products`), diurutkan `->sortByDesc('tanggal')->values()`. Varian baru ikut ditambahkan ke `compact()`.
   - Detail baris produk baru memakai nilai stok sebenarnya: `Master Data Terdaftar (N Pcs)`, bukan angka 0 hardcode, agar produk lama yang sudah punya stok tidak tampil salah. Produk baru sendiri selalu 0 sejak Phase 11.
 - `resources/views/layouts/sidebar.blade.php`:
-  - Link staff: `href`/`data-bs-target` `#riwayat-restock` → `#riwayat-stok`, teks "Riwayat Restock" → "Riwayat Stok".
-  - Link admin: `href` `admin.dashboard#riwayat-restock` → `admin.dashboard#riwayat-stok`, teks diubah sama.
-- `resources/views/staff/dashboard.blade.php` — section `#riwayat-restock` → `#riwayat-stok`, judul card → "Riwayat Aktivitas Stok", tabel 6 kolom diganti menjadi `Tanggal | Tipe Aktivitas | Produk | Jumlah | Status | Keterangan`:
+  - Link staff: `href`/`data-bs-target` `#riwayat-restock` â†’ `#riwayat-stok`, teks "Riwayat Restock" â†’ "Riwayat Stok".
+  - Link admin: `href` `admin.dashboard#riwayat-restock` â†’ `admin.dashboard#riwayat-stok`, teks diubah sama.
+- `resources/views/staff/dashboard.blade.php` â€” section `#riwayat-restock` â†’ `#riwayat-stok`, judul card â†’ "Riwayat Aktivitas Stok", tabel 6 kolom diganti menjadi `Tanggal | Tipe Aktivitas | Produk | Jumlah | Status | Keterangan`:
   - Tipe Aktivitas: badge `Produk Baru` (info) atau `Pengajuan Restock` (secondary).
-  - Jumlah: `10 pcs` untuk restock, `—` untuk produk baru.
+  - Jumlah: `10 pcs` untuk restock, `â€”` untuk produk baru.
   - Status: `Terdaftar` (info) untuk produk baru, Pending/Approved/Rejected untuk restock.
   - Badge ringkasan di header dipertahankan, ditambah `Produk Baru: N`.
-- `tests/Feature/StaffDashboardTabTest.php` diperbarui (belum dijalankan): 6 referensi `riwayat-restock` → `riwayat-stok`, judul card, assert badge `Produk Baru: 2` + `Master Data Terdaftar (N Pcs)`, assert jumlah baris per tipe (2 produk + 3 restock), dan assert link sidebar admin.
+- `tests/Feature/StaffDashboardTabTest.php` diperbarui (belum dijalankan): 6 referensi `riwayat-restock` â†’ `riwayat-stok`, judul card, assert badge `Produk Baru: 2` + `Master Data Terdaftar (N Pcs)`, assert jumlah baris per tipe (2 produk + 3 restock), dan assert link sidebar admin.
 
 ## 2026-09-30 - Phase 13: Perbaikan Fatal `format() on null`
 Error "Call to a member function format() on null" muncul di tabel Riwayat Stok saat sebagian record tidak memiliki `created_at` (data lama/import).
 
 - `resources/views/staff/dashboard.blade.php`:
-  - Tabel Riwayat Stok: `{{ $row['tanggal']->format(...) }}` → `{{ $row['tanggal']?->format('d/m/Y H:i') ?? '-' }}` (null-safe operator + fallback `"-"`)
+  - Tabel Riwayat Stok: `{{ $row['tanggal']->format(...) }}` â†’ `{{ $row['tanggal']?->format('d/m/Y H:i') ?? '-' }}` (null-safe operator + fallback `"-"`)
   - "Ringkasan Pengajuan Terbaru" (baris ~131) punya pola yang sama dan ikut diperbaiki
-- `resources/views/admin/dashboard.blade.php` — tabel persetujuan punya pola identik, ikut diperbaiki Thoughiefungsi di luar halaman staff
-- `app/Http/Controllers/StaffController.php` → `index()`:
+- `resources/views/admin/dashboard.blade.php` â€” tabel persetujuan punya pola identik, ikut diperbaiki Thoughiefungsi di luar halaman staff
+- `app/Http/Controllers/StaffController.php` â†’ `index()`:
   - Fallback tanggal: `'tanggal' => $req->created_at ?? $req->updated_at` (dan sama untuk produk) agar tetap ada bila `created_at` null
-  - `sortByDesc('tanggal')` diganti `sortByDesc(fn ($row) => $row['tanggal']?->getTimestamp() ?? 0)` — mengurutkan key numerik, record tanpa timestamp otomatis mendarat di akhir daftar
+  - `sortByDesc('tanggal')` diganti `sortByDesc(fn ($row) => $row['tanggal']?->getTimestamp() ?? 0)` â€” mengurutkan key numerik, record tanpa timestamp otomatis mendarat di akhir daftar
 
 - `tests/Feature/StaffDashboardTabTest.php` (belum dijalankan): test baru `test_riwayat_stok_tetap_render_untuk_record_tanpa_timestamp` menyisipkan produk + restock dengan `created_at`/`updated_at` null lalu memverifikasi halaman tetap `assertOk()`
 
@@ -345,7 +345,7 @@ Komponen profil dibuat interaktif, mengikuti pola `modal-b`/`modal-box` yang sud
 - Modal baru `#profileModal` berisi: avatar inisial, nama lengkap, email (`word-break:break-all` supaya email panjang tidak merusak layout), badge role, dan tombol "Keluar dari Akun".
 - Form logout dipindahkan ke dalam modal: `<form action="{{ route('logout') }}" method="POST">` + `@csrf` + tombol `btn danger` full-width. Ini satu-satunya titik logout di halaman.
 - CSS baru: `.modal-head` + `.x` (tombol bulat tutup), `.profile-top`, `.role-badge` (pill biru memakai `--accent-soft`/`--accent`), `.btn.danger` (merah, sengaja beda dari aksen agar logout terbaca sebagai aksi destruktif).
-- JS `openProfile()` / `closeProfile()`; ditutup lewat tombol ✕, klik backdrop, atau Escape. Handler `keydown` yang sebelumnya hanya menutup `#buyModal` sekarang menutup kedua modal sekaligus.
+- JS `openProfile()` / `closeProfile()`; ditutup lewat tombol âœ•, klik backdrop, atau Escape. Handler `keydown` yang sebelumnya hanya menutup `#buyModal` sekarang menutup kedua modal sekaligus.
 - `z-index` modal (1055) vs chatbot FAB (1060) tidak konflik karena chatbot berada di pojok kanan bawah dan modal terpusat.
 
 ### 6b. Copy topbar
@@ -439,7 +439,7 @@ Keputusan:
   - `TokoController::pesanan()`: `Transaction::where('customer_id', auth()->id())->latest('date')->get()` - data difilter ke user yang sedang login, bukan semua transaksi. `auth()->id()` dipakai (setara `auth()->user()->id` yang diminta) karena lebih ringkas.
   - `resources/views/toko/pesanan.blade.php` (baru): halaman standalone dengan font dan palet yang sama seperti katalog. Isinya 4 kartu ringkasan (Total Pesanan, Selesai, Sedang Diproses, Total Belanja) lalu daftar pesanan bernomor `#00001`, badge status berwarna, tanggal, metode bayar, dan total. `@empty` memberi empty state dengan CTA "Mulai Belanja". Badge memetakan `pending/processing/completed/cancelled` ke label Indonesia (Menunggu Pembayaran/Diproses/Selesai/Dibatalkan) lewat array `$labelStatus` dengan fallback `ucfirst`.
 - **Overview** dan **Katalog Produk** -> keduanya `{{ route('toko.index') }}` (halaman katalog memang beranda pelanggan).
-- **Keranjang / Favorit / Bantuan** -> `href="#"` + atribut `data-info` yang membuka modal info baru `#infoModal` berisi judul, ikon, dan penjelasan jujur bahwa fiturnya masih dalam pengembangan (bukan link mati yang diam-diam tidak melakukan apa-apa). Modal ditutup lewat tombol ✕, tombol "Mengerti", klik backdrop, atau Escape (Escape sekarang menutup buy modal, info modal, dan modal profil sekaligus). Definisi teks & ikon disimpan di object `infoContent` di script supaya tidak ada duplikasi HTML.
+- **Keranjang / Favorit / Bantuan** -> `href="#"` + atribut `data-info` yang membuka modal info baru `#infoModal` berisi judul, ikon, dan penjelasan jujur bahwa fiturnya masih dalam pengembangan (bukan link mati yang diam-diam tidak melakukan apa-apa). Modal ditutup lewat tombol âœ•, tombol "Mengerti", klik backdrop, atau Escape (Escape sekarang menutup buy modal, info modal, dan modal profil sekaligus). Definisi teks & ikon disimpan di object `infoContent` di script supaya tidak ada duplikasi HTML.
 - CSS baru: `.info-ico` (kotak ikon biru 56px) dan `.info-text`, plus `.modal-box{color:var(--ink)}` agar teks modal ikut terang di mode gelap.
 
 ### Verifikasi (tanpa command test)
@@ -945,11 +945,81 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 
 ---
 
+## 2026-10-22 - Phase 29: Perbaikan Layout Dashboard (scroll terpotong & menu sidebar mati)
+- **Diagnosis 1 (halaman terpotong di atas)**: anchor/hash URL + scroll restoration browser + `.main-content { min-height: 100vh }` di bawah topbar sticky (64px) membuat halaman selalu lebih tinggi dari layar dan judul section tertutup topbar.
+- **CSS** `public/css/la-mamora.css`: `.main-content` -> `min-height: calc(100vh - var(--lm-topbar-height))`; `html.lm-dashboard-root { scroll-padding-top }`; `scroll-margin-top` untuk `.dashboard-section` dan `[data-dss-section]`.
+- **Layout** `resources/views/layouts/app.blade.php`: `<html class="lm-dashboard-root">` + script reset scroll (`history.scrollRestoration = 'manual'` dan `scrollTo(0, 0)` pada DOMContentLoaded/load/pageshow) supaya dashboard selalu dibuka dari paling atas.
+- **Diagnosis 2 (menu sidebar mati di halaman DSS)**: link sidebar staff hanya berisi hash (`href="#dashboard"`) dan handler-nya hanya ada di JS dashboard staff, jadi di halaman DSS klik hanya mengganti hash tanpa navigasi; form logout pun hanya ada di section `#pengaturan` dashboard staff.
+- **Sidebar** `resources/views/layouts/sidebar.blade.php`: link staff kini URL penuh `route('staff.dashboard')#<section>` (tetap menyimpan `data-bs-target`); "Pengaturan" staff memakai section in-page di dashboard staff, dan modal Pengaturan (isi logout) di halaman lain; modal Pengaturan kini dirender untuk staff di luar dashboard staff.
+- **JS** `resources/views/staff/dashboard.blade.php`: `navLinks` difilter hanya section yang benar-benar ada (link modal Profil tidak lagi kena `preventDefault`), hash dibaca dari `href` penuh, plus `scrollTo(0, 0)` saat pindah section; `admin/dashboard.blade.php` dan kedua halaman DSS ditambahkan `scrollTo(0, 0)`.
+- **Test** `tests/Feature/DssSidebarNavigationTest.php` (4 test baru): link sidebar staff/admin, akses Pengaturan + logout, guard scroll reset, dan modal Profil.
+- **Verifikasi**: `--filter=DssSidebarNavigationTest` **4/4 lolos, 43 assertions**; `--filter=StaffDashboardTabTest` **5/5 lolos, 96 assertions**; `--filter=Dss` **45/45 lolos, 226 assertions**; `--filter=Dashboard` **7/7 lolos, 119 assertions**.
+- **Batas**: belum diverifikasi manual di browser; `pint` dan test suite penuh tidak dijalankan sesuai instruksi.
+
+---
+
+## 2026-10-22 - Phase 30: Alur Approval Restock Kembali ke Menu Persetujuan
+- **Diagnosis**: `ManagerController::updateStatus()` memakai `redirect()->back()`. Header `Referer` tidak membawa fragment hash, sehingga admin selalu mendarat di section default dashboard (Dashboard Manager), bukan di menu "Persetujuan Restock", dan pesan sukses jadi tidak terlihat.
+- **Controller** `app/Http/Controllers/ManagerController.php`: `updateStatus()` kini `redirect()->to(route('admin.dashboard').'#persetujuan-restock')` dengan flash `success` berisi nama produk, jumlah pcs, dan status (disetujui/ditolak).
+- **Perilaku lain tetap**: stok produk hanya bertambah otomatis untuk status `approved`; section tujuan sudah ikut `scrollTo(0, 0)` dari Phase 29 sehingga pesan sukses langsung terlihat di bagian atas halaman.
+- **Aksi lain di halaman terkait**: `updateProduct()`/`destroyProduct()` sudah memakai hash eksplisit `#kelola-produk`, `StaffController::storeRestock()` -> `#pengajuan-restock`, `storeProduct()` -> `?produk=<id>#pengajuan-restock`, dan modul DSS -> `#dss-restock`; tidak ada lagi `redirect()->back()` pada alur OAS.
+- **Test** `tests/Feature/RestockApprovalRedirectTest.php` (3 test baru): approve dan reject kembali ke `#persetujuan-restock`, stok bertambah hanya saat disetujui, pesan sukses menyebut produk.
+- **Verifikasi**: `php artisan test --filter=RestockApprovalRedirectTest` **3/3 lolos, 13 assertions**; test suite penuh dan `pint` tidak dijalankan sesuai instruksi.
+- **Batas**: belum diverifikasi manual di browser.
+
+---
+
+## 2026-10-22 - Phase 31: Master Supplier (CRUD + pencarian/filter status)
+- **Kebutuhan kolom baru**: migration `2026_10_22_090000_add_supplied_categories_to_suppliers_table.php` menambah kolom `supplied_categories` (string 255, nullable, daftar kategori dipisah koma) ke tabel `suppliers`; migration sudah dijalankan di MySQL.
+- **Model** `app/Models/Supplier.php`: `supplied_categories` masuk `$fillable` + helper `suppliedCategoryList()` yang memecah daftar kategori.
+- **Controller** `app/Http/Controllers/SupplierMasterController.php`: `index()` (pencarian `q` + filter `status` all/active/inactive + prefill `edit`), `store()` (kode otomatis `SUP-xxx`), `update()`, `destroy()` (khusus admin; diblokir bila pemasok sudah dipakai di skor/penawaran/rekomendasi/pengajuan), `authorizeRoles()`, `validated()`, `generateCode()`, `usageOf()`.
+- **Route** `routes/web.php`: grup `role:staff,admin` dengan `supplier.master` (GET `/master-supplier`), `supplier.master.store` (POST), `supplier.master.update` (PUT), `supplier.master.destroy` (DELETE, `role:admin`).
+- **View** `resources/views/supplier/master.blade.php`: header, metric row, form cari/filter, form tambah/ubah (kategori bahan, lead time, minimal order, rating, status aktif), tabel daftar + edit + hapus; kategori diambil dari `categories` agar konsisten dengan master produk.
+- **Hak akses**: admin penuh (tambah/ubah/hapus), staff tambah+ubah saja (hapus -> 403).
+- **Test** `tests/Feature/SupplierMasterTest.php` (11 test baru): akses per role, auto kode `SUP-xxx`, tambah/ubah/hapus, blokir hapus pemasok terpakai, pencarian + filter status, prefill form ubah, dropdown kategori.
+- **Verifikasi**: `php artisan test --filter=SupplierMasterTest` **11/11 lolos, 52 assertions**; `pint` dan test suite penuh tidak dijalankan sesuai instruksi.
+- **Batas**: belum diverifikasi manual di browser.
+
+---
+
+## 2026-10-22 - Phase 32: Penawaran Supplier di Form Staff (Pengajuan Restock & Master Produk)
+- **Kebutuhan**: form staff belum punya info pemasok, sehingga DSS tidak punya data harga beli/lead time/minimal order dari operasional.
+- **Controller** `app/Http/Controllers/StaffController.php`: `index()` mengirim `$suppliers` (hanya `is_active = true`); `storeRestock()` dan `storeProduct()` kini menerima `supplier_id`, `supplier_price`, `supplier_lead_time_days`, `supplier_min_order_qty`; helper baru `syncSupplierOffer()` memakai `ProductSupplier::updateOrCreate()`.
+- **Validasi**: `supplier_id` memakai `Rule::exists('suppliers','id')->where('is_active', true)`, jadi pemasok nonaktif ditolak walau dipilih manual; tanpa `supplier_id` tidak ada relasi yang dibuat.
+- **Data**: `restock_requests.supplier_id` diisi sesuai pemasok yang dipilih; tabel `product_suppliers` (harga beli, lead time, minimal order, `is_preferred = false`) menjadi sumber data DSS.
+- **View** `resources/views/staff/dashboard.blade.php`: dropdown "Pilih Supplier" + field Harga Beli/Lead Time/Minimal Order di Form Pengajuan Restock dan di Form Tambah Master Produk, plus link "Tambah di Master Supplier" menuju `/master-supplier`.
+- **Test** `tests/Feature/StaffSupplierOfferTest.php` (6 test baru): simpan penawaran ke `product_suppliers`, update-or-create tanpa duplikat, penawaran ikut tersimpan saat tambah produk, tanpa supplier tidak ada relasi, dropdown hanya pemasok aktif, pemasok nonaktif ditolak.
+- **Verifikasi**: `php artisan test --filter=StaffSupplierOfferTest` **6/6 lolos, 33 assertions**; regresi `--filter=StaffDashboardTabTest` **5/5**, `--filter=Dss` **45/45**, `--filter=Dashboard` **7/7**, `--filter=Restock` **20/20**, `--filter=Product` **8/8**, `--filter=Supplier` **27/27**.
+- **Batas**: belum diverifikasi manual di browser.
+
+---
+
+## 2026-10-22 - Phase 33: Ringkasan Test Master Supplier & Penawaran (Fase C)
+- Ringkasan hasil verifikasi Fase C: SupplierMasterTest 11/11, StaffSupplierOfferTest 6/6, StaffDashboardTabTest 5/5, Dss 45/45, Dashboard 7/7, Restock 20/20, Product 8/8, Supplier 27/27.
+- Dokumentasikan rangkuman di `todo.md` (Phase 31–33).
+
+---
+
+## 2026-10-22 - Phase 34: UI Pelanggan Selaras dengan Design System La Mamora
+- Desain ulang halaman pelanggan agar memakai palet/token La Mamora, responsif mobile, tanpa mengubah route/logika bisnis.
+- Tambah `public/css/la-mamora-shop.css` (sidebar/drawer, kartu katalog, filter, detail produk, favorit, pesanan, modal, chatbot, auth `.lm-auth*`, dark mode `.lm-dark`).
+- `resources/views/layouts/toko-shell.blade.php`: gabung dengan `la-mamora.css` + `la-mamora-shop.css`, drawer navigasi, dark mode, modal profil/keranjang/bantuan, dan floating chatbot.
+- Katalog `resources/views/toko/index.blade.php` extends shell; filter, slider harga, pencarian, modal beli, dan favorit tetap berfungsi.
+- Hilangkan inline style pada `resources/views/toko/show.blade.php` dan `resources/views/toko/favorit.blade.php`; `resources/views/toko/pesanan.blade.php` beralih ke layout shell.
+- Desain ulang `resources/views/auth/login.blade.php` dan `resources/views/auth/register.blade.php` menggunakan `.lm-auth*` (tanpa Bootstrap CDN).
+- Tambah `tests/Feature/CustomerPagesRenderTest.php` (katalog/detail/favorit/pesanan/login/register, marker CSS/UI, drawer, tanpa warna biru Shopee). `php artisan test --filter=CustomerPagesRenderTest --compact` lulus.
+- Pastikan token shadow `--lm-shadow-sm/-shadow/-shadow-lg` tersedia di `public/css/la-mamora.css`.
+
+---
+
+
+---
+
 ## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-22)
 - **Base URL**: `http://localhost:8000` (jalanin `php artisan serve` bila belum aktif).
 - **Akun demo**: admin `admin@gmail.com` / `Manager Toko` (password `password123`), staff `kasir@gmail.com` / `Kasir Toko` (password `password123`), pelanggan `dewi.demo@lamamora.test` (password `password`; teammates: `budi.demo`, `siti.demo`, `andi.demo` @lamamora.test).
-- **Daftar URL**: `/` (landing, 2 seksi rekomendasi), `/toko` (katalog pelanggan), `/staff/dss` (Penilaian Pemasok, 3 tab), `/admin/dss` (Analisis DSS, 6 tab).
-- **Urutan screenshot**: (1) `/` sebagai tamu -> seksi "Produk Terlaris"; (2) `/` login sebagai `dewi.demo@lamamora.test` -> seksi "Rekomendasi untukmu"; (3) `/toko` katalog; (4) `/staff/dss` -> tab Rekomendasi Restock, tab Penilaian Supplier, tab Ranking Supplier; (5) `/admin/dss` -> tab Ringkasan (3 kartu ringkasan), tab Bobot AHP (matriks), tab Ranking VIKOR, tab Restock (rekomendasi + pengajuan + tombol Setujui/Tolak), tab Pemasok (form + daftar + relasi produk), tab Riwayat.
+- **Daftar URL**: `/` (landing), `/login`, `/register`, `/toko` (katalog pelanggan), `/toko/produk/{id}`, `/toko/favorit`, `/toko/pesanan`, `/master-supplier` (Master Supplier - admin/staff), `/staff/dashboard` (form Pengajuan Restock & Master Produk dengan penawaran supplier), `/staff/dss` (Penilaian Pemasok, 3 tab), `/admin/dashboard`, `/admin/dss` (Analisis DSS, 6 tab).
+- **Urutan screenshot**: (1) `/` sebagai tamu -> seksi "Produk Terlaris"; (2) `/` login sebagai `dewi.demo@lamamora.test` -> seksi "Rekomendasi untukmu"; (3) `/toko` katalog (shell La Mamora); (4) `/toko/produk/{id}` detail; (5) `/toko/favorit` dan `/toko/pesanan`; (6) `/login` dan `/register` (auth `.lm-auth*`); (7) `/master-supplier` (CRUD/search/filter); (8) `/staff/dashboard` -> form Pengajuan Restock/Master Produk dengan dropdown supplier aktif; (9) `/staff/dss` -> tab Rekomendasi Restock, tab Penilaian Supplier, tab Ranking Supplier; (10) `/admin/dss` -> tab Ringkasan, Bobot AHP, Ranking VIKOR, Restock, Pemasok, Riwayat.
 - **Data siap tampil**: 5 pemasok + 6 kriteria AHP (CR = 0, bobot 0,30/0,25/0,18/0,12/0,08/0,07), 30 baris skor (run draft "Penilaian Pemasok Demo"), 93 transaksi demo 30 hari terakhir, 2 run analisis (run #2 `completed` + 5 rekomendasi restock tersimpan).
 - **Hasil VIKOR demo**: peringkat 1 Konveksi Bandung Sentosa (Q = 0, klasifikasi "Solusi Tunggal"), 2 Konveksi Semarang Abadi (Q = 0,3437), 3 Textile Surabaya Jaya (Q = 0,4016), 4 Konveksi Jakarta Makmur (Q = 0,4118), 5 Konveksi Yogyakarta Langgeng (Q = 1); advantage = ya, ranking stabil.
 - **Rekomendasi restock demo**: 1 produk "Perlu Restock" - Gaul Totebag, 25 pcs, Rp 850.000, pemasok Konveksi Bandung Sentosa.

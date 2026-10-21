@@ -980,6 +980,9 @@
                 if (window.location.hash !== `#${id}`) {
                     history.replaceState(null, '', `#${id}`);
                 }
+
+                // Modul yang baru tampil selalu dimulai dari paling atas.
+                window.scrollTo(0, 0);
             };
 
             tabs.forEach((tab) => {

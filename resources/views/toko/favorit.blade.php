@@ -5,15 +5,6 @@
     'subheading' => 'Semua produk yang pernah kamu tandai dengan hati.',
 ])
 
-@push('styles')
-    <style>
-        .panel{background:var(--card);border-radius:var(--radius);border:1px solid var(--line);padding:20px}
-        .panel-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-        .panel-head h2{font-size:17px;font-weight:700}
-        .panel-head .count{font-size:13.5px;color:var(--muted);margin-left:auto}
-    </style>
-@endpush
-
 @section('content')
     @php
         $emojiKategori = [

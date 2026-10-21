@@ -1,4 +1,4 @@
-# To-Do List Pengembangan TPS & OAS
+﻿# To-Do List Pengembangan TPS & OAS
 
 - [x] Sistem Login Multi-Role (Pelanggan, Kasir, Admin)
 - [x] OAS Restock Request dari Staff/Kasir
@@ -23,11 +23,11 @@
 - [x] Tambah Produk dipindah jadi form inline card "Tambah Master Produk Baru" di bawah Pengajuan Restock (modal dihapus)
 - [x] Dropdown Kategori & Type bertingkat (select + opsi "+ Tambah ... Baru..." + input teks kondisional, tanpa jQuery/Select2)
 - [x] Produk baru otomatis terpilih di dropdown "Pilih Produk" via `?produk=<id>`
-- [x] Field "Stok Awal" dihapus — produk baru selalu didaftarkan dengan stok 0, diisi lewat pengajuan restock
+- [x] Field "Stok Awal" dihapus â€” produk baru selalu didaftarkan dengan stok 0, diisi lewat pengajuan restock
 - [x] Redirect `storeRestock` diarahkan eksplisit ke `#pengajuan-restock` (bukan `back()` yang menghilangkan hash)
-- [x] Tab "Riwayat Restock" → "Riwayat Stok" (`#riwayat-stok`) di sidebar staff & admin
+- [x] Tab "Riwayat Restock" â†’ "Riwayat Stok" (`#riwayat-stok`) di sidebar staff & admin
 - [x] Audit trail "Riwayat Aktivitas Stok": gabungkan Produk Baru + Pengajuan Restock, urut dari terbaru
-- [x] Fix fatal `format() on null` — null-safe tanggal di staff dashboard, admin dashboard, dan `$riwayatStok`
+- [x] Fix fatal `format() on null` â€” null-safe tanggal di staff dashboard, admin dashboard, dan `$riwayatStok`
 - [x] Migration kolom `products.image` (nullable, setelah `color`) + `php artisan migrate --force`
 - [x] Upload foto produk: validasi `mimes:jpg,jpeg,png,webp|max:2048`, simpan ke `public/images/produk` (tanpa `storage:link`)
 - [x] Form staff multipart + field "Foto Produk" + blok `@error('image')`
@@ -35,38 +35,38 @@
 - [x] Rewrite katalog `toko/index.blade.php` jadi grid Shoplytic modern (sidebar, topbar, panel filter, grid responsif)
 - [x] Grid server-rendered `@forelse($products)` dengan `data-nama`/`data-harga`/`data-kategori` (tanpa mock JS array)
 - [x] Filter client-side: checkbox kategori (dari DB), rentang harga, dual-handle slider 0-1.000.000, tombol Terapkan + Reset
-- [x] Dual search tersinkron (`#globalSearch` ↔ `#search`) + counter `#count` + pesan `#noMatch`
+- [x] Dual search tersinkron (`#globalSearch` â†” `#search`) + counter `#count` + pesan `#noMatch`
 - [x] Dark mode toggle via CSS variable tanpa reload/localStorage
 - [x] Tampilan foto produk di card + fallback emoji per kategori saat foto kosong
 - [x] Modal pembelian di card baru dengan `BUY_URL` dari `route()` dan batas kuantitas = stok
 - [x] Chatbot dipertahankan di katalog baru + `<meta name="csrf-token">` (fix POST 419)
 - [x] `TokoController::index()` eager load `with('category')` + kirim `$categories` untuk filter
 - [x] Fix bug: `'image' => $data['image'] ?? null` ditambahkan ke `Product::create()` (file sempat terupload tapi kolom `image` tetap `NULL`)
-- [x] Verifikasi manual via HTTP kernel (render 200, filter id, upload end-to-end, cleanup data uji) — tanpa `artisan test`
-- [x] Phase 15 — Palet katalog ganti Oranye → Biru Modern (`--accent:#2563eb`, `--accent-soft:#e8f0fe`, track slider `#c7dcfd`, dark mode `#1e3a5f`)
-- [x] Phase 15 — Sidebar direstrukturisasi ala Shopee: 5 menu datar (Overview, Katalog Produk, Keranjang Belanja, Pesanan Saya, Produk Favorit), sub-menu + link "Log Out" dihapus
-- [x] Phase 15 — Helpinan "Bantuan" tetap di `.nav.bottom`
-- [x] Phase 15 — Search bar topbar (`#globalSearch` + CSS `.gsearch`) dihapus, hanya `#search` di header katalog
-- [x] Phase 15 — Logout dipindah dari sidebar ke dalam modal profil
-- [x] Phase 15 — Komponen profil topbar jadi `<button id="profileBtn">` (clickable + keyboard, `aria-haspopup`/`aria-expanded`) membuka modal profil berisi nama, email, role, dan tombol "Keluar dari Akun" (`POST route('logout')` + `@csrf`)
-- [x] Phase 15 — Escape menutup modal pembelian dan modal profil sekaligus
-- [x] Phase 15 — Copy topbar diubah ke "Katalog Produk" / "Temukan pakaian sesuai kebutuhan dan kebutuhanmu."
-- [x] Phase 15 — Verifikasi via HTTP kernel: palet, sidebar, search, logout, modal profil, dan regresi chatbot/buy/filter (tanpa `artisan test`)
-- [x] Phase 16 — Font katalog: **Plus Jakarta Sans** (fallback Inter) + base font 13px → **15px**, line-height 1.5, dan ~23 ukuran turunan diperbesar (judul, card, badge, breadcrumb, modal, filter)
-- [x] Phase 16 — Sizing komponen ikut menyesuaikan (checkbox 15→18px, thumb slider 12→15px, avatar/ic 32/34→36px, minmax card 190→215px, kolom filter 174→196px)
-- [x] Phase 16 — Dark mode high contrast: `--bg:#121827`, `--card:#1f2937`, `--ink:#f3f4f6`, `--line:#374151`, aksen dinaikkan ke `#3b82f6`
-- [x] Phase 16 — Token kontras baru: `--on-accent`, `--alert`, `--danger-soft`, `--danger` (tiap warna punya versi gelap)
-- [x] Phase 16 — Fix deteksi mode gelap (sebelumnya membandingkan `--bg` dengan string yang tidak ada di palet mana pun, jadi selalu salah)
-- [x] Phase 16 — Warna kaku gelap yang tidak terbaca di mode gelap diperbaiki: `.nav a` `#444` → `var(--ink)`, `.checks label` `#555` → `var(--ink)`, `.ic` `#fff` → `var(--card)`
-- [x] Phase 16 — Emoji sidebar diganti **6 ikon SVG inline** (Lucide style, `stroke=currentColor`): LayoutDashboard, ShoppingBag, ShoppingCart, Package, Heart, HelpCircle
-- [x] Phase 16 — Sidebar nav diberi `aria-label`, tiap SVG `aria-hidden="true"`, teks menu dibungkus `<span>`
-- [x] Phase 16 — Route `toko.pesanan` + `TokoController::pesanan()` (filter `customer_id = auth()->id()`)
-- [x] Phase 16 — Halaman baru `resources/views/toko/pesanan.blade.php`: 4 kartu ringkasan, daftar pesanan bernomor, badge status, empty state
-- [x] Phase 16 — Link sidebar: Overview & Katalog → `toko.index`; Pesanan Saya → `toko.pesanan`; Keranjang/Favorit/Bantuan → modal info (tidak ada tabel cart/favorit di skema)
-- [x] Phase 16 — Modal `#infoModal` + object `infoContent` (judul, ikon SVG, teks jujur "fitur dalam pengembangan")
-- [x] Phase 16 — Escape menutup buy modal, info modal, dan modal profil sekaligus
-- [x] Phase 16 — Perbaikan teks changelog yang korup (karakter acak & emoji hilang) di Phase 8, 10, 14, 15, 16
-- [x] Phase 16 — Verifikasi via HTTP kernel: `GET /toko` 200, `GET /toko/pesanan` 200, cabang `@empty` pesanan, regresi chatbot/buy/filter/profil/logout (tanpa `artisan test`)
+- [x] Verifikasi manual via HTTP kernel (render 200, filter id, upload end-to-end, cleanup data uji) â€” tanpa `artisan test`
+- [x] Phase 15 â€” Palet katalog ganti Oranye â†’ Biru Modern (`--accent:#2563eb`, `--accent-soft:#e8f0fe`, track slider `#c7dcfd`, dark mode `#1e3a5f`)
+- [x] Phase 15 â€” Sidebar direstrukturisasi ala Shopee: 5 menu datar (Overview, Katalog Produk, Keranjang Belanja, Pesanan Saya, Produk Favorit), sub-menu + link "Log Out" dihapus
+- [x] Phase 15 â€” Helpinan "Bantuan" tetap di `.nav.bottom`
+- [x] Phase 15 â€” Search bar topbar (`#globalSearch` + CSS `.gsearch`) dihapus, hanya `#search` di header katalog
+- [x] Phase 15 â€” Logout dipindah dari sidebar ke dalam modal profil
+- [x] Phase 15 â€” Komponen profil topbar jadi `<button id="profileBtn">` (clickable + keyboard, `aria-haspopup`/`aria-expanded`) membuka modal profil berisi nama, email, role, dan tombol "Keluar dari Akun" (`POST route('logout')` + `@csrf`)
+- [x] Phase 15 â€” Escape menutup modal pembelian dan modal profil sekaligus
+- [x] Phase 15 â€” Copy topbar diubah ke "Katalog Produk" / "Temukan pakaian sesuai kebutuhan dan kebutuhanmu."
+- [x] Phase 15 â€” Verifikasi via HTTP kernel: palet, sidebar, search, logout, modal profil, dan regresi chatbot/buy/filter (tanpa `artisan test`)
+- [x] Phase 16 â€” Font katalog: **Plus Jakarta Sans** (fallback Inter) + base font 13px â†’ **15px**, line-height 1.5, dan ~23 ukuran turunan diperbesar (judul, card, badge, breadcrumb, modal, filter)
+- [x] Phase 16 â€” Sizing komponen ikut menyesuaikan (checkbox 15â†’18px, thumb slider 12â†’15px, avatar/ic 32/34â†’36px, minmax card 190â†’215px, kolom filter 174â†’196px)
+- [x] Phase 16 â€” Dark mode high contrast: `--bg:#121827`, `--card:#1f2937`, `--ink:#f3f4f6`, `--line:#374151`, aksen dinaikkan ke `#3b82f6`
+- [x] Phase 16 â€” Token kontras baru: `--on-accent`, `--alert`, `--danger-soft`, `--danger` (tiap warna punya versi gelap)
+- [x] Phase 16 â€” Fix deteksi mode gelap (sebelumnya membandingkan `--bg` dengan string yang tidak ada di palet mana pun, jadi selalu salah)
+- [x] Phase 16 â€” Warna kaku gelap yang tidak terbaca di mode gelap diperbaiki: `.nav a` `#444` â†’ `var(--ink)`, `.checks label` `#555` â†’ `var(--ink)`, `.ic` `#fff` â†’ `var(--card)`
+- [x] Phase 16 â€” Emoji sidebar diganti **6 ikon SVG inline** (Lucide style, `stroke=currentColor`): LayoutDashboard, ShoppingBag, ShoppingCart, Package, Heart, HelpCircle
+- [x] Phase 16 â€” Sidebar nav diberi `aria-label`, tiap SVG `aria-hidden="true"`, teks menu dibungkus `<span>`
+- [x] Phase 16 â€” Route `toko.pesanan` + `TokoController::pesanan()` (filter `customer_id = auth()->id()`)
+- [x] Phase 16 â€” Halaman baru `resources/views/toko/pesanan.blade.php`: 4 kartu ringkasan, daftar pesanan bernomor, badge status, empty state
+- [x] Phase 16 â€” Link sidebar: Overview & Katalog â†’ `toko.index`; Pesanan Saya â†’ `toko.pesanan`; Keranjang/Favorit/Bantuan â†’ modal info (tidak ada tabel cart/favorit di skema)
+- [x] Phase 16 â€” Modal `#infoModal` + object `infoContent` (judul, ikon SVG, teks jujur "fitur dalam pengembangan")
+- [x] Phase 16 â€” Escape menutup buy modal, info modal, dan modal profil sekaligus
+- [x] Phase 16 â€” Perbaikan teks changelog yang korup (karakter acak & emoji hilang) di Phase 8, 10, 14, 15, 16
+- [x] Phase 16 â€” Verifikasi via HTTP kernel: `GET /toko` 200, `GET /toko/pesanan` 200, cabang `@empty` pesanan, regresi chatbot/buy/filter/profil/logout (tanpa `artisan test`)
 
 - [x] Phase 17 - Migration `2026_10_01_000001_add_description_to_products_table.php` (TEXT nullable, `after('image')`) - `products.image` sudah ada dari Phase 14, jadi tidak dibuat ulang
 - [x] Phase 17 - Migration `2026_10_01_000002_create_favorites_table.php` (user_id & product_id cascade, unique compound `user_id+product_id`, timestamps)
@@ -267,3 +267,62 @@
 - [x] Tahap akhir - Probe render MySQL: `/admin/dss` 185 KB (6 tab), `/staff/dss` 78 KB, landing tamu 28 KB (4 kartu terlaris) & pelanggan 31 KB (4 rekomendasi + 4 terlaris)
 - [x] Tahap akhir - `changelog.md`: entri Phase 26 & 27 diperbarui + section "Bahan Screenshot Laporan DSS" (base URL, akun demo, daftar URL, urutan screenshot)
 - [ ] Tahap akhir - **Belum diverifikasi di browser** - pergantian tab DSS (hash), simpan matriks AHP, CRUD pemasok, ajukan/setujui restock, dan dua seksi landing masih perlu dicek manual; test suite penuh & `pint` **tidak dijalankan** sesuai instruksi
+
+### Phase 29 (Fase A - Perbaikan Layout Dashboard)
+- [x] Diagnosis bug 1 - halaman terpotong di atas: anchor/hash URL + scroll restoration browser + `.main-content { min-height: 100vh }` di bawah topbar sticky (64px)
+- [x] `public/css/la-mamora.css` - `.main-content` -> `min-height: calc(100vh - var(--lm-topbar-height))`, `html.lm-dashboard-root { scroll-padding-top }`, `scroll-margin-top` untuk `.dashboard-section` + `[data-dss-section]`
+- [x] `resources/views/layouts/app.blade.php` - `<html class="lm-dashboard-root">` + script reset scroll (`scrollRestoration = 'manual'`, `scrollTo(0, 0)` pada DOMContentLoaded/load/pageshow)
+- [x] Diagnosis bug 2 - menu sidebar staff mati di halaman DSS: link hanya berisi hash (`href="#dashboard"`), handler-nya hanya ada di JS dashboard staff, form logout hanya di section `#pengaturan`
+- [x] `resources/views/layouts/sidebar.blade.php` - link staff jadi URL penuh `route('staff.dashboard')#<section>`; "Pengaturan" staff = section in-page (di dashboard staff) atau modal Pengaturan (halaman lain); modal Pengaturan dirender untuk staff di luar dashboard staff
+- [x] `resources/views/staff/dashboard.blade.php` - `navLinks` hanya section nyata (link modal Profil tidak lagi di-`preventDefault`), hash dibaca dari `href` penuh, `scrollTo(0, 0)` saat pindah section
+- [x] `resources/views/admin/dashboard.blade.php`, `admin/dss.blade.php`, `staff/dss.blade.php` - `scrollTo(0, 0)` saat pindah section/modul
+- [x] `tests/Feature/DssSidebarNavigationTest.php` (4 test): link sidebar staff/admin, Pengaturan + logout, guard scroll reset, modal Profil
+- [x] Verifikasi: `--filter=DssSidebarNavigationTest` 4/4 (43 assertions), `--filter=StaffDashboardTabTest` 5/5 (96), `--filter=Dss` 45/45 (226), `--filter=Dashboard` 7/7 (119) - test suite penuh & `pint` tidak dijalankan
+- [ ] Phase 29 - **Belum diverifikasi di browser** - posisi scroll awal, topbar menutupi judul section, dan klik menu sidebar/pengaturan/logout dari halaman DSS
+
+### Phase 30 (Fase B - Alur Approval Restock)
+- [x] Diagnosis: `ManagerController::updateStatus()` memakai `redirect()->back()`; header `Referer` tidak membawa fragment hash sehingga admin mendarat di section default dashboard
+- [x] `app/Http/Controllers/ManagerController.php` - `updateStatus()` redirect ke `route('admin.dashboard').'#persetujuan-restock'` + flash `success` (nama produk, jumlah, status)
+- [x] Aksi lain di halaman terkait sudah memakai hash eksplisit (`#kelola-produk`, `#pengajuan-restock`, `?produk=<id>#pengajuan-restock`, `#dss-restock`) - tidak ada `redirect()->back()` di alur OAS
+- [x] `tests/Feature/RestockApprovalRedirectTest.php` (3 test): approve/reject kembali ke menu Persetujuan Restock, stok bertambah hanya saat disetujui, pesan sukses menyebut produk
+- [x] Verifikasi: `--filter=RestockApprovalRedirectTest` 3/3 lolos (13 assertions) - test suite penuh & `pint` tidak dijalankan
+- [ ] Phase 30 - **Belum diverifikasi di browser** - alur approve/reject dari tabel Persetujuan Restock
+
+### Phase 31 (Fase C - Master Supplier)
+- [x] Migration `2026_10_22_090000_add_supplied_categories_to_suppliers_table.php` (kolom `supplied_categories` string 255 nullable) - sudah di-`migrate --force` (MySQL), bukan `migrate:fresh`
+- [x] `app/Models/Supplier.php` - `supplied_categories` masuk `$fillable` + helper `suppliedCategoryList()`
+- [x] `app/Http/Controllers/SupplierMasterController.php` (baru) - `index()` (pencarian `q` + filter `status` all/active/inactive + prefill `edit`), `store()` (kode otomatis `SUP-xxx`), `update()`, `destroy()` (khusus admin, diblokir bila pemasok terpakai), `authorizeRoles()`, `validated()`, `generateCode()`, `usageOf()`
+- [x] `routes/web.php` - grup `role:staff,admin`: `supplier.master` (GET `/master-supplier`), `supplier.master.store` (POST), `supplier.master.update` (PUT), `supplier.master.destroy` (DELETE + `role:admin`)
+- [x] `resources/views/supplier/master.blade.php` (baru) - header, metric row, form cari/filter, form tambah/ubah (kategori bahan, lead time, minimal order, rating, status aktif), tabel daftar + edit + hapus
+- [x] Sidebar - grup nav "Master Data" berisi "Master Supplier"
+- [x] `tests/Feature/SupplierMasterTest.php` (11 test) - akses per role, auto kode, tambah/ubah/hapus, blokir hapus pemasok terpakai, pencarian + filter status, prefill form ubah, dropdown kategori
+- [x] Verifikasi: `--filter=SupplierMasterTest` 11/11 lolos (52 assertions) - test suite penuh & `pint` tidak dijalankan
+- [ ] Phase 31 - **Belum diverifikasi di browser** - tambah/ubah/hapus pemasok, filter status, dan form edit
+
+### Phase 32 (Fase C - Penawaran Supplier di Form Staff)
+- [x] `app/Http/Controllers/StaffController.php` - `index()` mengirim `$suppliers` (hanya `is_active = true`); `storeRestock()` & `storeProduct()` menerima `supplier_id`, `supplier_price`, `supplier_lead_time_days`, `supplier_min_order_qty`; helper `syncSupplierOffer()` (updateOrCreate ke `product_suppliers`)
+- [x] Validasi `supplier_id` memakai `Rule::exists('suppliers','id')->where('is_active', true)` - pemasok nonaktif ditolak
+- [x] `restock_requests.supplier_id` diisi sesuai pemasok yang dipilih
+- [x] `resources/views/staff/dashboard.blade.php` - dropdown "Pilih Supplier" + field Harga Beli/Lead Time/Minimal Order di Form Pengajuan Restock & Form Tambah Master Produk + link "Tambah di Master Supplier"
+- [x] `tests/Feature/StaffSupplierOfferTest.php` (6 test) - simpan penawaran, update-or-create, penawaran saat tambah produk, tanpa supplier tidak ada relasi, dropdown hanya aktif, nonaktif ditolak
+- [x] Verifikasi: `--filter=StaffSupplierOfferTest` 6/6 (33), `--filter=StaffDashboardTabTest` 5/5 (96), `--filter=Dss` 45/45 (226), `--filter=Dashboard` 7/7 (119), `--filter=Restock` 20/20 (93), `--filter=Product` 8/8 (22), `--filter=Supplier` 27/27 (116)
+- [ ] Phase 32 - **Belum diverifikasi di browser** - isi penawaran supplier di form staff dan dampaknya ke rekomendasi DSS
+
+### Phase 33 (Fase C - Ringkasan Test Fase C)
+- [x] Seluruh alur Fase C punya test otomatis: CRUD Master Supplier per role (`SupplierMasterTest`, 11 test) + penyimpanan penawaran pemasok (`StaffSupplierOfferTest`, 6 test)
+- [x] Cakupan: hak akses admin/staff/pelanggan, auto kode `SUP-xxx`, pencarian `q`, filter `status`, prefill form ubah, guard hapus (403 staff + blokir bila dipakai), `product_suppliers` upsert, `restock_requests.supplier_id`, penolakan pemasok nonaktif
+- [x] Verifikasi: `--filter=SupplierMasterTest` 11/11 (52); `--filter=StaffSupplierOfferTest` 6/6 (33); regresi Phase 29-30 hijau; `pint` & test suite penuh tidak dijalankan
+- [ ] Phase 33 - **Belum diverifikasi di browser** - seluruh alur Fase C
+
+### Phase 34 (Fase D - Selaraskan UI Pelanggan dengan Design System)
+- [x] Buat public/css/la-mamora-shop.css untuk halaman pelanggan (shell, katalog, detail, favorit, pesanan, modal, chatbot, auth .lm-auth*, mobile).
+- [x] Ubah esources/views/layouts/toko-shell.blade.php jadi memakai la-mamora.css + la-mamora-shop.css beserta drawer, dark mode, modal profil/keranjang/bantuan, dan chatbot.
+- [x] Redesign katalog esources/views/toko/index.blade.php (extends shell), detail esources/views/toko/show.blade.php, esources/views/toko/favorit.blade.php, esources/views/toko/pesanan.blade.php (ke shell). Hapus inline style berlebihan.
+- [x] Redesign esources/views/auth/login.blade.php dan esources/views/auth/register.blade.php memakai .lm-auth* tanpa Bootstrap CDN.
+- [x] Tambah 	ests/Feature/CustomerPagesRenderTest.php; php artisan test --filter=CustomerPagesRenderTest --compact lulus.
+- [x] Pastikan token --lm-shadow-sm, --lm-shadow, --lm-shadow-lg ada di public/css/la-mamora.css dan warna biru Shopee tidak dipakai.
+- [x] Update changelog.md dan 	odo.md Phase 34.
+
+### Penutup
+- [ ] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock)
+- [ ] Commit perubahan setelah diminta

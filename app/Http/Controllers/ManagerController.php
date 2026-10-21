@@ -175,7 +175,17 @@ class ManagerController extends Controller
             $product->save();
         }
 
-        return redirect()->back()->with('success', 'Status pengajuan restock berhasil diperbarui!');
+        $namaProduk = $restock->product?->name ?? 'Produk';
+        $pesan = $request->status === 'approved'
+            ? 'Pengajuan restock '.$namaProduk.' ('.$restock->jumlah_restock.' pcs) disetujui, stok produk bertambah.'
+            : 'Pengajuan restock '.$namaProduk.' ('.$restock->jumlah_restock.' pcs) ditolak.';
+
+        // redirect()->back() membuang fragment hash, sehingga admin selalu mendarat
+        // di dashboard utama. Arahkan eksplisit ke menu Persetujuan Restock
+        // supaya approve/reject tidak membuat admin kehilangan posisi halaman.
+        return redirect()
+            ->to(route('admin.dashboard') . '#persetujuan-restock')
+            ->with('success', $pesan);
     }
 
     // Catatan: tidak ada storeProduct() di sini. Penambahan master produk

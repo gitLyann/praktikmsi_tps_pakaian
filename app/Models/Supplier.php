@@ -19,6 +19,7 @@ class Supplier extends Model
         'email',
         'address',
         'city',
+        'supplied_categories',
         'lead_time_days',
         'min_order_qty',
         'rating',
@@ -55,5 +56,23 @@ class Supplier extends Model
     public function restockRecommendations()
     {
         return $this->hasMany(DssRestockRecommendation::class);
+    }
+
+    /**
+     * Daftar kategori bahan/produk yang dipasok.
+     *
+     * Kolomnya disimpan sebagai teks dipisah koma, jadi dipecah di sini
+     * supaya bisa langsung dipakai di filter dan tampilan.
+     *
+     * @return array<int, string>
+     */
+    public function suppliedCategoryList(): array
+    {
+        return collect(explode(',', (string) $this->supplied_categories))
+            ->map(fn ($category) => trim($category))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }

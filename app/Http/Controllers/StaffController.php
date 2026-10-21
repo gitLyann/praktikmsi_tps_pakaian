@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductSupplier;
 use App\Models\RestockRequest;
+use App\Models\Supplier;
 use App\Support\HandlesProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class StaffController extends Controller
 {
@@ -20,6 +23,10 @@ class StaffController extends Controller
         $products = Product::with('category')->orderBy('id')->get();
         $topProducts = $products->take(5);
         $categories = Category::orderBy('name')->get();
+
+        // Pemasok aktif untuk dropdown pada form pengajuan restock dan
+        // form tambah master produk.
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
         $totalProduk = $products->count();
         $stokKritis = $products->where('stock', '<=', $criticalThreshold)->count();
@@ -68,6 +75,7 @@ class StaffController extends Controller
             'products',
             'topProducts',
             'categories',
+            'suppliers',
             'restockRequests',
             'recentRestocks',
             'pendingRestocks',
@@ -97,6 +105,14 @@ class StaffController extends Controller
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'description' => 'nullable|string|max:2000',
             'price' => 'required|numeric|min:0',
+            'supplier_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('suppliers', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'supplier_price' => 'nullable|numeric|min:0',
+            'supplier_lead_time_days' => 'nullable|integer|min:1|max:60',
+            'supplier_min_order_qty' => 'nullable|integer|min:1',
         ]);
 
         // Foto produk disimpan ke public/images/produk supaya bisa langsung diakses tanpa storage:link
@@ -117,6 +133,10 @@ class StaffController extends Controller
             'price' => $data['price'],
             'stock' => 0,
         ]);
+
+        // Relasi pemasok (harga beli, lead time, minimal order) disimpan di
+        // tabel product_suppliers dan dipakai analisis DSS.
+        $this->syncSupplierOffer($product, $data);
 
         // Form Tambah Master Produk Baru berada di section Pengajuan Restock, jadi kembalikan ke sana
         // dengan ?produk=<id> agar produk baru otomatis terpilih di dropdown "Pilih Produk".
@@ -170,20 +190,35 @@ class StaffController extends Controller
     // Memproses pengajuan restock dari formulir web (OAS Function - Staff)
     public function storeRestock(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'product_id' => 'required|exists:products,id',
             'jumlah_restock' => 'required|integer|min:1',
+            'supplier_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('suppliers', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'supplier_price' => 'nullable|numeric|min:0',
+            'supplier_lead_time_days' => 'nullable|integer|min:1|max:60',
+            'supplier_min_order_qty' => 'nullable|integer|min:1',
         ]);
 
         // Mencari employee_id dari user yang sedang login
         // Jika belum ada relasi employee, kita set default ID 1 untuk simulasi
         $employeeId = Auth::user()->employee->id ?? 1;
 
+        $product = Product::findOrFail($data['product_id']);
+
+        // Simpan ofertas pemasok (harga beli, lead time, minimal order) supaya
+        // rekomendasi restock DSS memakai data yang sama.
+        $this->syncSupplierOffer($product, $data);
+
         RestockRequest::create([
             'product_id' => $request->product_id,
             'employee_id' => $employeeId,
             'jumlah_restock' => $request->input('jumlah_restock'),
             'status' => 'pending',
+            'supplier_id' => $data['supplier_id'] ?? null,
         ]);
 
         // redirect()->back() mengembalikan URL tanpa fragment hash, sehingga staff selalu mendarat
@@ -191,5 +226,34 @@ class StaffController extends Controller
         return redirect()
             ->to(route('staff.dashboard') . '#pengajuan-restock')
             ->with('success', 'Pengajuan restock barang berhasil dikirim ke Manager!');
+    }
+
+    /**
+     * Simpan atau perbarui penawaran pemasok untuk sebuah produk.
+     *
+     * Data yang dipakai: supplier_id, supplier_price, supplier_lead_time_days,
+     * dan supplier_min_order_qty. Bila supplier tidak dipilih, tidak ada
+     * relasi yang dibuat.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function syncSupplierOffer(Product $product, array $data): void
+    {
+        if (empty($data['supplier_id'])) {
+            return;
+        }
+
+        ProductSupplier::updateOrCreate(
+            [
+                'supplier_id' => (int) $data['supplier_id'],
+                'product_id' => $product->id,
+            ],
+            [
+                'price' => (float) ($data['supplier_price'] ?? 0),
+                'min_order_qty' => (int) ($data['supplier_min_order_qty'] ?? 1),
+                'lead_time_days' => (int) ($data['supplier_lead_time_days'] ?? 7),
+                'is_preferred' => false,
+            ]
+        );
     }
 }

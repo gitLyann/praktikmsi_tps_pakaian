@@ -1,3 +1,12 @@
+@php
+    // Staff memakai navigasi section in-page di dashboard-nya, sedangkan
+    // halaman lain (DSS, Master Supplier) memakai URL penuh supaya menu
+    // sidebar tetap bisa diklik dari halaman mana pun.
+    $isStaff = Auth::user()->role === 'staff';
+    $onStaffDashboard = $isStaff && request()->routeIs('staff.dashboard');
+    $staffDashboardUrl = route('staff.dashboard');
+@endphp
+
 <div class="sidebar-header">
     <a href="#" class="sidebar-brand d-flex align-items-center gap-2">
         <i class="lm-mark">L</i>
@@ -11,9 +20,11 @@
 <nav class="sidebar-nav flex-grow-1" aria-label="Main navigation">
     <div class="nav-section">
         <div class="nav-section-label">Utama</div>
-        @if(Auth::user()->role === 'staff')
-            {{-- Halaman dashboard staff memakai tab Bootstrap, klik menu = pindah tab tanpa reload --}}
-            <a href="#dashboard" data-bs-target="#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
+        @if($isStaff)
+            {{-- Halaman dashboard staff memakai tab Bootstrap, klik menu = pindah tab tanpa reload.
+                 URL tetap ditulis penuh supaya link tetap berfungsi saat halaman ini
+                 bukan dashboard (mis. halaman DSS). --}}
+            <a href="{{ $staffDashboardUrl }}#dashboard" data-bs-target="#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
@@ -29,18 +40,18 @@
         @endif
     </div>
 
-    @if(Auth::user()->role === 'staff')
+    @if($isStaff)
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
-            <a href="#monitoring-stok" data-bs-target="#monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#monitoring-stok" data-bs-target="#monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok</span>
             </a>
-            <a href="#pengajuan-restock" data-bs-target="#pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#pengajuan-restock" data-bs-target="#pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
                 <i class="bi bi-plus-square"></i>
                 <span>Pengajuan Restock</span>
             </a>
-            <a href="#riwayat-stok" data-bs-target="#riwayat-stok" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#riwayat-stok" data-bs-target="#riwayat-stok" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
                 <i class="bi bi-clock-history"></i>
                 <span>Riwayat Stok</span>
             </a>
@@ -85,14 +96,25 @@
         </div>
     @endif
 
+    @if($isStaff || Auth::user()->role === 'admin')
+        <div class="nav-section">
+            <div class="nav-section-label">Master Data</div>
+            <a href="{{ route('supplier.master') }}" class="nav-link {{ $activeRoute === 'supplier' ? 'active' : '' }}">
+                <i class="bi bi-buildings"></i>
+                <span>Master Supplier</span>
+            </a>
+        </div>
+    @endif
+
     <div class="nav-section">
         <div class="nav-section-label">Akun</div>
         <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#profileModal">
             <i class="bi bi-person-circle"></i>
             <span>Profil Saya</span>
         </a>
-        @if(Auth::user()->role === 'staff')
-            <a href="#pengaturan" data-bs-target="#pengaturan" class="nav-link {{ $activeRoute === 'pengaturan' ? 'active' : '' }}">
+        @if($isStaff && $onStaffDashboard)
+            {{-- Di dashboard staff, Pengaturan sudah menjadi section in-page --}}
+            <a href="{{ $staffDashboardUrl }}#pengaturan" data-bs-target="#pengaturan" class="nav-link {{ $activeRoute === 'pengaturan' ? 'active' : '' }}">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan</span>
             </a>
@@ -127,11 +149,10 @@
     </div>
 </div>
 
-@if(Auth::user()->role !== 'staff')
-    {{-- Modal Pengaturan khusus role non-staff (admin/manager).
-         Staff memakai section #pengaturan di halamannya sendiri, jadi modal ini
-         sengaja tidak dirender untuk role staff agar jumlah form logout di
-         halaman staff tetap satu (lihat StaffDashboardTabTest). --}}
+@if(! $isStaff || ! $onStaffDashboard)
+    {{-- Modal Pengaturan. Untuk role staff modal ini hanya dirender di luar
+         dashboard staff, karena di sana section #pengaturan sudah menyediakan
+         tombol logout (jumlah form logout harus tetap satu di halaman itu). --}}
     <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">

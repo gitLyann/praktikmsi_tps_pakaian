@@ -764,6 +764,9 @@
                     history.replaceState(null, '', '#' + id);
                 }
 
+                // Section yang baru tampil selalu dimulai dari paling atas.
+                window.scrollTo(0, 0);
+
                 // Canvas chart dibuat saat container masih display:none,
                 // jadi paksa resize setelah sectionnya tampil.
                 if (typeof Chart !== 'undefined') {

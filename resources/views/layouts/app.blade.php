@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="lm-dashboard-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -161,6 +161,24 @@
                 sidebarToggler.addEventListener('click', toggleSidebar);
             }
         });
+
+        /* ---------- Reset posisi scroll ----------
+           Dashboard selalu harus dibuka dari paling atas. Tanpa ini, browser
+           memulihkan posisi scroll lama (scroll restoration) atau melakukan
+           anchor scroll otomatis dari hash URL, sehingga halaman tampak
+           terpotong di atas dan topbar menutupi judul section. */
+        (function () {
+            if ('scrollRestoration' in window.history) {
+                window.history.scrollRestoration = 'manual';
+            }
+
+            const scrollToTop = () => window.scrollTo(0, 0);
+
+            document.addEventListener('DOMContentLoaded', scrollToTop);
+            window.addEventListener('load', scrollToTop);
+            // Dipanggil saat halaman dipulihkan dari cache browser (bfcache).
+            window.addEventListener('pageshow', scrollToTop);
+        })();
 
         /* Judul topbar mengikuti section dashboard yang sedang aktif.
            Setiap section memberi atribut data-lm-title; section tanpa
