@@ -3,8 +3,12 @@
 namespace App\Services;
 
 use App\Models\DssCriterion;
+use App\Models\DssCriterionComparison;
+use App\Models\DssRestockRecommendation;
 use App\Models\DssRun;
 use App\Models\DssSupplierScore;
+use App\Models\Employee;
+use App\Models\RestockRequest;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -64,13 +68,17 @@ class DssAnalysisService
     /**
      * Menyimpan hasil analisis sebagai riwayat run.
      *
+     * Rekomendasi restock ikut disimpan (tabel `dss_restock_recommendations`)
+     * supaya pengajuan restock yang dibuat dari halaman DSS bisa ditautkan ke
+     * run analisis dan ke pemasok terpilih.
+     *
      * @param  array{ahp: array, vikor: array, restock: array}  $analysis
      */
     public function storeRun(User $user, array $analysis): DssRun
     {
         $ahp = $analysis['ahp'];
 
-        return DssRun::create([
+        $run = DssRun::create([
             'name' => 'Analisis DSS - '.now()->format('d/m/Y H:i'),
             'type' => 'vikor',
             'status' => 'completed',
@@ -83,6 +91,220 @@ class DssAnalysisService
             'is_consistent' => $ahp['is_consistent'],
             'payload' => $analysis,
         ]);
+
+        $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
+
+        return $run;
+    }
+
+    /**
+     * Analisis rekomendasi restock (mentah) untuk sebuah hasil VIKOR.
+     *
+     * @param  array<string, mixed>  $vikor
+     * @return array{items: Collection<int, array<string, mixed>>, summary: array<string, mixed>, days: int}
+     */
+    public function restockAnalysis(array $vikor): array
+    {
+        return $this->restockService->analyze(
+            null,
+            RestockRecommendationService::ANALYSIS_DAYS,
+            $this->supplierRanking($vikor)
+        );
+    }
+
+    /**
+     * Run analisis terakhir yang sudah selesai (status `completed`).
+     */
+    public function latestCompletedRun(): ?DssRun
+    {
+        return DssRun::query()
+            ->where('type', 'vikor')
+            ->where('status', 'completed')
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Jumlah pemasok aktif.
+     */
+    public function activeSupplierCount(): int
+    {
+        return Supplier::query()->where('is_active', true)->count();
+    }
+
+    /**
+     * Matriks perbandingan kriteria untuk form admin.
+     *
+     * Yang dikembalikan hanya segitiga atas (kriteria lebih penting ditulis
+     * di atas diagonal) karena sisi bawahnya adalah resiprok.
+     *
+     * @return array{criteria: array<int, array<string, mixed>>, values: array<string, float>}
+     */
+    public function comparisonMatrix(): array
+    {
+        $criteria = $this->criteria()->sortBy('sort_order')->values();
+
+        $stored = [];
+        foreach (DssCriterionComparison::query()->get() as $comparison) {
+            $stored[$comparison->criterion_a_id][$comparison->criterion_b_id] = (float) $comparison->value;
+        }
+
+        $list = [];
+        foreach ($criteria as $criterion) {
+            $list[] = [
+                'id' => $criterion->id,
+                'code' => $criterion->code,
+                'name' => $criterion->name,
+                'type' => $criterion->type,
+            ];
+        }
+
+        $values = [];
+        for ($i = 0; $i < $criteria->count(); $i++) {
+            for ($j = $i + 1; $j < $criteria->count(); $j++) {
+                $a = $criteria[$i]->id;
+                $b = $criteria[$j]->id;
+
+                $values[$a.'-'.$b] = $stored[$a][$b] ?? 1.0;
+            }
+        }
+
+        return ['criteria' => $list, 'values' => $values];
+    }
+
+    /**
+     * Menyimpan matriks perbandingan kriteria (AHP) dari form admin.
+     *
+     * Form hanya mengirim segitiga atas dengan skala Saaty 1-9. Sisi pasangannya
+     * dihitung server sebagai resiprok (1/x) supaya matriks tetap konsisten
+     * secara matematis.
+     *
+     * @param  array<int, array{criterion_a_id: int, criterion_b_id: int, value: float}>  $comparisons
+     * @return array<string, mixed>  Hasil AHP terbaru beserta jumlah perbandingan tersimpan.
+     */
+    public function saveComparisons(array $comparisons): array
+    {
+        $criteria = $this->criteria();
+        $ids = $criteria->pluck('id')->all();
+
+        $saved = 0;
+
+        foreach ($comparisons as $comparison) {
+            $a = (int) $comparison['criterion_a_id'];
+            $b = (int) $comparison['criterion_b_id'];
+            $value = (float) $comparison['value'];
+
+            if ($a === $b || ! in_array($a, $ids, true) || ! in_array($b, $ids, true)) {
+                continue;
+            }
+
+            if ($value <= 0) {
+                continue;
+            }
+
+            [$first, $second] = $a < $b ? [$a, $b] : [$b, $a];
+            $storedValue = $a < $b ? $value : 1 / $value;
+
+            DssCriterionComparison::updateOrCreate(
+                ['criterion_a_id' => $first, 'criterion_b_id' => $second],
+                ['value' => round($storedValue, 4)]
+            );
+
+            DssCriterionComparison::updateOrCreate(
+                ['criterion_a_id' => $second, 'criterion_b_id' => $first],
+                ['value' => round(1 / $storedValue, 4)]
+            );
+
+            $saved++;
+        }
+
+        $ahp = $this->ahpService->analyze($criteria);
+
+        return array_merge($ahp, ['saved' => $saved]);
+    }
+
+    /**
+     * Membuat pengajuan restock dari rekomendasi DSS untuk satu produk.
+     *
+     * Rekomendasi restock disimpan lebih dulu (tertaut run analisis terbaru)
+     * supaya pengajuan punya relasi ke run DSS dan ke pemasok terpilih.
+     *
+     * @param  int  $quantity  Jumlah restock; null memakai saran dari DSS.
+     */
+    public function restockRequestFor(int $productId, User $actor, ?int $quantity = null): ?RestockRequest
+    {
+        $analysis = $this->analyze();
+
+        $item = collect($analysis['restock']['items'])->firstWhere('product_id', $productId);
+
+        if ($item === null) {
+            return null;
+        }
+
+        $run = $this->latestCompletedRun() ?? $this->storeRun($actor, $analysis);
+
+        $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
+
+        $recommendation = DssRestockRecommendation::query()
+            ->where('dss_run_id', $run->id)
+            ->where('product_id', $productId)
+            ->first();
+
+        $catatan = 'Diajukan dari rekomendasi DSS (reorder point: '.$item['reorder_point']
+            .', safety stock: '.$item['safety_stock'].', rata-rata penjualan: '
+            .$item['avg_daily_sales'].'/hari).';
+
+        if ($recommendation !== null) {
+            $restockRequest = $this->restockService->toRestockRequest(
+                $recommendation,
+                $this->employeeIdFor($actor),
+                $catatan
+            );
+        } else {
+            $restockRequest = RestockRequest::create([
+                'product_id' => $productId,
+                'employee_id' => $this->employeeIdFor($actor),
+                'jumlah_restock' => max(1, (int) $item['recommended_qty']),
+                'status' => 'pending',
+                'catatan' => $catatan,
+                'supplier_id' => $item['supplier_id'],
+                'dss_run_id' => $run->id,
+            ]);
+        }
+
+        if ($quantity !== null && $quantity > 0) {
+            $restockRequest->update(['jumlah_restock' => $quantity]);
+        }
+
+        return $restockRequest;
+    }
+
+    /**
+     * Id employee sebagai penanggung jawab pengajuan restock.
+     *
+     * Dipakai employee milik user bila ada, lalu employee pertama yang tersedia.
+     * Employee baru dibuat bila tabel masih kosong supaya pengajuan tetap bisa
+     * disimpan (kolom `restock_requests.employee_id` tidak boleh null).
+     */
+    private function employeeIdFor(User $user): int
+    {
+        $employeeId = Employee::query()->where('user_id', $user->id)->value('id');
+
+        if ($employeeId !== null) {
+            return (int) $employeeId;
+        }
+
+        $fallback = Employee::query()->min('id');
+
+        if ($fallback !== null) {
+            return (int) $fallback;
+        }
+
+        return (int) Employee::create([
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'position' => 'Staff',
+        ])->id;
     }
 
     /**
@@ -324,8 +546,14 @@ class DssAnalysisService
                 'supplier_id' => $item['supplier']?->id,
                 'supplier_name' => $item['supplier']?->name,
                 'current_stock' => $item['current_stock'],
+                'quantity_sold' => $item['quantity_sold'],
+                'avg_daily_sales' => $item['avg_daily_sales'],
+                'lead_time_days' => $item['lead_time_days'],
+                'min_order_qty' => $item['min_order_qty'],
+                'safety_stock' => $item['safety_stock'],
                 'reorder_point' => $item['reorder_point'],
                 'recommended_qty' => $item['recommended_qty'],
+                'unit_price' => $item['unit_price'],
                 'estimated_cost' => $item['estimated_cost'],
                 'needs_restock' => $item['needs_restock'],
             ];

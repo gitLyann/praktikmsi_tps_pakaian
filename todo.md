@@ -247,3 +247,23 @@
 - [x] Phase 28 - Test baru: `DssDemoTransactionSeederTest` (3), `DssScoreSeederTest` (3) - `php artisan test` **84/84 lolos, 510 assertions** (baseline 78/490); `pint --dirty` passed
 - [x] Phase 28 - Verifikasi MySQL: seed 93 transaksi/30 hari + 30 baris skor; `/admin/dss` 52 KB (ranking VIKOR 5 pemasok, terbaik "Konveksi Bandung Sentosa" = "Solusi Tunggal", 1 produk "Perlu Restock" Rp 850.000); `/staff/dss` 52 KB; landing 35 KB
 - [x] Phase 28 - `changelog.md`: entri Phase 28 + section "Bahan Screenshot Laporan DSS"
+
+### Revisi Phase 26 (Tab per Modul DSS + CRUD Pemasok) & Phase 27 (Landing Dua Seksi)
+- [x] Revisi 26 - Keputusan: tab per modul dengan **URL tetap** (hash `#dss-*`), controller baru `DssSupplierController`, route JSON lama `admin.dss.suppliers` -> `admin.dss.suppliers.data`
+- [x] Revisi 26 - `app/Http/Controllers/DssSupplierController.php` (baru): `store`, `update`, `destroy` (blokir hapus bila sudah dipakai skor/penawaran/rekomendasi/pengajuan), `toggle`, `storeOffer`, `destroyOffer`, `rules()`, `usageOf()`
+- [x] Revisi 26 - `app/Http/Controllers/DssAnalysisController.php`: `saveWeights()` (matriks AHP segitiga atas + resiprok), `restockRequest()` (buat pengajuan dari rekomendasi), `summary()` kini mengirim matriks, run terakhir, jumlah pemasok aktif, pengajuan DSS, daftar pemasok, dan produk
+- [x] Revisi 26 - `app/Http/Controllers/DssScoreController.php`: `index()` kini mengirim rekomendasi restock + ranking VIKOR + status pengajuan; `restockRequest()` (POST `staff.dss.restock.store`)
+- [x] Revisi 26 - `app/Services/DssAnalysisService.php`: `comparisonMatrix()`, `saveComparisons()`, `restockAnalysis()`, `restockRequestFor()`, `latestCompletedRun()`, `activeSupplierCount()`, `employeeIdFor()`; `storeRun()` ikut menyimpan rekomendasi restock
+- [x] Revisi 26 - `routes/web.php`: 14 route DSS (`admin.dss.weights.store`, `admin.dss.restock.store`, `staff.dss.restock.store`, `admin.dss.suppliers.store/update/destroy/toggle`, `admin.dss.suppliers.offers.store/destroy`)
+- [x] Revisi 26 - `resources/views/admin/dss.blade.php`: 6 tab (Ringkasan, Bobot AHP, Ranking VIKOR, Restock, Pemasok, Riwayat) + 3 kartu ringkasan + form matriks + CRUD pemasok/penawaran + Setujui/Tolak pengajuan
+- [x] Revisi 26 - `resources/views/staff/dss.blade.php`: 3 tab (Rekomendasi Restock, Penilaian Supplier, Ranking Supplier read-only) + tombol "Ajukan Restock" + status pengajuan
+- [x] Revisi 26 - Bug fix: `redirect()->route(...).'#frag'` menghasilkan string (error "Call to a member function with() on string") -> diganti `->withFragment('frag')` di 3 controller
+- [x] Revisi 26 - Test: `tests/Feature/DssSupplierManagementTest.php` (9 test, baru) + `DssPageRenderTest.php` diperluas (11 test) - `php artisan test --filter=Dss` **41/41 lolos, 183 assertions**
+- [x] Revisi 27 - `app/Services/ProductRecommendationService.php`: `bestSelling()` (produk paling banyak terjual 90 hari, stok > 0)
+- [x] Revisi 27 - `app/Http/Controllers/LandingController.php`: mengirim `$bestSelling` ke view
+- [x] Revisi 27 - `resources/views/welcome.blade.php`: landing dipecah jadi **"Rekomendasi untukmu"** (role pelanggan) dan **"Produk Terlaris"** (semua pengunjung) + link nav "Terlaris"
+- [x] Revisi 27 - Test: `tests/Feature/LandingRecommendationTest.php` ditulis ulang (5 test) - `php artisan test --filter=LandingRecommendationTest` **5/5 lolos, 19 assertions**
+- [x] Tahap akhir - Analisis admin dijalankan 1x ke MySQL -> run #2 `completed` (CR = 0, "Solusi Tunggal", 5 rekomendasi restock tersimpan)
+- [x] Tahap akhir - Probe render MySQL: `/admin/dss` 185 KB (6 tab), `/staff/dss` 78 KB, landing tamu 28 KB (4 kartu terlaris) & pelanggan 31 KB (4 rekomendasi + 4 terlaris)
+- [x] Tahap akhir - `changelog.md`: entri Phase 26 & 27 diperbarui + section "Bahan Screenshot Laporan DSS" (base URL, akun demo, daftar URL, urutan screenshot)
+- [ ] Tahap akhir - **Belum diverifikasi di browser** - pergantian tab DSS (hash), simpan matriks AHP, CRUD pemasok, ajukan/setujui restock, dan dua seksi landing masih perlu dicek manual; test suite penuh & `pint` **tidak dijalankan** sesuai instruksi

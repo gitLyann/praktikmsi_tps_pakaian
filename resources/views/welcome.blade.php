@@ -211,6 +211,7 @@ dialog form{display:grid;gap:12px}
           @endforeach
         </div>
       </li>
+      <li><a class="link" href="#terlaris" data-s="terlaris">Terlaris</a></li>
       <li><a class="link" href="#contact" data-s="contact">Contact</a></li>
       <li><a class="link" href="#blog" data-s="blog">Blog</a></li>
       <li class="m-auth">
@@ -325,20 +326,15 @@ dialog form{display:grid;gap:12px}
   </div>
 </div></section>
 
-<!-- REKOMENDASI -->
+<!-- REKOMENDASI PERSONAL (pelanggan login) -->
+@if($isPersonal)
 <section id="rekomendasi" class="sec alt"><div class="wrap">
   <div class="head"><h2>Rekomendasi untukmu</h2>
-    <p>Dipilih otomatis dari riwayat belanja dan produk terlaris, jadi lebih sesuai dengan selerimu.</p>
+    <p>Dipilih otomatis dari riwayat belanja dan kategori favoritmu, jadi lebih sesuai dengan selerimu.</p>
   </div>
   <div class="rec-note">
     <span>&#9889;</span>
-    <span>
-      @if($isPersonal)
-        <b>Rekomendasi personal</b> berdasarkan riwayat belanja &amp; kategori favoritmu.
-      @else
-        <b>Rekomendasi populer</b> untuk pengunjung.
-      @endif
-    </span>
+    <span><b>Rekomendasi personal</b> berdasarkan riwayat belanja &amp; kategori favoritmu.</span>
   </div>
   <div class="grid">
     @forelse($recommended as $item)
@@ -360,11 +356,7 @@ dialog form{display:grid;gap:12px}
         <small>{{ $kategori }}{{ $recProduct->type ? ' · ' . $recProduct->type : '' }}</small>
         <div class="row">
           <b>Rp {{ number_format($recProduct->price, 0, ',', '.') }}</b>
-          @guest
-            <button class="add" data-need-auth aria-label="Masuk untuk membeli {{ $recProduct->name }}">+</button>
-          @else
-            <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $recProduct->name }} di katalog">&rarr;</a>
-          @endguest
+          <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $recProduct->name }} di katalog">&rarr;</a>
         </div>
         <div class="rec-why">
           @foreach($item['reasons'] as $reason)
@@ -374,6 +366,58 @@ dialog form{display:grid;gap:12px}
       </article>
     @empty
       <div class="empty-note">Belum ada rekomendasi. Produk tersedia akan muncul di sini.</div>
+    @endforelse
+  </div>
+</div></section>
+@endif
+
+<!-- PRODUK TERLARIS -->
+<section id="terlaris" class="sec {{ $isPersonal ? '' : 'alt' }}"><div class="wrap">
+  <div class="head"><h2>Produk Terlaris</h2>
+    <p>Produk paling banyak terjual di La Mamora, dihitung dari transaksi selesai 90 hari terakhir.</p>
+  </div>
+  <div class="rec-note">
+    <span>&#128293;</span>
+    <span>
+      @if($isPersonal)
+        <b>Paling laris</b> di antara produk yang baru kamu lihat.
+      @else
+        <b>Rekomendasi populer</b> untuk pengunjung yang baru mencari outfit.
+      @endif
+    </span>
+  </div>
+  <div class="grid">
+    @forelse($bestSelling as $item)
+      @php
+          $bestProduct = $item['product'];
+          $kategori = $bestProduct->category->name ?? '';
+          $emoji = $emojiFor($kategori);
+      @endphp
+      <article class="p">
+        <div class="im">
+          @if($bestProduct->image_url)
+            <img src="{{ $bestProduct->image_url }}" alt="{{ $bestProduct->name }}" loading="lazy">
+          @else
+            {{ $emoji }}
+          @endif
+          <span class="tag">Terlaris</span>
+        </div>
+        <h3>{{ $bestProduct->name }}</h3>
+        <small>{{ $kategori }}{{ $bestProduct->type ? ' · ' . $bestProduct->type : '' }}</small>
+        <div class="row">
+          <b>Rp {{ number_format($bestProduct->price, 0, ',', '.') }}</b>
+          @guest
+            <button class="add" data-need-auth aria-label="Masuk untuk membeli {{ $bestProduct->name }}">+</button>
+          @else
+            <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $bestProduct->name }} di katalog">&rarr;</a>
+          @endguest
+        </div>
+        <div class="rec-why">
+          <span>{{ $item['sold'] }} pcs terjual</span>
+        </div>
+      </article>
+    @empty
+      <div class="empty-note">Belum ada data penjualan. Produk terlaris akan muncul di sini.</div>
     @endforelse
   </div>
 </div></section>
@@ -473,7 +517,7 @@ const links=$$(".menu [data-s]");
 const spy=new IntersectionObserver(es=>es.forEach(en=>{
   if(en.isIntersecting)links.forEach(l=>l.classList.toggle("active",l.dataset.s===en.target.id));
 }),{rootMargin:"-45% 0px -50% 0px"});
-["home","about","koleksi","contact","blog"].forEach(id=>{const el=$("#"+id);if(el)spy.observe(el)});
+["home","about","koleksi","rekomendasi","terlaris","contact","blog"].forEach(id=>{const el=$("#"+id);if(el)spy.observe(el)});
 addEventListener("scroll",()=>$("#top").classList.toggle("scrolled",scrollY>10),{passive:true});
 $("#burger").addEventListener("click",()=>$("#menu").classList.toggle("open"));
 $$(".menu a.link").forEach(a=>a.addEventListener("click",()=>$("#menu").classList.remove("open")));

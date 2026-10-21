@@ -13,8 +13,8 @@ use Illuminate\View\View;
  * Landing page La Mamora.
  *
  * Selain katalog, kategori, dan statistik, halaman ini menampilkan
- * rekomendasi produk. Pelanggan yang sudah login mendapat rekomendasi
- * berdasarkan riwayat belanja, pengunjung umum mendapat produk terlaris.
+ * dua section rekomendasi: "Rekomendasi untukmu" (personal, untuk pelanggan
+ * yang sudah login) dan "Produk Terlaris" (berdasarkan penjualan nyata).
  */
 class LandingController extends Controller
 {
@@ -35,6 +35,8 @@ class LandingController extends Controller
             ? $recommendations->recommendFor($user)
             : $recommendations->recommendForGuest();
 
-        return view('welcome', compact('products', 'categories', 'stats', 'recommended', 'isPersonal'));
+        $bestSelling = $recommendations->bestSelling(4);
+
+        return view('welcome', compact('products', 'categories', 'stats', 'recommended', 'bestSelling', 'isPersonal'));
     }
 }

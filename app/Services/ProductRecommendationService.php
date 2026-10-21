@@ -115,6 +115,55 @@ class ProductRecommendationService
     }
 
     /**
+     * Produk terlaris (paling banyak terjual) dalam periode popularitas.
+     *
+     * Dipakai untuk section "Produk Terlaris" di landing page, terutama
+     * untuk pengunjung yang belum login dan belum punya riwayat belanja.
+     * Produk yang stoknya habis tidak ditampilkan karena tidak bisa dibeli.
+     *
+     * @return Collection<int, array{product: Product, sold: int}>
+     */
+    public function bestSelling(int $limit = 4): Collection
+    {
+        $limit = max(1, $limit);
+        $popularity = $this->popularity();
+
+        if ($popularity === []) {
+            return collect();
+        }
+
+        $products = Product::query()
+            ->with('category')
+            ->whereIn('id', array_keys($popularity))
+            ->where('stock', '>', 0)
+            ->get()
+            ->keyBy('id');
+
+        $items = [];
+
+        foreach ($popularity as $productId => $sold) {
+            $product = $products->get((int) $productId);
+
+            if ($product === null) {
+                continue;
+            }
+
+            $items[] = [
+                'product' => $product,
+                'sold' => (int) $sold,
+            ];
+        }
+
+        usort($items, function (array $a, array $b): int {
+            $diff = $b['sold'] <=> $a['sold'];
+
+            return $diff !== 0 ? $diff : $a['product']->id <=> $b['product']->id;
+        });
+
+        return collect(array_slice($items, 0, $limit))->values();
+    }
+
+    /**
      * Mengurutkan skor dan mengambil jumlah teratas.
      *
      * @param  array<int, array{product: Product, score: float, reasons: array<int, string>}>  $scored

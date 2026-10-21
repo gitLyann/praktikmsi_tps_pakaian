@@ -911,23 +911,26 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 ---
 
 ## 2026-10-21 - Phase 26: UI DSS Admin & Staff (halaman terpisah) + grup nav "DSS"
-- **Blade** `resources/views/staff/dss.blade.php` (baru): daftar kriteria + bobot AHP, tabel skor per pemasok (form POST `staff.dss.scores.store`), sel kosong berarti belum dinilai.
-- **Blade** `resources/views/admin/dss.blade.php` (baru): metrik AHP (lambda max, CI, RI, CR, status konsistensi), bobot kriteria, ranking VIKOR (S/R/Q + klasifikasi + C1/C2), rekomendasi restock, riwayat run, tabel skor penilaian.
+- **Blade** `resources/views/staff/dss.blade.php`: tab Rekomendasi Restock / Penilaian Supplier / Ranking (read-only), bobot AHP, form skor, status pengajuan, tombol "Ajukan Restock".
+- **Blade** `resources/views/admin/dss.blade.php`: 6 tab (Ringkasan, Bobot AHP, Ranking VIKOR, Restock, Pemasok, Riwayat), kartu ringkasan `lm-stat-card`, form matriks AHP (isi segitiga atas, bawah = resiprok), tabel VIKOR S/R/Q, CRUD pemasok + relasi produk, Setujui/Tolak pengajuan.
 - **Controller dual mode**: HTML (halaman) vs JSON (`Accept: application/json`) pada `index()`, `summary()`, `run()`, `store()`; POST dari form HTML -> redirect + flash message, API tetap JSON (201).
+- **Controller baru** `app/Http/Controllers/DssSupplierController.php`: tambah/ubah/hapus/toggle pemasok (hapus diblokir bila sudah dipakai) + kelola penawaran produk.
+- **Route** `routes/web.php` (14 route DSS): `admin.dss.weights.store`, `admin.dss.restock.store`, `staff.dss.restock.store`, `admin.dss.suppliers.*` (JSON lama `admin.dss.suppliers` -> `admin.dss.suppliers.data`).
+- **Service** `DssAnalysisService`: `comparisonMatrix()`, `saveComparisons()`, `restockAnalysis()`, `restockRequestFor()`, `latestCompletedRun()`, `activeSupplierCount()`; `storeRun()` kini ikut menyimpan rekomendasi restock.
 - **Sidebar** `resources/views/layouts/sidebar.blade.php`: grup nav baru **"DSS"** (admin: Analisis DSS + Penilaian Pemasok; staff: Penilaian Pemasok).
-- **Test** `tests/Feature/DssPageRenderTest.php` (baru, 6 test): render halaman staff/admin, simpan skor dari form HTML, skor kosong tidak disimpan, jalankan analisis -> run tersimpan, nav sidebar.
-- **Verifikasi**: `php artisan test` **74/74 lolos, 477 assertions** (baseline 68/454); `pint` passed untuk seluruh berkas Phase 25-26; `php artisan view:cache` sukses; probe render `/admin/dss` ke MySQL -> 38 KB berisi 5 pemasok + 6 kriteria.
-- **Batas**: halaman DSS masih tanpa paginasi/upload dan belum diverifikasi manual di browser; tab sidebar "DSS" memakai `activeRoute` terpisah dari section dashboard.
+- **Test** `tests/Feature/DssPageRenderTest.php` (11 test) dan `tests/Feature/DssSupplierManagementTest.php` (9 test, baru).
+- **Verifikasi**: `php artisan test --filter=Dss` **41/41 lolos, 183 assertions**; probe render MySQL -> admin 185 KB (6 tab), staff 78 KB, landing 28 KB.
+- **Batas**: perpindahan tab memakai hash (URL tetap), belum ada paginasi, belum diverifikasi manual di browser; `pint` tidak dijalankan di fase ini sesuai instruksi.
 
 ---
 
 ## 2026-10-21 - Phase 27: UI Pelanggan - Rekomendasi Produk di Landing Page
-- **Controller** `app/Http/Controllers/LandingController.php` (baru): closure route `/` dipindah ke controller agar `ProductRecommendationService` bisa di-inject; route diberi nama `landing`.
-- **Blade** `resources/views/welcome.blade.php`: seksi baru **"Rekomendasi untukmu"** (`id="rekomendasi"`) berisi kartu produk + alasan (`Stok tersedia`, `Produk terlaris`, `Sesuai kategori favorit Anda`), CSS `.rec-note`/`.rec-why`, dan handler `data-need-auth` diubah ke delegasi `document` supaya tombol "+" di seksi ini juga membuka modal login.
-- **Personalisasi**: pelanggan login -> `recommendFor()` (riwayat belanja + kategori favorit); pengunjung dan role staff/admin -> `recommendForGuest()` (produk terlaris + stok tersedia).
-- **Test** `tests/Feature/LandingRecommendationTest.php` (baru, 4 test): seksi rekomendasi tampil untuk pengunjung, produk stok 0 tidak direkomendasikan, pelanggan melihat "Rekomendasi personal", staff melihat "Rekomendasi populer".
-- **Verifikasi**: `php artisan test` **78/78 lolos, 490 assertions** (baseline 74/477); `pint` passed; `view:cache` sukses.
-- **Batas**: rekomendasi hanya dipersonalisasi untuk role pelanggan; section baru belum diverifikasi manual di browser.
+- **Controller** `app/Http/Controllers/LandingController.php`: closure route `/` dipindah ke controller agar `ProductRecommendationService` bisa di-inject; route diberi nama `landing`.
+- **Blade** `resources/views/welcome.blade.php`: landing dipecah jadi dua seksi - **"Rekomendasi untukmu"** (`id="rekomendasi"`, hanya role pelanggan) dan **"Produk Terlaris"** (`id="terlaris"`, semua pengunjung) + link nav "Terlaris"; kartu produk tetap memakai alasan (`Stok tersedia`, `Produk terlaris`, `Sesuai kategori favorit Anda`) dan jumlah pcs terjual.
+- **Service** `app/Services/ProductRecommendationService.php`: tambah `bestSelling()` (produk paling banyak terjual 90 hari, stok > 0); `recommendFor()` (riwayat belanja + kategori favorit) untuk seksi personal, `recommendForGuest()` tetap tersedia untuk backward compatibility.
+- **Test** `tests/Feature/LandingRecommendationTest.php` (5 test): section terlaris untuk tamu, produk stok 0 tidak masuk, pelanggan melihat section personal + terlaris, staff tidak melihat section personal.
+- **Verifikasi**: `php artisan test --filter=LandingRecommendationTest` **5/5 lolos, 19 assertions**; `ProductRecommendationServiceTest` **8/8 lolos**; probe render MySQL -> tamu 28 KB (4 kartu terlaris), pelanggan 31 KB (4 rekomendasi + 4 terlaris).
+- **Batas**: section personal hanya untuk role pelanggan; belum diverifikasi manual di browser; `pint` tidak dijalankan di fase ini sesuai instruksi.
 
 ---
 
@@ -942,10 +945,12 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 
 ---
 
-## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-21)
-- **Akun demo**: 4 pelanggan (`dewi.demo@lamamora.test`, `budi.demo@lamamora.test`, `siti.demo@lamamora.test`, `andi.demo@lamamora.test`, password `password`); admin & staff pakai akun yang sudah terdaftar.
-- **Halaman DSS**: `/admin/dss` (Analisis DSS: metrik AHP, ranking VIKOR 5 pemasok, rekomendasi restock, riwayat run) dan `/staff/dss` (Penilaian Pemasok: bobot AHP + tabel skor 6 kriteria).
-- **Halaman rekomendasi**: `/` seksi "Rekomendasi untukmu" (tamu: produk terlaris; pelanggan: personal) dan `/toko` (katalog pelanggan).
-- **Data siap tampil**: 5 pemasok + 6 kriteria AHP (CR = 0, bobot 0,30/0,25/0,18/0,12/0,08/0,07), 30 baris skor (run draft "Penilaian Pemasok Demo"), 93 transaksi demo 30 hari terakhir, 5 produk teranalisis (1 "Perlu Restock" - Gaul Totebag, 25 pcs, Rp 850.000, pemasok Konveksi Bandung Sentosa).
-- **Hasil VIKOR demo**: peringkat 1 Konveksi Bandung Sentosa (Q = 0, klasifikasi "Solusi Tunggal", compromise set 1), 2 Konveksi Semarang Abadi, 3 Textile Surabaya Jaya, 4 Konveksi Jakarta Makmur, 5 Konveksi Yogyakarta Langgeng; advantage = ya, ranking stabil.
+## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-22)
+- **Base URL**: `http://localhost:8000` (jalanin `php artisan serve` bila belum aktif).
+- **Akun demo**: admin `admin@gmail.com` / `Manager Toko` (password `password123`), staff `kasir@gmail.com` / `Kasir Toko` (password `password123`), pelanggan `dewi.demo@lamamora.test` (password `password`; teammates: `budi.demo`, `siti.demo`, `andi.demo` @lamamora.test).
+- **Daftar URL**: `/` (landing, 2 seksi rekomendasi), `/toko` (katalog pelanggan), `/staff/dss` (Penilaian Pemasok, 3 tab), `/admin/dss` (Analisis DSS, 6 tab).
+- **Urutan screenshot**: (1) `/` sebagai tamu -> seksi "Produk Terlaris"; (2) `/` login sebagai `dewi.demo@lamamora.test` -> seksi "Rekomendasi untukmu"; (3) `/toko` katalog; (4) `/staff/dss` -> tab Rekomendasi Restock, tab Penilaian Supplier, tab Ranking Supplier; (5) `/admin/dss` -> tab Ringkasan (3 kartu ringkasan), tab Bobot AHP (matriks), tab Ranking VIKOR, tab Restock (rekomendasi + pengajuan + tombol Setujui/Tolak), tab Pemasok (form + daftar + relasi produk), tab Riwayat.
+- **Data siap tampil**: 5 pemasok + 6 kriteria AHP (CR = 0, bobot 0,30/0,25/0,18/0,12/0,08/0,07), 30 baris skor (run draft "Penilaian Pemasok Demo"), 93 transaksi demo 30 hari terakhir, 2 run analisis (run #2 `completed` + 5 rekomendasi restock tersimpan).
+- **Hasil VIKOR demo**: peringkat 1 Konveksi Bandung Sentosa (Q = 0, klasifikasi "Solusi Tunggal"), 2 Konveksi Semarang Abadi (Q = 0,3437), 3 Textile Surabaya Jaya (Q = 0,4016), 4 Konveksi Jakarta Makmur (Q = 0,4118), 5 Konveksi Yogyakarta Langgeng (Q = 1); advantage = ya, ranking stabil.
+- **Rekomendasi restock demo**: 1 produk "Perlu Restock" - Gaul Totebag, 25 pcs, Rp 850.000, pemasok Konveksi Bandung Sentosa.
 - **Reset data demo**: `php artisan db:seed --class=DssDemoTransactionSeeder` dan `php artisan db:seed --class=DssScoreSeeder` (keduanya idempoten, aman dijalankan berulang).
