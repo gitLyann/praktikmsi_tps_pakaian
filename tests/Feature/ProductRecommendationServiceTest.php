@@ -35,8 +35,8 @@ class ProductRecommendationServiceTest extends TestCase
         $produkTerlaris = Product::factory()->create(['category_id' => $kemeja->id, 'stock' => 8]);
         $produkLain = Product::factory()->create(['category_id' => $kemeja->id, 'stock' => 3]);
 
-        $this->createSale($user->id, $produkBeli, quantity: 1);
-        $this->createSale($user->id, $produkTerlaris, quantity: 10);
+        $this->createSale($user, $produkBeli, quantity: 1);
+        $this->createSale($user, $produkTerlaris, quantity: 10);
 
         $result = $this->service->recommendFor($user, 4);
 
@@ -59,8 +59,8 @@ class ProductRecommendationServiceTest extends TestCase
         $produkBaru = Product::factory()->create(['category_id' => $kaos->id, 'stock' => 5]);
         $produkTerlaris = Product::factory()->create(['category_id' => $kemeja->id, 'stock' => 8]);
 
-        $this->createSale($user->id, $produkBeli, quantity: 1);
-        $this->createSale($user->id, $produkTerlaris, quantity: 10);
+        $this->createSale($user, $produkBeli, quantity: 1);
+        $this->createSale($user, $produkTerlaris, quantity: 10);
 
         $result = $this->service->recommendFor($user, 4);
 
@@ -73,6 +73,65 @@ class ProductRecommendationServiceTest extends TestCase
 
         $this->assertNotNull($terlaris);
         $this->assertContains('Produk terlaris', $terlaris['reasons']);
+    }
+
+    /**
+     * Skema acuan (migration asli `create_transactions_table`):
+     * `transactions.customer_id` -> `customers.id`, `customers.user_id` -> `users.id`.
+     */
+    public function test_transaksi_dipetakan_lewat_tabel_customers(): void
+    {
+        $user = $this->makeCustomer();
+        $category = Category::factory()->create();
+
+        $produk = Product::factory()->create(['category_id' => $category->id, 'stock' => 6]);
+
+        $this->createSale($user, $produk, quantity: 12);
+
+        $customerId = DB::table('customers')->where('user_id', $user->id)->value('id');
+
+        $this->assertNotNull($customerId);
+        $this->assertNotSame($user->id, (int) $customerId, 'customers.id harus berbeda dari users.id pada skema acuan.');
+
+        // Transaksi memakai customers.id sesuai skema acuan.
+        $this->assertSame(
+            (int) $customerId,
+            (int) DB::table('transactions')->where('customer_id', $customerId)->value('customer_id')
+        );
+
+        $result = $this->service->recommendFor($user, 4);
+
+        $this->assertContains('Produk terlaris', $result->first()['reasons']);
+    }
+
+    /**
+     * Skema hasil migrasi `2026_09_17_155756` (MySQL): `transactions.customer_id`
+     * menunjuk `users.id` langsung, tanpa baris `customers`.
+     */
+    public function test_transaksi_dengan_customer_id_user_id_ikut_terdeteksi(): void
+    {
+        $user = User::factory()->create(['role' => 'pelanggan']);
+
+        // Baris customers dengan id = id user (tanpa user_id) supaya FK SQLite terpenuhi,
+        // tetapi user ini tidak memiliki baris customers milikannya sendiri.
+        DB::table('customers')->insert([
+            'id' => $user->id,
+            'user_id' => null,
+            'name' => 'Data lama tanpa user_id',
+            'phone' => '080000000000',
+            'address' => 'Alamat lama',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $category = Category::factory()->create();
+        $produk = Product::factory()->create(['category_id' => $category->id, 'stock' => 6]);
+
+        $this->createSale($user, $produk, quantity: 12);
+
+        $result = $this->service->recommendFor($user, 4);
+
+        $this->assertContains('Produk terlaris', $result->first()['reasons']);
     }
 
     public function test_produk_habis_stok_tidak_direkomendasikan(): void
@@ -125,20 +184,25 @@ class ProductRecommendationServiceTest extends TestCase
 
         $produk = Product::factory()->create(['category_id' => $category->id, 'stock' => 6]);
 
-        $this->createSale($user->id, $produk, quantity: 30, status: 'cancelled');
+        $this->createSale($user, $produk, quantity: 30, status: 'cancelled');
 
         $result = $this->service->recommendFor($user, 4);
 
         $this->assertNotContains('Produk terlaris', $result->first()['reasons']);
     }
 
+    /**
+     * Membuat user + baris `customers` miliknya.
+     *
+     * `customers.id` sengaja dibuat berbeda dari `users.id` supaya test benar-benar
+     * memverifikasi pemetaan lewat `customers.user_id`.
+     */
     private function makeCustomer(): User
     {
         $user = User::factory()->create(['role' => 'pelanggan']);
 
-        // customers.id disamakan dengan users.id agar konsisten di SQLite & MySQL.
         DB::table('customers')->insert([
-            'id' => $user->id,
+            'id' => 900,
             'user_id' => $user->id,
             'name' => $user->name,
             'phone' => '080000000000',
@@ -150,8 +214,12 @@ class ProductRecommendationServiceTest extends TestCase
         return $user;
     }
 
-    private function createSale(?int $customerId, Product $product, int $quantity, string $status = 'completed'): Transaction
+    private function createSale(?User $user, Product $product, int $quantity, string $status = 'completed'): Transaction
     {
+        $customerId = $user === null
+            ? null
+            : DB::table('customers')->where('user_id', $user->id)->value('id');
+
         $transaction = Transaction::create([
             'customer_id' => $customerId,
             'date' => now(),

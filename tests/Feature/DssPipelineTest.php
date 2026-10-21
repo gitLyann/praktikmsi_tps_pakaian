@@ -89,10 +89,13 @@ class DssPipelineTest extends TestCase
         $this->assertSame($baik->id, $vikorResult['best_id']);
         $this->assertSame($baik->id, $vikorResult['ranking'][0]);
         $this->assertSame($buruk->id, $vikorResult['ranking'][2]);
-        // VIKOR: pemasok yang unggul di semua kriteria tetap punya R tertinggi,
-        // sehingga labelnya "Diterima" (bukan "Solusi Kompromi").
-        $this->assertSame('Diterima', $vikorResult['best_classification']);
-        $this->assertEqualsWithDelta(1.0, $vikorResult['scores'][$baik->id]['S'], 1e-6);
+        // Pemenang unggul pada S (penyesuaian total) maupun R (penyesuaian maksimum),
+        // dan selisih Q ke-2 memenuhi ambang 1/(J-1) -> solusi kompromi.
+        $this->assertSame('Solusi Kompromi', $vikorResult['best_classification']);
+        $this->assertTrue($vikorResult['has_advantage']);
+        $this->assertTrue($vikorResult['is_stable']);
+        $this->assertEqualsWithDelta(0.0, $vikorResult['scores'][$baik->id]['S'], 1e-6);
+        $this->assertEqualsWithDelta(0.0, $vikorResult['scores'][$baik->id]['R'], 1e-6);
     }
 
     public function test_skor_tanpa_run_tidak_ikut_dihitung(): void

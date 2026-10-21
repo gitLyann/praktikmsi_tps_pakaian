@@ -10,12 +10,24 @@ use Illuminate\Support\Collection;
 /**
  * Perhitungan VIKOR (VIse Kriterijum Optimizacije) untuk peringkat alternatif.
  *
- * Langkah:
- * 1. Normalisasi matriks keputusan (benefit: x/max, cost: (max-x)/(max-min)).
- * 2. Pembobotan dengan bobot kriteria (hasil AHP).
- * 3. Ukuran utility S_i = SUM(v_ij) dan ukuran regresi R_i = MAX(v_ij / r_j+).
- * 4. Indeks kompromi Q_i = v * (S- - S_i) + (1 - v) * (R_i - R+).
- * 5. Klasifikasi: solusi kompromi / diterima / tidak diterima.
+ * Rumus yang dipakai (ukuran "penyesuaian"/regret, makin kecil makin baik):
+ *
+ * 1. Untuk tiap kriteria j tentukan nilai terbaik f*_j dan terburuk f-_j
+ *    menurut tipenya:
+ *      - benefit: f*_j = max, f-_j = min
+ *      - cost   : f*_j = min, f-_j = max
+ * 2. Susun suku ternormalisasi (regret) per alternatif:
+ *      term_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j)
+ *    (untuk cost: (f*_j - f_ij)/(f*_j - f-_j) = (f_ij - min)/(max - min),
+ *     jadi tetap bernilai 0 untuk alternatif terbaik).
+ * 3. Ukuran penyesuaian dan regresi:
+ *      S_i = SUM_j term_ij        (makin kecil makin baik)
+ *      R_i = MAX_j term_ij        (makin kecil makin baik)
+ * 4. Indeks kompromi ternormalisasi:
+ *      Q_i = v * (S_i - S*) / (S- - S*) + (1 - v) * (R_i - R*) / (R- - R*)
+ *    dengan S* = min S, S- = max S, R* = min R, R- = max R.
+ * 5. Peringkat: Q terkecil = peringkat terbaik.
+ *    Jika Q sama, diurutkan dari S terkecil lalu R terkecil.
  */
 class VikorService
 {
@@ -27,7 +39,7 @@ class VikorService
     /**
      * Menghitung peringkat VIKOR.
      *
-     * @param  array<int|string, array<int|string, float>>  $decisionMatrix  [alternatif][kriteria] = nilai
+     * @param  array<int|string, array<int|string, float>>  $decisionMatrix  [alternatif][kriteria] = nilai mentah
      * @param  array<int|string, float>  $weights  [kriteria] = bobot (tidak harus berjumlah 1)
      * @param  array<int|string, string>  $criterionTypes  [kriteria] = 'benefit' | 'cost'
      * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
@@ -43,18 +55,7 @@ class VikorService
         $criteriaIds = array_keys($weights);
 
         if ($criteriaIds === [] || $decisionMatrix === []) {
-            return [
-                'v' => $v,
-                'criteria_ids' => [],
-                'normalized' => [],
-                'scores' => [],
-                'ranking' => [],
-                'threshold' => 0.0,
-                'best_id' => null,
-                'best_classification' => 'Tidak Diterima',
-                'has_advantage' => false,
-                'is_stable' => false,
-            ];
+            return $this->emptyResult($v);
         }
 
         // Bobot dinormalisasi supaya totalnya 1.
@@ -66,7 +67,7 @@ class VikorService
                 : 0.0;
         }
 
-        // Nilai mentah tiap kriteria (untuk mencari max & min)
+        // Nilai mentah tiap kriteria (untuk mencari f* dan f-).
         $rawValues = [];
         foreach ($criteriaIds as $criterionId) {
             $column = [];
@@ -78,73 +79,78 @@ class VikorService
             $rawValues[$criterionId] = $column;
         }
 
-        // Normalisasi matriks keputusan
-        $normalized = [];
+        // f*_j (terbaik) dan f-_j (terburuk) mengikuti tipe kriteria.
+        $bestValue = [];
+        $worstValue = [];
+        foreach ($criteriaIds as $criterionId) {
+            $column = $rawValues[$criterionId];
+            $max = $column === [] ? 0.0 : max($column);
+            $min = $column === [] ? 0.0 : min($column);
+
+            if (($criterionTypes[$criterionId] ?? 'benefit') === 'cost') {
+                // Cost: nilai kecil lebih baik.
+                $bestValue[$criterionId] = $min;
+                $worstValue[$criterionId] = $max;
+            } else {
+                // Benefit: nilai besar lebih baik.
+                $bestValue[$criterionId] = $max;
+                $worstValue[$criterionId] = $min;
+            }
+        }
+
+        // Suku ternormalisasi: term_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j).
+        $terms = [];
         foreach ($decisionMatrix as $alternativeId => $row) {
             foreach ($criteriaIds as $criterionId) {
                 $value = (float) ($row[$criterionId] ?? 0);
-                $column = $rawValues[$criterionId];
+                $best = $bestValue[$criterionId];
+                $worst = $worstValue[$criterionId];
+                $span = $best - $worst;
 
-                $max = $column === [] ? 0.0 : max($column);
-                $min = $column === [] ? 0.0 : min($column);
+                // Semua nilai sama -> tidak ada penyesuaian untuk kriteria ini.
+                $normalized = abs($span) > 0
+                    ? ($best - $value) / $span
+                    : 0.0;
 
-                if (($criterionTypes[$criterionId] ?? 'benefit') === 'cost') {
-                    // Cost: nilai kecil lebih baik -> dinormalisasi terbalik.
-                    $normalized[$alternativeId][$criterionId] = ($max - $min) > 0
-                        ? ($max - $value) / ($max - $min)
-                        : 1.0;
-                } else {
-                    // Benefit: nilai besar lebih baik.
-                    $normalized[$alternativeId][$criterionId] = $max > 0
-                        ? $value / $max
-                        : 0.0;
-                }
+                $terms[$alternativeId][$criterionId] = $normalizedWeights[$criterionId] * $normalized;
             }
         }
 
-        // r_j+ = nilai normalisasi terbesar tiap kriteria (dihitung dari data asli).
-        $rPlus = [];
-        foreach ($criteriaIds as $criterionId) {
-            $column = array_map(
-                fn ($alternativeId) => (float) ($normalized[$alternativeId][$criterionId] ?? 0),
-                array_keys($normalized)
-            );
-            $rPlus[$criterionId] = $column === [] ? 0.0 : max($column);
-        }
-
-        // Ukuran utility S_i dan ukuran regresi R_i
+        // S_i = SUM(term_ij) ; R_i = MAX(term_ij)
         $sValues = [];
         $rValues = [];
 
-        foreach ($normalized as $alternativeId => $row) {
-            $s = 0.0;
-            $r = 0.0;
+        foreach ($terms as $alternativeId => $row) {
+            $sum = 0.0;
+            $max = 0.0;
 
             foreach ($criteriaIds as $criterionId) {
-                $vij = $normalizedWeights[$criterionId] * (float) ($row[$criterionId] ?? 0);
-                $s += $vij;
-
-                if ($rPlus[$criterionId] > 0) {
-                    $r = max($r, $vij / $rPlus[$criterionId]);
-                }
+                $term = (float) ($row[$criterionId] ?? 0.0);
+                $sum += $term;
+                $max = max($max, $term);
             }
 
-            $sValues[$alternativeId] = $s;
-            $rValues[$alternativeId] = $r;
+            $sValues[$alternativeId] = $sum;
+            $rValues[$alternativeId] = $max;
         }
 
-        $sMinus = $sValues === [] ? 0.0 : min($sValues);
-        $rPlusGlobal = $rValues === [] ? 0.0 : max($rValues);
+        $sStar = $sValues === [] ? 0.0 : min($sValues);   // S* = min S
+        $sMinus = $sValues === [] ? 0.0 : max($sValues);  // S- = max S
+        $rStar = $rValues === [] ? 0.0 : min($rValues);   // R* = min R
+        $rMinus = $rValues === [] ? 0.0 : max($rValues);  // R- = max R
 
-        // Indeks kompromi Q_i = v * (S^- - S_i) + (1 - v) * (R_i - R^+)
-        // S^- = utility terkecil (paling buruk), R^+ = regresi terbesar (paling buruk).
+        // Indeks kompromi ternormalisasi:
+        // Q_i = v * (S_i - S*) / (S- - S*) + (1 - v) * (R_i - R*) / (R- - R*)
         $qValues = [];
         foreach ($sValues as $alternativeId => $s) {
-            $qValues[$alternativeId] = $v * ($sMinus - $s) + (1 - $v) * ($rValues[$alternativeId] - $rPlusGlobal);
+            $sRatio = abs($sMinus - $sStar) > 0 ? ($s - $sStar) / ($sMinus - $sStar) : 0.0;
+            $rRatio = abs($rMinus - $rStar) > 0 ? ($rValues[$alternativeId] - $rStar) / ($rMinus - $rStar) : 0.0;
+
+            $qValues[$alternativeId] = $v * $sRatio + (1 - $v) * $rRatio;
         }
 
         // Peringkat: Q terkecil = peringkat terbaik.
-        // Saat Q seri, diurutkan dari utility (S) tertinggi lalu regresi (R) terkecil.
+        // Saat Q seri: S terkecil, lalu R terkecil.
         $ranking = array_keys($qValues);
         usort($ranking, function ($a, $b) use ($qValues, $sValues, $rValues) {
             $diff = $qValues[$a] <=> $qValues[$b];
@@ -153,9 +159,9 @@ class VikorService
                 return $diff;
             }
 
-            $utility = $sValues[$b] <=> $sValues[$a];
+            $sDiff = $sValues[$a] <=> $sValues[$b];
 
-            return $utility !== 0 ? $utility : $rValues[$a] <=> $rValues[$b];
+            return $sDiff !== 0 ? $sDiff : $rValues[$a] <=> $rValues[$b];
         });
 
         $alternativeCount = count($ranking);
@@ -176,12 +182,12 @@ class VikorService
             // Stabilitas: selisih Ralternatif ke-1 - ke-2 maksimal 1/(J-1).
             $isStable = ($rValues[$best] - $rValues[$second]) <= $threshold;
 
-            $betterUtility = $sValues[$best] >= $sValues[$second];
+            $betterUtility = $sValues[$best] <= $sValues[$second];
             $betterRegret = $rValues[$best] <= $rValues[$second];
 
-            if ($betterUtility && $betterRegret) {
+            if ($betterUtility && $betterRegret && $hasAdvantage && $isStable) {
                 $bestClassification = 'Solusi Kompromi';
-            } elseif ($betterUtility || $betterRegret) {
+            } elseif ($betterUtility || $betterRegret || $hasAdvantage) {
                 $bestClassification = 'Diterima';
             } else {
                 $bestClassification = 'Tidak Diterima';
@@ -208,7 +214,7 @@ class VikorService
         return [
             'v' => $v,
             'criteria_ids' => $criteriaIds,
-            'normalized' => $normalized,
+            'normalized' => $terms,
             'scores' => $scores,
             'ranking' => $ranking,
             'threshold' => $threshold,
@@ -216,6 +222,27 @@ class VikorService
             'best_classification' => $bestClassification,
             'has_advantage' => $hasAdvantage,
             'is_stable' => $isStable,
+        ];
+    }
+
+    /**
+     * Hasil kosong (belum ada kriteria atau alternatif).
+     *
+     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
+     */
+    private function emptyResult(float $v): array
+    {
+        return [
+            'v' => $v,
+            'criteria_ids' => [],
+            'normalized' => [],
+            'scores' => [],
+            'ranking' => [],
+            'threshold' => 0.0,
+            'best_id' => null,
+            'best_classification' => 'Tidak Diterima',
+            'has_advantage' => false,
+            'is_stable' => false,
         ];
     }
 
@@ -254,7 +281,7 @@ class VikorService
      *
      * @param  Collection<int, Supplier>  $suppliers
      * @param  Collection<int, DssCriterion>  $criteria
-     * @param  array<int, float>  $weights  Bobot kriteria (hasil AHP).
+     * @param  array<int, float>  $weights  Bobot kriteria (hasil AHP, berkunci id kriteria).
      * @param  Collection<int, DssSupplierScore>|null  $scores
      * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
      */
@@ -276,7 +303,7 @@ class VikorService
 
         // Belum ada penilaian pemasok -> tidak ada peringkat yang bisa dihitung.
         if ($scores->isEmpty()) {
-            return $this->calculate([], [], []);
+            return $this->emptyResult($v ?? self::DEFAULT_V);
         }
 
         $types = [];

@@ -191,10 +191,11 @@ class RestockRecommendationService
     /**
      * Memilih penawaran pemasok terbaik untuk sebuah produk.
      *
-     * Prioritas: pemasok dengan peringkat VIKOR terbaik di antara pemasok
-     * produk tersebut, lalu pemasok pilihan (is_preferred), lalu penawaran pertama.
+     * Prioritas: 1) pemasok dengan peringkat VIKOR terbaik di antara pemasok
+     * produk tersebut (pemasok yang tidak punya peringkat ditempatkan terakhir),
+     * 2) pemasok pilihan (is_preferred), 3) penawaran pertama.
      *
-     * @param  array<int, int>|null  $supplierRanking
+     * @param  array<int, int>|null  $supplierRanking  [id_pemasok] = peringkat VIKOR (1 = terbaik)
      * @return array{supplier: ?Supplier, offer: ?ProductSupplier, price: ?float, lead_time_days: ?int, min_order_qty: ?int}
      */
     private function pickSupplierOffer(Product $product, ?array $supplierRanking): array

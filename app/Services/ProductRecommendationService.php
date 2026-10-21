@@ -149,7 +149,7 @@ class ProductRecommendationService
     {
         return DB::table('transaction_details')
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
-            ->where('transactions.customer_id', $userId)
+            ->whereIn('transactions.customer_id', $this->customerIdsFor($userId))
             ->where('transactions.status', 'completed')
             ->distinct()
             ->pluck('transaction_details.product_id')
@@ -167,7 +167,7 @@ class ProductRecommendationService
         return DB::table('transaction_details')
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
             ->join('products', 'products.id', '=', 'transaction_details.product_id')
-            ->where('transactions.customer_id', $userId)
+            ->whereIn('transactions.customer_id', $this->customerIdsFor($userId))
             ->where('transactions.status', 'completed')
             ->groupBy('products.category_id')
             ->select('products.category_id')
@@ -175,6 +175,34 @@ class ProductRecommendationService
             ->pluck('total', 'category_id')
             ->map(fn ($total) => (int) $total)
             ->all();
+    }
+
+    /**
+     * Memetakan user ke id yang tersimpan di `transactions.customer_id`.
+     *
+     * Sesuai migration asli (`create_transactions_table`), `transactions.customer_id`
+     * menunjuk `customers.id`, dan user memiliki baris `customers` lewat
+     * `customers.user_id`. Namun migrasi `2026_09_17_155756` mengarahkan kolom
+     * itu ke `users.id` pada MySQL, sehingga data lama memakai id user langsung.
+     *
+     * Supaya aman pada kedua skema, id `customers` milik user dan id user itu
+     * sendiri dipakai bersama saat mencari transaksinya.
+     *
+     * @return array<int, int>
+     */
+    private function customerIdsFor(int $userId): array
+    {
+        $customerIds = DB::table('customers')
+            ->where('customers.user_id', $userId)
+            ->pluck('customers.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (! in_array($userId, $customerIds, true)) {
+            $customerIds[] = $userId;
+        }
+
+        return $customerIds;
     }
 
     /**
