@@ -69,6 +69,22 @@
         </div>
     @endif
 
+    @if(Auth::user()->role === 'staff' || Auth::user()->role === 'admin')
+        <div class="nav-section">
+            <div class="nav-section-label">DSS</div>
+            @if(Auth::user()->role === 'admin')
+                <a href="{{ route('admin.dss') }}" class="nav-link {{ $activeRoute === 'dss' ? 'active' : '' }}">
+                    <i class="bi bi-trophy"></i>
+                    <span>Analisis DSS</span>
+                </a>
+            @endif
+            <a href="{{ route('staff.dss') }}" class="nav-link {{ $activeRoute === 'dss' ? 'active' : '' }}">
+                <i class="bi bi-clipboard-data"></i>
+                <span>Penilaian Pemasok</span>
+            </a>
+        </div>
+    @endif
+
     <div class="nav-section">
         <div class="nav-section-label">Akun</div>
         <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#profileModal">

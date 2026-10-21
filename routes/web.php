@@ -2,26 +2,16 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\DssAnalysisController;
+use App\Http\Controllers\DssScoreController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TokoController;
-use App\Models\Category;
-use App\Models\Product;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 // Halaman Utama / Landing Page
-Route::get('/', function () {
-    $products = Product::with('category')->latest()->get();
-    $categories = Category::orderBy('name')->get();
-    $stats = [
-        'produk' => Product::count(),
-        'pelanggan' => User::where('role', 'pelanggan')->count(),
-        'kategori' => Category::count(),
-    ];
-
-    return view('welcome', compact('products', 'categories', 'stats'));
-});
+Route::get('/', LandingController::class)->name('landing');
 
 // Route Auth
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -51,22 +41,39 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/toko/favorit/{product}', [TokoController::class, 'toggleFavorite'])->name('toko.favorit.toggle');
 
     // Dashboard Kasir & Form Restock
-    Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');
-    Route::post('/staff/restock', [StaffController::class, 'storeRestock'])->name('staff.restock.store');
-    Route::post('/staff/products', [StaffController::class, 'storeProduct'])->name('staff.products.store');
+    Route::middleware(['role:staff,admin'])->group(function () {
+        Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');
+        Route::post('/staff/restock', [StaffController::class, 'storeRestock'])->name('staff.restock.store');
+        Route::post('/staff/products', [StaffController::class, 'storeProduct'])->name('staff.products.store');
 
-    // Update master produk oleh Staff (ubah deskripsi, foto, harga, kategori, dll.)
-    Route::put('/staff/products/{product}', [StaffController::class, 'updateProduct'])->name('staff.products.update');
+        // Update master produk oleh Staff (ubah deskripsi, foto, harga, kategori, dll.)
+        Route::put('/staff/products/{product}', [StaffController::class, 'updateProduct'])->name('staff.products.update');
+    });
 
     // Dashboard Admin/Manager & Approval OAS
-    Route::get('/admin/dashboard', [ManagerController::class, 'index'])->name('admin.dashboard');
-    Route::put('/admin/restock/{id}', [ManagerController::class, 'updateStatus'])->name('admin.restock.update');
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/admin/dashboard', [ManagerController::class, 'index'])->name('admin.dashboard');
+        Route::put('/admin/restock/{id}', [ManagerController::class, 'updateStatus'])->name('admin.restock.update');
 
-    // Kelola produk oleh Manager: ubah dan hapus (RUD).
-    // Penambahan master produk dilakukan lewat dashboard Staff, jadi tidak ada
-    // route POST /admin/products di sini.
-    Route::put('/admin/products/{product}', [ManagerController::class, 'updateProduct'])->name('admin.products.update');
-    Route::delete('/admin/products/{product}', [ManagerController::class, 'destroyProduct'])->name('admin.products.destroy');
+        // Kelola produk oleh Manager: ubah dan hapus (RUD).
+        // Penambahan master produk dilakukan lewat dashboard Staff, jadi tidak ada
+        // route POST /admin/products di sini.
+        Route::put('/admin/products/{product}', [ManagerController::class, 'updateProduct'])->name('admin.products.update');
+        Route::delete('/admin/products/{product}', [ManagerController::class, 'destroyProduct'])->name('admin.products.destroy');
+    });
+
+    // DSS - Penilaian pemasok oleh Staff (Kasir)
+    Route::middleware(['role:staff,admin'])->group(function () {
+        Route::get('/staff/dss', [DssScoreController::class, 'index'])->name('staff.dss');
+        Route::post('/staff/dss/skor', [DssScoreController::class, 'store'])->name('staff.dss.scores.store');
+    });
+
+    // DSS - Analisis & hasil ranking oleh Admin (Manager)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/admin/dss', [DssAnalysisController::class, 'summary'])->name('admin.dss');
+        Route::get('/admin/dss/pemasok', [DssAnalysisController::class, 'suppliers'])->name('admin.dss.suppliers');
+        Route::post('/admin/dss/analisis', [DssAnalysisController::class, 'run'])->name('admin.dss.run');
+    });
 
     // Chatbot API
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');

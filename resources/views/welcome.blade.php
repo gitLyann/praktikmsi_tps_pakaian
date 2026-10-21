@@ -118,6 +118,12 @@ header.scrolled{border-color:var(--line)}
 .p .add:hover{background:var(--orange)}
 .empty-note{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0;font-size:14px;background:#fff;border:1px dashed var(--line);border-radius:18px}
 
+/* Rekomendasi produk (DSS) */
+.rec-why{display:flex;flex-wrap:wrap;gap:6px;margin:10px 6px 4px}
+.rec-why span{font-size:10px;font-weight:700;background:var(--sky);color:var(--navy);padding:3px 9px;border-radius:99px}
+.rec-note{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:99px;padding:8px 14px;margin-bottom:20px}
+.rec-note b{color:var(--navy)}
+
 .contact{display:grid;grid-template-columns:1fr 1fr;gap:48px}
 .info{display:grid;gap:18px;margin-top:26px}
 .info div{display:flex;gap:14px;align-items:center}
@@ -319,6 +325,59 @@ dialog form{display:grid;gap:12px}
   </div>
 </div></section>
 
+<!-- REKOMENDASI -->
+<section id="rekomendasi" class="sec alt"><div class="wrap">
+  <div class="head"><h2>Rekomendasi untukmu</h2>
+    <p>Dipilih otomatis dari riwayat belanja dan produk terlaris, jadi lebih sesuai dengan selerimu.</p>
+  </div>
+  <div class="rec-note">
+    <span>&#9889;</span>
+    <span>
+      @if($isPersonal)
+        <b>Rekomendasi personal</b> berdasarkan riwayat belanja &amp; kategori favoritmu.
+      @else
+        <b>Rekomendasi populer</b> untuk pengunjung.
+      @endif
+    </span>
+  </div>
+  <div class="grid">
+    @forelse($recommended as $item)
+      @php
+          $recProduct = $item['product'];
+          $kategori = $recProduct->category->name ?? '';
+          $emoji = $emojiFor($kategori);
+      @endphp
+      <article class="p">
+        <div class="im">
+          @if($recProduct->image_url)
+            <img src="{{ $recProduct->image_url }}" alt="{{ $recProduct->name }}" loading="lazy">
+          @else
+            {{ $emoji }}
+          @endif
+          <span class="tag">Rekomendasi</span>
+        </div>
+        <h3>{{ $recProduct->name }}</h3>
+        <small>{{ $kategori }}{{ $recProduct->type ? ' · ' . $recProduct->type : '' }}</small>
+        <div class="row">
+          <b>Rp {{ number_format($recProduct->price, 0, ',', '.') }}</b>
+          @guest
+            <button class="add" data-need-auth aria-label="Masuk untuk membeli {{ $recProduct->name }}">+</button>
+          @else
+            <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $recProduct->name }} di katalog">&rarr;</a>
+          @endguest
+        </div>
+        <div class="rec-why">
+          @foreach($item['reasons'] as $reason)
+            <span>{{ $reason }}</span>
+          @endforeach
+        </div>
+      </article>
+    @empty
+      <div class="empty-note">Belum ada rekomendasi. Produk tersedia akan muncul di sini.</div>
+    @endforelse
+  </div>
+</div></section>
+
 <!-- CONTACT -->
 <section id="contact" class="sec alt"><div class="wrap contact">
   <div>
@@ -400,8 +459,8 @@ function setFilter(c){
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(b)setFilter(b.dataset.c)});
 $$(".drop a").forEach(a=>a.addEventListener("click",()=>{setFilter(a.dataset.f);$("#menu").classList.remove("open")}));
 
-/* Tombol "+" pada kartu produk: tamu diminta masuk dulu */
-$("#grid").addEventListener("click",e=>{
+/* Tombol "+" pada kartu produk (koleksi & rekomendasi): tamu diminta masuk dulu */
+document.addEventListener("click",e=>{
   const b=e.target.closest("[data-need-auth]");
   if(!b)return;
   setTab("login");

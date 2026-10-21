@@ -886,34 +886,66 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 ---
 
 ## 2026-10-21 - Phase 24: Service Layer DSS (AHP, VIKOR, Rekomendasi Restock & Produk)
+- **Permintaan**: lapisan perhitungan DSS yang bisa dipakai ulang (dipakai controller/UI di Phase 25-26) + unit test **perhitungan manual** agar angka AHP/VIKOR bisa dipertanggungjawabkan di laporan.
+- **`app/Services/AhpService.php`** (baru): normalisasi kolom -> bobot = rata-rata baris -> lambda max dari matriks ASLI -> CI -> CR (RI Saaty 1-10, ambang 0,10); pasangan hilang dianggap 1; `analyze()` mengembalikan `criteria_weights` berkunci id kriteria.
+- **`app/Services/VikorService.php`** (baru): rumus baku `d_ij = w_j*(f*_j - f_ij)/(f*_j - f-_j)` (f* = max/min sesuai benefit/cost; f* = f- -> d = 0), `S = SUM d_ij`, `R = MAX d_ij` (kecil = baik), `Q = v*(S-S*)/(S--S*) + (1-v)*(R-R*)/(R--R*)` (S*/R* = min, S-/R- = max, penyebut nol -> 0, v default 0,5 dijepit 0..1). Peringkat Q menaik, tie-break S terkecil lalu R terkecil.
+- **Klasifikasi baku Opricovic** (DQ = 1/(J-1)): C1 `Q(a2)-Q(a1) >= DQ` (keunggulan), C2 peringkat 1 juga terbaik menurut S atau R (stabilitas) -> `Solusi Tunggal` / `Kompromi Alternatif 1 dan 2` / `Kompromi Semua Alternatif`. Label `Diterima`/`Tidak Diterima` dihapus; flag `has_advantage` & `is_stable` tetap ada; tanpa skor -> ranking kosong (bukan angka nol palsu).
+- **`app/Services/RestockRecommendationService.php`** (baru): penjualan harian 30 hari (transaksi `completed`), safety stock = ceil(demand x 0,25), reorder point, pembulatan ke MOQ pemasok, estimasi biaya, `persist()` ke `dss_restock_recommendations`, `toRestockRequest()` (pemasok + run DSS).
+- **`app/Services/ProductRecommendationService.php`** (baru): `recommendFor()` / `recommendForGuest()` dengan skor explainable (+3 kategori favorit, +2 terlaris, +1 stok, -2 sudah dibeli) + array `reasons` untuk UI.
+- **Test**: 6 berkas baru (AhpService 7, VikorService 12, AhpAnalysis 4, DssPipeline 2, RestockRecommendation 11, ProductRecommendation 8).
+- **Verifikasi**: `php artisan test` **51/51 lolos, 269 assertions** (baseline 11/119). AHP manual `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot 4/7, 2/7, 1/7, lambda max 3, CI 0, CR 0; VIKOR manual 3 alternatif -> S 1,0000/0,6266667/0,1200, R 0,6000/0,3600/0,1200, Q -0,4400/-0,3733333/-0,2400 (peringkat A > B > C, ambang 0,5).
+- **Probe MySQL**: bobot AHP 0,30/0,25/0,18/0,12/0,08/0,07 (CR 0), VIKOR mengurutkan 5 pemasok (#1 Konveksi Bandung Sentosa, Q -0,2348), restock 5 produk, rekomendasi produk 4 item. `pint` passed untuk 9 berkas Phase 24 (total repo tetap 22 berkas pre-existing gagal).
+- **Batas**: `dss_supplier_scores.score` = nilai mentah kriteria (normalisasi & arah benefit/cost di `VikorService`); `dss_runs`/`dss_supplier_scores` belum ditulis service (Phase 25-26); `transactions.customer_id` -> `users.id` di MySQL tapi `customers.id` di SQLite (test memakai id sama); data demo belum ada produk di bawah reorder point (Phase 28); belum diverifikasi di browser.
 
-Permintaan: lapisan perhitungan DSS yang bisa dipakai ulang (dipakai controller/UI di Phase 25-26) beserta unit test **perhitungan manual** agar angka AHP/VIKOR bisa dipertanggungjawabkan di laporan.
+---
 
-### 1. Perubahan berkas
-- **`app/Services/AhpService.php` (baru)** - AHP lengkap: `calculate()` (normalisasi kolom -> bobot = rata-rata baris -> lambda max dari matriks ASLI -> CI -> CR dengan RI Saaty 1-10), `buildMatrix()` (pasangan hilang dianggap 1 = sama penting), `analyze()` (baca `dss_criteria` + `dss_criteria_comparisons`, mengembalikan `criteria_weights` **berkunci id kriteria**), `emptyResult()`. Konstanta `RANDOM_INDEX` dan `CONSISTENCY_THRESHOLD = 0.10`.
-- **`app/Services/VikorService.php` (baru)** - VIKOR dengan **rumus baku (formulasi penyesuaian/regret)**: `term_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j)` (benefit: f* = max, f- = min; cost: f* = min, f- = max), `S_i = SUM_j term_ij`, `R_i = MAX_j term_ij`, lalu `Q_i = v*(S_i - S*)/(S- - S*) + (1-v)*(R_i - R*)/(R- - R*)` dengan `S*`/`R*` = nilai terkecil dan `S-`/`R-` = nilai terbesar. Peringkat diurutkan **Q menaik** (Q terkecil = terbaik); tie-break: **S terkecil** lalu **R terkecil**. Klasifikasi `Solusi Kompromi` / `Diterima` / `Alternatif` / `Tidak Diterima` + flag terpisah `has_advantage` & `is_stable`; `analyze()` membaca `dss_supplier_scores` dan mengembalikan **ranking kosong** bila belum ada skor (bukan angka nol palsu).
-- **`app/Services/RestockRecommendationService.php` (baru)** - `analyze()` (rata-rata penjualan harian dari transaksi `completed` dalam 30 hari, demand lead time, safety stock = ceil(demand x 0,25), reorder point, jumlah pesanan dibulatkan ke MOQ pemasok, estimasi biaya), `persist()` (simpan ke `dss_restock_recommendations`), `toRestockRequest()` (buat pengajuan restock tertaut supplier + run DSS), `salesPerProduct()`, `pickSupplierOffer()` (urutan: peringkat VIKOR -> pemasok `is_preferred` -> penawaran pertama), `summarize()`.
-- **`app/Services/ProductRecommendationService.php` (baru)** - rekomendasi produk untuk pelanggan: `recommendFor()` (membaca riwayat belanja + kategori favorit + popularitas 90 hari) dan `recommendForGuest()`. Skor sederhana & bisa dijelaskan: +3 per kategori favorit (bobot dibatasi 3), +2 bila produk terlaris, +1 bila stok tersedia, -2 bila sudah pernah dibeli; produk yang sudah dibeli didorong ke bawah. Setiap hasil membawa **alasan** (`reasons`) untuk ditampilkan di UI. Riwayat belanja dicari lewat `customerIdsFor()`: id `customers` milik user (`customers.user_id`) **dan** id user itu sendiri, sehingga aman pada kedua skema `transactions.customer_id` (lihat bagian 4).
-- **`app/Models/DssSupplierScore.php`** - docblock diperjelas: `score` = nilai mentah kriteria (harga, lead time, rating); arah benefit/cost mengikuti `DssCriterion::type`.
-- **`database/migrations/2026_10_21_090500_create_dss_supplier_scores_table.php`** - **komentar saja** (tidak ada perubahan skema): penjelasan bahwa `score` menyimpan nilai mentah kriteria.
-- **6 berkas test baru**: `tests/Unit/AhpServiceTest.php` (7 test, termasuk contoh matriks Saaty klasik), `tests/Unit/VikorServiceTest.php` (12 test, termasuk data uji baku 4 alternatif & hitungan manual), `tests/Feature/AhpAnalysisTest.php` (4 test AHP dari database), `tests/Feature/DssPipelineTest.php` (2 test alur AHP -> VIKOR -> peringkat + kasus tanpa skor), `tests/Feature/RestockRecommendationServiceTest.php` (11 test perhitungan & persistensi restock), `tests/Feature/ProductRecommendationServiceTest.php` (8 test rekomendasi produk, mencakup pemetaan `customer_id` pada kedua skema).
+## 2026-10-21 - Phase 25: Middleware Role + Route/Controller DSS (Admin & Staff)
+- **Middleware** `app/Http/Middleware/EnsureUserHasRole.php` (baru), alias `role` di `bootstrap/app.php`: `role:admin` dan `role:staff,admin`; belum login -> redirect `login`, role tidak cocok -> **403**.
+- **Route** `routes/web.php`: route dashboard staff/admin kini dibungkus middleware role; 5 route DSS baru (`staff.dss`, `staff.dss.scores.store`, `admin.dss`, `admin.dss.suppliers`, `admin.dss.run`).
+- **Service** `app/Services/DssAnalysisService.php` (baru): orkestrasi AHP -> VIKOR -> restock; `saveScores()` (run `draft` otomatis + tulis `dss_supplier_scores`), `storeRun()` (tulis `dss_runs` + payload JSON), `criteriaWithWeights()`, `suppliersWithScores()`, `activeScoringRun()`.
+- **Controller** `DssScoreController` (staff: isi & simpan skor) dan `DssAnalysisController` (admin: ringkasan, daftar pemasok, jalankan analisis) - pada tahap ini keduanya **JSON** (UI Blade menyusul di Phase 26).
+- **Test** 3 berkas baru: `DssRoleAccessTest` (4), `DssScoreControllerTest` (2), `DssAnalysisControllerTest` (2).
+- **Verifikasi**: `php artisan test` **68/68 lolos, 454 assertions** (baseline 51/269); `pint --dirty` passed; probe render ke MySQL sukses (5 pemasok, 6 kriteria).
+- **Batas**: analisis tidak bisa dijalankan meaningful bila skor pemasok masih kosong (ranking VIKOR kosong, bukan error); skor hanya menempel pada run berstatus `draft`.
 
-### 2. Hasil verifikasi
-- `php artisan test` -> **51/51 lolos, 269 assertions** (baseline Phase 23 = 11 test / 119 assertions; +40 test / +150 assertion di Phase 24).
-- **Perhitungan manual AHP** (dipakai di `AhpServiceTest`): matriks `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot **4/7, 2/7, 1/7**, lambda max = **3**, CI = **0**, CR = **0** (konsisten). Matriks 4x4 proporsional 8:4:2:1 -> lambda max 4, bobot 8/15, 4/15, 2/15, 1/15, jumlah bobot = 1.
-- **Perhitungan manual VIKOR** (dipakai di `VikorServiceTest`): 3 alternatif x 2 kriteria (benefit 0,6 & cost 0,4) -> S = 1,0000 / 0,6266667 / 0,1200; R = 0,6000 / 0,3600 / 0,1200; Q = -0,4400 / -0,3733333 / -0,2400; peringkat A > B > C, ambang 1/(J-1) = 0,5.
-- **Probe terhadap MySQL `praktikmsi_tps_pakaian`**: AHP dihitung ulang dari data tersimpan -> bobot **0,3000 / 0,2500 / 0,1800 / 0,1200 / 0,0800 / 0,0700** (identik dengan bobot acuan), lambda max 5,999991, CI 0,000000, CR 0,000000, konsisten = ya. VIKOR mengurutkan 5 pemasok dengan S/R/Q (peringkat #1 "Konveksi Bandung Sentosa" Q = -0,2348). Analisis restock berjalan untuk 5 produk (ringkasan: 5 produk, 0 perlu restock, biaya 0) dan rekomendasi produk untuk pengunjung mengembalikan 4 produk dengan alasan.
-- `vendor\bin\pint --test` -> **passed** untuk seluruh 9 berkas Phase 24 (4 service + 5 test + 1 migration yang disentuh). Kegagalan 22 berkas pre-existing **tidak bertambah** (dicek `pint --test` seluruh repo: 22 file, sama seperti baseline).
-- Tidak ada perubahan skema maupun data pada MySQL di Phase 24 (hanya service + test + komentar dokumentasi).
+---
 
-### 3. Batasan yang disepakati
-- **Rumus Q memakai tanda standar VIKOR**: `Q = v*(S- - S) + (1-v)*(R - R+)` dengan `S-` = utility terkecil dan `R+` = regresi terbesar. Draft awal sempat menulis `(S - S-)` (terbalik) dan **sudah dikoreksi** sebelum finalisasi.
-- **Label klasifikasi** ditentukan dari perbandingan S dan R antara peringkat 1 dan 2 (klasifikasi VIKOR asli): keduanya lebih baik -> `Solusi Kompromi`; salah satu lebih baik -> `Diterima`; tidak ada yang lebih baik -> `Tidak Diterima`. Uji keunggulan/stabilitas ketat (1/(J-1)) dilaporkan terpisah sebagai flag `has_advantage` & `is_stable`, karena dengan jumlah alternatif kecil ambang 1/(J-1) secara matematis hampir tidak terjangkau.
-- **Perilaku khusus VIKOR yang memang terjadi**: alternatif yang unggul di semua kriteria justru mendapat R tertinggi, sehingga sering berlabel `Diterima` (bukan `Solusi Kompromi`). Ini konsekuensi rumus R, bukan bug - sudah diuji eksplisit di `DssPipelineTest`.
-- **Tie-break Q sama**: diurutkan dari utility (S) tertinggi lalu regresi (R) terkecil, supaya peringkat deterministik dan masuk akal.
-- `dss_supplier_scores.score` berisi **nilai mentah** kriteria; normalisasi dan arah benefit/cost ditangani `VikorService` berdasarkan `dss_criteria.type`.
-- **Belum** ada Penulisan `dss_runs` / `dss_supplier_scores` dari service (hanya `RestockRecommendationService::persist()` yang menulis `dss_restock_recommendations`). Orkestrasi run analisis lengkap + input skor pemasok dikerjakan di Phase 25-26 bersama controller/UI.
-- `ProductRecommendationService` memakai **skorExplainable sederhana**, bukan model MCDM tersendiri, agar alasannya bisa ditampilkan ke pengguna.
-- `transactions.customer_id` di MySQL menunjuk `users.id` (di-redirect oleh migrasi lama `2026_09_17_155756`), sedangkan di SQLite masih menunjuk `customers.id`. Test membuat baris `customers` dengan `id` = `id` user agar konsisten di kedua driver.
-- **Data demo saat ini belum ada produk di bawah reorder point** (volume penjualan contoh kecil) -> tabel rekomendasi restock akan menampilkan keadaan kosong sampai riwayat transaksi 30 hari diisi (Phase 28).
-- Belum diverifikasi di browser - Phase 24 murni lapisan service (tanpa UI).
+## 2026-10-21 - Phase 26: UI DSS Admin & Staff (halaman terpisah) + grup nav "DSS"
+- **Blade** `resources/views/staff/dss.blade.php` (baru): daftar kriteria + bobot AHP, tabel skor per pemasok (form POST `staff.dss.scores.store`), sel kosong berarti belum dinilai.
+- **Blade** `resources/views/admin/dss.blade.php` (baru): metrik AHP (lambda max, CI, RI, CR, status konsistensi), bobot kriteria, ranking VIKOR (S/R/Q + klasifikasi + C1/C2), rekomendasi restock, riwayat run, tabel skor penilaian.
+- **Controller dual mode**: HTML (halaman) vs JSON (`Accept: application/json`) pada `index()`, `summary()`, `run()`, `store()`; POST dari form HTML -> redirect + flash message, API tetap JSON (201).
+- **Sidebar** `resources/views/layouts/sidebar.blade.php`: grup nav baru **"DSS"** (admin: Analisis DSS + Penilaian Pemasok; staff: Penilaian Pemasok).
+- **Test** `tests/Feature/DssPageRenderTest.php` (baru, 6 test): render halaman staff/admin, simpan skor dari form HTML, skor kosong tidak disimpan, jalankan analisis -> run tersimpan, nav sidebar.
+- **Verifikasi**: `php artisan test` **74/74 lolos, 477 assertions** (baseline 68/454); `pint` passed untuk seluruh berkas Phase 25-26; `php artisan view:cache` sukses; probe render `/admin/dss` ke MySQL -> 38 KB berisi 5 pemasok + 6 kriteria.
+- **Batas**: halaman DSS masih tanpa paginasi/upload dan belum diverifikasi manual di browser; tab sidebar "DSS" memakai `activeRoute` terpisah dari section dashboard.
+
+---
+
+## 2026-10-21 - Phase 27: UI Pelanggan - Rekomendasi Produk di Landing Page
+- **Controller** `app/Http/Controllers/LandingController.php` (baru): closure route `/` dipindah ke controller agar `ProductRecommendationService` bisa di-inject; route diberi nama `landing`.
+- **Blade** `resources/views/welcome.blade.php`: seksi baru **"Rekomendasi untukmu"** (`id="rekomendasi"`) berisi kartu produk + alasan (`Stok tersedia`, `Produk terlaris`, `Sesuai kategori favorit Anda`), CSS `.rec-note`/`.rec-why`, dan handler `data-need-auth` diubah ke delegasi `document` supaya tombol "+" di seksi ini juga membuka modal login.
+- **Personalisasi**: pelanggan login -> `recommendFor()` (riwayat belanja + kategori favorit); pengunjung dan role staff/admin -> `recommendForGuest()` (produk terlaris + stok tersedia).
+- **Test** `tests/Feature/LandingRecommendationTest.php` (baru, 4 test): seksi rekomendasi tampil untuk pengunjung, produk stok 0 tidak direkomendasikan, pelanggan melihat "Rekomendasi personal", staff melihat "Rekomendasi populer".
+- **Verifikasi**: `php artisan test` **78/78 lolos, 490 assertions** (baseline 74/477); `pint` passed; `view:cache` sukses.
+- **Batas**: rekomendasi hanya dipersonalisasi untuk role pelanggan; section baru belum diverifikasi manual di browser.
+
+---
+
+## 2026-10-21 - Phase 28: Data Demo DSS (Transaksi 30 Hari + Skor Penilaian Pemasok)
+- **Seeder** `database/seeders/DssDemoTransactionSeeder.php` (baru): 30 hari transaksi (2-4 transaksi/hari, 1-3 detail/barang, 2 produk "laris" qty 2-5), 4 akun pelanggan demo (password `password`), stok produk tidak diubah, FK `transactions.customer_id` dideteksi otomatis (MySQL -> `users.id`, SQLite -> `customers.id`), idempoten (dilewati bila periode 30 hari sudah berisi >= 30 transaksi).
+- **Seeder** `database/seeders/DssScoreSeeder.php` (baru): skor penilaian pemasok per kriteria pada run draft "Penilaian Pemasok Demo" - `harga` dari rata-rata harga penawaran, `lead_time`/`moq` dari profil pemasok, `kualitas`/`reputasi`/`layanan` dari rating (0-5 dinormalisasi 0-100), idempoten.
+- **Migrasi** `2026_10_21_132140_widen_dss_supplier_score_precision.php`: `dss_supplier_scores.score` dilebar dari `decimal(6,2)` ke `decimal(12,2)` supaya harga beli mentah rupiah (mis. 150.000) muat tanpa penyesuaian satuan.
+- **Registrasi**: kedua seeder didaftarkan di `database/seeders/DatabaseSeeder.php` (setelah `DssSeeder`).
+- **Test** `tests/Feature/DssDemoTransactionSeederTest.php` (3 test) dan `tests/Feature/DssScoreSeederTest.php` (3 test): seeder transaksi (rentang 30 hari, detail per transaksi, idempoten, memunculkan rekomendasi restock) dan seeder skor (skor per pemasok x kriteria, idempoten, ranking VIKOR terbentuk).
+- **Verifikasi**: `php artisan test` **84/84 lolos, 510 assertions** (baseline 78/490); `pint --dirty` passed; seed MySQL -> 93 transaksi/30 hari + 30 baris skor; probe render `/admin/dss` 52 KB (ranking VIKOR 5 pemasok, terbaik "Konveksi Bandung Sentosa" = "Solusi Tunggal", 1 produk "Perlu Restock" Rp 850.000), `/staff/dss` 52 KB, landing 35 KB.
+- **Batas**: transaksi demo bersifat fiktif (khusus DB pengembangan/laporan), tidak mengubah stok, dan kolom `score` yang lebar hanya dipakai nilai harga - bobot tetap `decimal(8,4)`.
+
+---
+
+## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-21)
+- **Akun demo**: 4 pelanggan (`dewi.demo@lamamora.test`, `budi.demo@lamamora.test`, `siti.demo@lamamora.test`, `andi.demo@lamamora.test`, password `password`); admin & staff pakai akun yang sudah terdaftar.
+- **Halaman DSS**: `/admin/dss` (Analisis DSS: metrik AHP, ranking VIKOR 5 pemasok, rekomendasi restock, riwayat run) dan `/staff/dss` (Penilaian Pemasok: bobot AHP + tabel skor 6 kriteria).
+- **Halaman rekomendasi**: `/` seksi "Rekomendasi untukmu" (tamu: produk terlaris; pelanggan: personal) dan `/toko` (katalog pelanggan).
+- **Data siap tampil**: 5 pemasok + 6 kriteria AHP (CR = 0, bobot 0,30/0,25/0,18/0,12/0,08/0,07), 30 baris skor (run draft "Penilaian Pemasok Demo"), 93 transaksi demo 30 hari terakhir, 5 produk teranalisis (1 "Perlu Restock" - Gaul Totebag, 25 pcs, Rp 850.000, pemasok Konveksi Bandung Sentosa).
+- **Hasil VIKOR demo**: peringkat 1 Konveksi Bandung Sentosa (Q = 0, klasifikasi "Solusi Tunggal", compromise set 1), 2 Konveksi Semarang Abadi, 3 Textile Surabaya Jaya, 4 Konveksi Jakarta Makmur, 5 Konveksi Yogyakarta Langgeng; advantage = ya, ranking stabil.
+- **Reset data demo**: `php artisan db:seed --class=DssDemoTransactionSeeder` dan `php artisan db:seed --class=DssScoreSeeder` (keduanya idempoten, aman dijalankan berulang).

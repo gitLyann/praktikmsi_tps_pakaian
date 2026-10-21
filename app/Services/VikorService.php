@@ -8,26 +8,38 @@ use App\Models\Supplier;
 use Illuminate\Support\Collection;
 
 /**
- * Perhitungan VIKOR (VIse Kriterijum Optimizacije) untuk peringkat alternatif.
+ * Perhitungan VIKOR (VIse Kriterijum Optimizacije) dengan formulasi baku.
  *
- * Rumus yang dipakai (ukuran "penyesuaian"/regret, makin kecil makin baik):
+ * Tahapan perhitungan:
  *
- * 1. Untuk tiap kriteria j tentukan nilai terbaik f*_j dan terburuk f-_j
- *    menurut tipenya:
- *      - benefit: f*_j = max, f-_j = min
- *      - cost   : f*_j = min, f-_j = max
- * 2. Susun suku ternormalisasi (regret) per alternatif:
- *      term_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j)
- *    (untuk cost: (f*_j - f_ij)/(f*_j - f-_j) = (f_ij - min)/(max - min),
- *     jadi tetap bernilai 0 untuk alternatif terbaik).
- * 3. Ukuran penyesuaian dan regresi:
- *      S_i = SUM_j term_ij        (makin kecil makin baik)
- *      R_i = MAX_j term_ij        (makin kecil makin baik)
+ * 1. Nilai terbaik `f*_j` dan terburuk `f-_j` untuk tiap kriteria j:
+ *      - benefit: `f*_j` = max, `f-_j` = min
+ *      - cost   : `f*_j` = min, `f-_j` = max
+ * 2. Suku ternormalisasi (dalam formulasi VIKOR: "utility measure"):
+ *      `d_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j)`
+ *    Bila `f*_j = f-_j` maka `d_ij = 0` (tidak ada pembedaan antar alternatif).
+ * 3. Ukuran global dan lokal:
+ *      `S_i = SUM_j d_ij`   (total penyesuaian/regret)
+ *      `R_i = MAX_j d_ij`   (penyesuaian terburuk / risiko)
+ *    Keduanya **makin kecil makin baik**. Alternatif yang dominan (terbaik di
+ *    semua kriteria) menghasilkan `S = 0` dan `R = 0`.
  * 4. Indeks kompromi ternormalisasi:
- *      Q_i = v * (S_i - S*) / (S- - S*) + (1 - v) * (R_i - R*) / (R- - R*)
- *    dengan S* = min S, S- = max S, R* = min R, R- = max R.
- * 5. Peringkat: Q terkecil = peringkat terbaik.
- *    Jika Q sama, diurutkan dari S terkecil lalu R terkecil.
+ *      `Q_i = v * (S_i - S*) / (S- - S*) + (1 - v) * (R_i - R*) / (R- - R*)`
+ *    dengan `S*` = min S, `S-` = max S, `R*` = min R, `R-` = max R.
+ *    Penyebut bernilai nol maka sukunya nol. `Q` selalu berada pada rentang
+ *    0..1 dan **Q terkecil = peringkat 1**.
+ * 5. Peringkat: `Q` menaik; saat `Q` seri diurutkan dari `S` terkecil lalu
+ *    `R` terkecil.
+ * 6. Klasifikasi baku (Opricovic) dengan ambang `DQ = 1 / (J - 1)`:
+ *      - C1 (keunggulan yang dapat diterima): `Q(a2) - Q(a1) >= DQ`
+ *      - C2 (stabilitas yang dapat diterima): alternatif peringkat 1 juga
+ *        terbaik menurut `S` atau menurut `R`
+ *      - C1 & C2 terpenuhi -> solusi tunggal, yaitu alternatif 1
+ *      - C1 gagal              -> kompromi semua alternatif `m` dengan
+ *                                  `Q(m) - Q(1) < DQ`
+ *      - C2 gagal              -> kompromi alternatif 1 dan 2
+ *    Penentuan klasifikasi memakai urutan baku: C1 menentukan cakupan set
+ *    kompromi, C2 menentukan apakah solusi bersifat tunggal.
  */
 class VikorService
 {
@@ -37,12 +49,43 @@ class VikorService
     public const DEFAULT_V = 0.5;
 
     /**
-     * Menghitung peringkat VIKOR.
+     * Klasifikasi: alternatif 1 unggul pada Q, S, dan R -> solusi tunggal.
+     */
+    public const CLASSIFICATION_SINGLE = 'Solusi Tunggal';
+
+    /**
+     * Klasifikasi: C2 gagal -> kompromi antara alternatif 1 dan 2.
+     */
+    public const CLASSIFICATION_COMPROMISE_PAIR = 'Kompromi Alternatif 1 dan 2';
+
+    /**
+     * Klasifikasi: C1 gagal -> kompromi seluruh alternatif dalam ambang DQ.
+     */
+    public const CLASSIFICATION_COMPROMISE_SET = 'Kompromi Semua Alternatif';
+
+    /**
+     * Label per-alternatif: anggota set kompromi.
+     */
+    public const CLASSIFICATION_COMPROMISE = 'Kompromi';
+
+    /**
+     * Label per-alternatif: di luar set kompromi.
+     */
+    public const CLASSIFICATION_ALTERNATIVE = 'Alternatif';
+
+    /**
+     * Toleransi perbandingan floating point.
+     */
+    private const EPSILON = 1e-12;
+
+    /**
+     * Menghitung peringkat VIKOR beserta klasifikasi bakunya.
      *
      * @param  array<int|string, array<int|string, float>>  $decisionMatrix  [alternatif][kriteria] = nilai mentah
      * @param  array<int|string, float>  $weights  [kriteria] = bobot (tidak harus berjumlah 1)
      * @param  array<int|string, string>  $criterionTypes  [kriteria] = 'benefit' | 'cost'
-     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
+     * @param  float|null  $v  Parameter kompromi 0..1 (default 0.5), nilai di luar rentang dijepit.
+     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, compromise_set: array, has_advantage: bool, is_stable: bool}
      */
     public function calculate(
         array $decisionMatrix,
@@ -50,7 +93,8 @@ class VikorService
         array $criterionTypes,
         ?float $v = null
     ): array {
-        $v = $v ?? self::DEFAULT_V;
+        // v dijepit pada rentang 0..1 supaya Q selalu berada pada rentang 0..1.
+        $v = max(0.0, min(1.0, $v ?? self::DEFAULT_V));
 
         $criteriaIds = array_keys($weights);
 
@@ -59,16 +103,12 @@ class VikorService
         }
 
         // Bobot dinormalisasi supaya totalnya 1.
-        $totalWeight = array_sum(array_map('floatval', $weights));
-        $normalizedWeights = [];
-        foreach ($weights as $criterionId => $weight) {
-            $normalizedWeights[$criterionId] = $totalWeight > 0
-                ? (float) $weight / $totalWeight
-                : 0.0;
-        }
+        $normalizedWeights = $this->normalizeWeights($weights);
 
-        // Nilai mentah tiap kriteria (untuk mencari f* dan f-).
-        $rawValues = [];
+        // Nilai terbaik (f*) dan terburuk (f-) tiap kriteria mengikuti tipenya.
+        $bestValues = [];
+        $worstValues = [];
+
         foreach ($criteriaIds as $criterionId) {
             $column = [];
             foreach ($decisionMatrix as $row) {
@@ -76,75 +116,67 @@ class VikorService
                     $column[] = (float) $row[$criterionId];
                 }
             }
-            $rawValues[$criterionId] = $column;
-        }
 
-        // f*_j (terbaik) dan f-_j (terburuk) mengikuti tipe kriteria.
-        $bestValue = [];
-        $worstValue = [];
-        foreach ($criteriaIds as $criterionId) {
-            $column = $rawValues[$criterionId];
             $max = $column === [] ? 0.0 : max($column);
             $min = $column === [] ? 0.0 : min($column);
 
             if (($criterionTypes[$criterionId] ?? 'benefit') === 'cost') {
                 // Cost: nilai kecil lebih baik.
-                $bestValue[$criterionId] = $min;
-                $worstValue[$criterionId] = $max;
+                $bestValues[$criterionId] = $min;
+                $worstValues[$criterionId] = $max;
             } else {
                 // Benefit: nilai besar lebih baik.
-                $bestValue[$criterionId] = $max;
-                $worstValue[$criterionId] = $min;
+                $bestValues[$criterionId] = $max;
+                $worstValues[$criterionId] = $min;
             }
         }
 
-        // Suku ternormalisasi: term_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j).
-        $terms = [];
-        foreach ($decisionMatrix as $alternativeId => $row) {
-            foreach ($criteriaIds as $criterionId) {
-                $value = (float) ($row[$criterionId] ?? 0);
-                $best = $bestValue[$criterionId];
-                $worst = $worstValue[$criterionId];
-                $span = $best - $worst;
-
-                // Semua nilai sama -> tidak ada penyesuaian untuk kriteria ini.
-                $normalized = abs($span) > 0
-                    ? ($best - $value) / $span
-                    : 0.0;
-
-                $terms[$alternativeId][$criterionId] = $normalizedWeights[$criterionId] * $normalized;
-            }
-        }
-
-        // S_i = SUM(term_ij) ; R_i = MAX(term_ij)
+        // d_ij = w_j * (f*_j - f_ij) / (f*_j - f-_j)
+        // S_i = SUM_j d_ij ; R_i = MAX_j d_ij
+        $normalized = [];
         $sValues = [];
         $rValues = [];
 
-        foreach ($terms as $alternativeId => $row) {
+        foreach ($decisionMatrix as $alternativeId => $row) {
             $sum = 0.0;
-            $max = 0.0;
+            $maxTerm = 0.0;
 
             foreach ($criteriaIds as $criterionId) {
-                $term = (float) ($row[$criterionId] ?? 0.0);
+                $value = (float) ($row[$criterionId] ?? 0);
+                $best = $bestValues[$criterionId];
+                $worst = $worstValues[$criterionId];
+                $span = $best - $worst;
+
+                // Seluruh nilai sama -> tidak ada penyesuaian untuk kriteria ini.
+                $term = abs($span) > self::EPSILON
+                    ? $normalizedWeights[$criterionId] * (($best - $value) / $span)
+                    : 0.0;
+
+                $normalized[$alternativeId][$criterionId] = $term;
                 $sum += $term;
-                $max = max($max, $term);
+                $maxTerm = max($maxTerm, $term);
             }
 
             $sValues[$alternativeId] = $sum;
-            $rValues[$alternativeId] = $max;
+            $rValues[$alternativeId] = $maxTerm;
         }
 
-        $sStar = $sValues === [] ? 0.0 : min($sValues);   // S* = min S
-        $sMinus = $sValues === [] ? 0.0 : max($sValues);  // S- = max S
-        $rStar = $rValues === [] ? 0.0 : min($rValues);   // R* = min R
-        $rMinus = $rValues === [] ? 0.0 : max($rValues);  // R- = max R
+        $sStar = min($sValues);   // S* = min S
+        $sMinus = max($sValues);  // S- = max S
+        $rStar = min($rValues);   // R* = min R
+        $rMinus = max($rValues);  // R- = max R
 
         // Indeks kompromi ternormalisasi:
         // Q_i = v * (S_i - S*) / (S- - S*) + (1 - v) * (R_i - R*) / (R- - R*)
         $qValues = [];
+
         foreach ($sValues as $alternativeId => $s) {
-            $sRatio = abs($sMinus - $sStar) > 0 ? ($s - $sStar) / ($sMinus - $sStar) : 0.0;
-            $rRatio = abs($rMinus - $rStar) > 0 ? ($rValues[$alternativeId] - $rStar) / ($rMinus - $rStar) : 0.0;
+            $sRatio = abs($sMinus - $sStar) > self::EPSILON
+                ? ($s - $sStar) / ($sMinus - $sStar)
+                : 0.0;
+            $rRatio = abs($rMinus - $rStar) > self::EPSILON
+                ? ($rValues[$alternativeId] - $rStar) / ($rMinus - $rStar)
+                : 0.0;
 
             $qValues[$alternativeId] = $v * $sRatio + (1 - $v) * $rRatio;
         }
@@ -153,73 +185,94 @@ class VikorService
         // Saat Q seri: S terkecil, lalu R terkecil.
         $ranking = array_keys($qValues);
         usort($ranking, function ($a, $b) use ($qValues, $sValues, $rValues) {
-            $diff = $qValues[$a] <=> $qValues[$b];
+            $qDiff = $qValues[$a] - $qValues[$b];
 
-            if ($diff !== 0) {
-                return $diff;
+            if (abs($qDiff) > self::EPSILON) {
+                return $qDiff < 0 ? -1 : 1;
             }
 
-            $sDiff = $sValues[$a] <=> $sValues[$b];
+            $sDiff = $sValues[$a] - $sValues[$b];
 
-            return $sDiff !== 0 ? $sDiff : $rValues[$a] <=> $rValues[$b];
+            if (abs($sDiff) > self::EPSILON) {
+                return $sDiff < 0 ? -1 : 1;
+            }
+
+            $rDiff = $rValues[$a] - $rValues[$b];
+
+            return abs($rDiff) > self::EPSILON ? ($rDiff < 0 ? -1 : 1) : 0;
         });
 
         $alternativeCount = count($ranking);
         $threshold = $alternativeCount > 1 ? 1 / ($alternativeCount - 1) : 0.0;
 
-        // Klasifikasi VIKOR: bandingkan peringkat 1 dan 2 pada ukuran S dan R.
         $best = $ranking[0] ?? null;
         $second = $ranking[1] ?? null;
 
-        $bestClassification = 'Solusi Kompromi';
         $hasAdvantage = true;
         $isStable = true;
+        $bestClassification = self::CLASSIFICATION_SINGLE;
+        $compromiseSet = [];
 
-        if ($second !== null) {
-            // Keunggulan: selisih Qalternatif ke-2 - ke-1 minimal 1/(J-1).
-            $hasAdvantage = ($qValues[$second] - $qValues[$best]) >= $threshold;
+        if ($best !== null && $second === null) {
+            // Hanya ada satu alternatif -> pasti solusi tunggal.
+            $compromiseSet = [$best];
+        } elseif ($best !== null && $second !== null) {
+            // C1 (keunggulan): selisih Q alternatif ke-2 minimal DQ.
+            $hasAdvantage = ($qValues[$second] - $qValues[$best]) >= $threshold - self::EPSILON;
 
-            // Stabilitas: selisih Ralternatif ke-1 - ke-2 maksimal 1/(J-1).
-            $isStable = ($rValues[$best] - $rValues[$second]) <= $threshold;
+            // C2 (stabilitas): alternatif ke-1 juga terbaik menurut S atau R.
+            $isStable = $this->isEqual($sValues[$best], $sStar) || $this->isEqual($rValues[$best], $rStar);
 
-            $betterUtility = $sValues[$best] <= $sValues[$second];
-            $betterRegret = $rValues[$best] <= $rValues[$second];
+            if (! $hasAdvantage) {
+                // C1 gagal -> kompromi semua alternatif dalam ambang DQ.
+                $bestClassification = self::CLASSIFICATION_COMPROMISE_SET;
 
-            if ($betterUtility && $betterRegret && $hasAdvantage && $isStable) {
-                $bestClassification = 'Solusi Kompromi';
-            } elseif ($betterUtility || $betterRegret || $hasAdvantage) {
-                $bestClassification = 'Diterima';
+                foreach ($ranking as $alternativeId) {
+                    if (($qValues[$alternativeId] - $qValues[$best]) < $threshold - self::EPSILON) {
+                        $compromiseSet[] = $alternativeId;
+                    }
+                }
+            } elseif (! $isStable) {
+                // C2 gagal -> kompromi alternatif 1 dan 2.
+                $bestClassification = self::CLASSIFICATION_COMPROMISE_PAIR;
+                $compromiseSet = [$best, $second];
             } else {
-                $bestClassification = 'Tidak Diterima';
+                $bestClassification = self::CLASSIFICATION_SINGLE;
+                $compromiseSet = [$best];
             }
         }
 
         $scores = [];
         foreach ($ranking as $index => $alternativeId) {
+            $isBest = $alternativeId === $best;
+
             $scores[$alternativeId] = [
                 'alternative_id' => $alternativeId,
                 'rank' => $index + 1,
                 'S' => round((float) $sValues[$alternativeId], 6),
                 'R' => round((float) $rValues[$alternativeId], 6),
                 'Q' => round((float) $qValues[$alternativeId], 6),
-                'classification' => $alternativeId === $best
+                'classification' => $isBest
                     ? $bestClassification
-                    : ($index === 1 ? 'Alternatif' : 'Tidak Diterima'),
-                'is_best' => $alternativeId === $best,
-                'has_advantage' => $alternativeId === $best ? $hasAdvantage : false,
-                'is_stable' => $alternativeId === $best ? $isStable : false,
+                    : (in_array($alternativeId, $compromiseSet, true)
+                        ? self::CLASSIFICATION_COMPROMISE
+                        : self::CLASSIFICATION_ALTERNATIVE),
+                'is_best' => $isBest,
+                'has_advantage' => $isBest ? $hasAdvantage : false,
+                'is_stable' => $isBest ? $isStable : false,
             ];
         }
 
         return [
             'v' => $v,
             'criteria_ids' => $criteriaIds,
-            'normalized' => $terms,
+            'normalized' => $normalized,
             'scores' => $scores,
             'ranking' => $ranking,
             'threshold' => $threshold,
             'best_id' => $best,
             'best_classification' => $bestClassification,
+            'compromise_set' => $compromiseSet,
             'has_advantage' => $hasAdvantage,
             'is_stable' => $isStable,
         ];
@@ -228,7 +281,7 @@ class VikorService
     /**
      * Hasil kosong (belum ada kriteria atau alternatif).
      *
-     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
+     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, compromise_set: array, has_advantage: bool, is_stable: bool}
      */
     private function emptyResult(float $v): array
     {
@@ -240,10 +293,39 @@ class VikorService
             'ranking' => [],
             'threshold' => 0.0,
             'best_id' => null,
-            'best_classification' => 'Tidak Diterima',
+            'best_classification' => 'Belum Ada Alternatif',
+            'compromise_set' => [],
             'has_advantage' => false,
             'is_stable' => false,
         ];
+    }
+
+    /**
+     * Menormalisasi bobot kriteria supaya totalnya 1.
+     *
+     * @param  array<int|string, float>  $weights
+     * @return array<int|string, float>
+     */
+    private function normalizeWeights(array $weights): array
+    {
+        $totalWeight = array_sum(array_map('floatval', $weights));
+        $normalizedWeights = [];
+
+        foreach ($weights as $criterionId => $weight) {
+            $normalizedWeights[$criterionId] = $totalWeight > 0
+                ? (float) $weight / $totalWeight
+                : 0.0;
+        }
+
+        return $normalizedWeights;
+    }
+
+    /**
+     * Perbandingan floating point dengan toleransi.
+     */
+    private function isEqual(float $a, float $b): bool
+    {
+        return abs($a - $b) <= self::EPSILON;
     }
 
     /**
@@ -283,7 +365,8 @@ class VikorService
      * @param  Collection<int, DssCriterion>  $criteria
      * @param  array<int, float>  $weights  Bobot kriteria (hasil AHP, berkunci id kriteria).
      * @param  Collection<int, DssSupplierScore>|null  $scores
-     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, has_advantage: bool, is_stable: bool}
+     * @param  float|null  $v  Parameter kompromi 0..1.
+     * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, compromise_set: array, has_advantage: bool, is_stable: bool}
      */
     public function analyze(
         Collection $suppliers,

@@ -89,13 +89,18 @@ class DssPipelineTest extends TestCase
         $this->assertSame($baik->id, $vikorResult['best_id']);
         $this->assertSame($baik->id, $vikorResult['ranking'][0]);
         $this->assertSame($buruk->id, $vikorResult['ranking'][2]);
-        // Pemenang unggul pada S (penyesuaian total) maupun R (penyesuaian maksimum),
-        // dan selisih Q ke-2 memenuhi ambang 1/(J-1) -> solusi kompromi.
-        $this->assertSame('Solusi Kompromi', $vikorResult['best_classification']);
-        $this->assertTrue($vikorResult['has_advantage']);
-        $this->assertTrue($vikorResult['is_stable']);
+
+        // Pemenang adalah alternatif dominan: S = 0 dan R = 0 (bukan R tertinggi).
         $this->assertEqualsWithDelta(0.0, $vikorResult['scores'][$baik->id]['S'], 1e-6);
         $this->assertEqualsWithDelta(0.0, $vikorResult['scores'][$baik->id]['R'], 1e-6);
+        $this->assertEqualsWithDelta(0.0, $vikorResult['scores'][$baik->id]['Q'], 1e-6);
+
+        // Klasifikasi baku: selisih Q ke-2 (0,5) memenuhi ambang DQ = 1/(J-1) = 0,5
+        // dan pemenang juga terbaik menurut S maupun R -> solusi tunggal.
+        $this->assertTrue($vikorResult['has_advantage']);
+        $this->assertTrue($vikorResult['is_stable']);
+        $this->assertSame(VikorService::CLASSIFICATION_SINGLE, $vikorResult['best_classification']);
+        $this->assertSame([$baik->id], $vikorResult['compromise_set']);
     }
 
     public function test_skor_tanpa_run_tidak_ikut_dihitung(): void

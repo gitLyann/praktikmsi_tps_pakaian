@@ -24,5 +24,11 @@ class DatabaseSeeder extends Seeder
 
         // Data dasar Decision Support System (pemasok, kriteria AHP, matriks perbandingan).
         $this->call(DssSeeder::class);
+
+        // Riwayat transaksi 30 hari terakhir sebagai data demo DSS (rekomendasi restock & produk).
+        $this->call(DssDemoTransactionSeeder::class);
+
+        // Skor penilaian pemasok demo supaya ranking VIKOR punya data.
+        $this->call(DssScoreSeeder::class);
     }
 }

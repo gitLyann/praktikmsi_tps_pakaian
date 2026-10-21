@@ -212,22 +212,38 @@
 
 ### Phase 24 (Service Layer DSS)
 - [x] Phase 24 - `app/Services/AhpService.php` (baru): `calculate()` (normalisasi kolom -> bobot rata-rata baris -> lambda max dari matriks ASLI -> CI -> CR dengan RI Saaty 1-10), `buildMatrix()`, `analyze()` (baca DB, `criteria_weights` berkunci id kriteria), `CONSISTENCY_THRESHOLD = 0.10`
-- [x] Phase 24 - `app/Services/VikorService.php` (baru): normalisasi benefit/cost, `S_i`, `R_i`, `Q_i = v*(S- - S_i) + (1-v)*(R_i - R+)` (**tanda S dikoreksi** dari draft awal), peringkat Q menaik, ambang `1/(J-1)`, flag `has_advantage`/`is_stable`, label `Solusi Kompromi`/`Diterima`/`Alternatif`/`Tidak Diterima`; tanpa skor -> ranking kosong
+- [x] Phase 24 - `app/Services/VikorService.php` (baru): rumus baku `d_ij = w_j*(f*_j - f_ij)/(f*_j - f-_j)`, `S_i = SUM d_ij`, `R_i = MAX d_ij` (kecil = baik), `Q_i = v*(S_i - S*)/(S- - S*) + (1-v)*(R_i - R*)/(R- - R*)`; peringkat Q menaik (tie-break S lalu R), klasifikasi baku `Solusi Tunggal`/`Kompromi Alternatif 1 dan 2`/`Kompromi Semua Alternatif` (DQ = 1/(J-1)), flag `has_advantage`/`is_stable`; tanpa skor -> ranking kosong
 - [x] Phase 24 - `app/Services/RestockRecommendationService.php` (baru): rata-rata penjualan 30 hari (hanya transaksi `completed`), demand lead time, safety stock (faktor 0,25), reorder point, pembulatan ke MOQ pemasok, `persist()` ke `dss_restock_recommendations`, `toRestockRequest()` (tertaut supplier + run), `pickSupplierOffer()` (VIKOR -> is_preferred -> pertama)
 - [x] Phase 24 - `app/Services/ProductRecommendationService.php` (baru): `recommendFor()` + `recommendForGuest()`, skor explainable (+3 kategori favorit, +2 terlaris, +1 stok, -2 sudah dibeli) + array `reasons` untuk UI
-- [x] Phase 24 - 6 test baru: `tests/Unit/AhpServiceTest.php` (7), `tests/Unit/VikorServiceTest.php` (10), `tests/Feature/AhpAnalysisTest.php` (4), `tests/Feature/DssPipelineTest.php` (2), `tests/Feature/RestockRecommendationServiceTest.php` (11), `tests/Feature/ProductRecommendationServiceTest.php` (6)
+- [x] Phase 24 - 6 test baru: `tests/Unit/AhpServiceTest.php` (7), `tests/Unit/VikorServiceTest.php` (12), `tests/Feature/AhpAnalysisTest.php` (4), `tests/Feature/DssPipelineTest.php` (2), `tests/Feature/RestockRecommendationServiceTest.php` (11), `tests/Feature/ProductRecommendationServiceTest.php` (8)
 - [x] Phase 24 - Perhitungan manual terverifikasi: AHP `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot 4/7, 2/7, 1/7, lambda max 3, CI 0, CR 0; VIKOR 3 alternatif -> S/R/Q & peringkat A > B > C (ambang 0,5)
 - [x] Phase 24 - Probe MySQL: bobot AHP dari data tersimpan 0,30/0,25/0,18/0,12/0,08/0,07 (CR = 0), VIKOR mengurutkan 5 pemasok, analisis restock 5 produk, rekomendasi produk 4 item
 - [x] Phase 24 - Verifikasi: `php artisan test` **51/51 lolos, 269 assertions** (baseline 11/11); `pint --test` passed untuk 9 berkas Phase 24, total repo tetap 22 berkas pre-existing gagal
 - [x] Phase 24 - `changelog.md` ditulis (Phase 24: perubahan berkas, hasil verifikasi, batasan yang disepakati)
-- [ ] Phase 24 - Orkestrasi run analisis lengkap (**Buat `dss_runs` + `dss_supplier_scores`**) belum ada - baru service perhitungannya; input skor pemasok & penyimpanan run dikerjakan di Phase 25-26
-- [ ] Phase 24 - Data demo saat ini belum ada produk di bawah reorder point -> tabel restock akan kosong sampai riwayat transaksi 30 hari diisi (Phase 28)
+- [x] Phase 24 - Orkestrasi run analisis lengkap (**Buat `dss_runs` + `dss_supplier_scores`**) - selesai di Phase 25 via `DssAnalysisService::saveScores()` + `storeRun()`
+- [x] Phase 24 - Data demo saat ini belum ada produk di bawah reorder point -> tabel restock akan kosong sampai riwayat transaksi 30 hari diisi (Phase 28) - **selesai di Phase 28** (`DssDemoTransactionSeeder`, 93 transaksi, 1 produk "Perlu Restock")
 
 ### Phase 23-28 (Modul DSS - Decision Support System)
 - [x] Phase 23 - Database DSS: 7 migration baru (supplier, product_supplier, kriteria AHP, bobot AHP, perbandingan, hasil VIKOR, run analisis) + 6 model + factory + seeder
 - [x] Phase 23 - `restock_requests` ditambah kolom `supplier_id` + `dss_run_id` (FK hanya di MySQL, SQLite tidak mendukung FK ke tabel existing)
 - [x] Phase 24 - Service: `AhpService` (normalisasi, bobot, lambda max, CI/CR), `VikorService` (S/R/Q, ranking, advantage & stability), `RestockRecommendationService`, `ProductRecommendationService` + unit test manual (AHP `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot 4/7,2/7,1/7, CR=0)
-- [ ] Phase 25 - Middleware role baru (`EnsureUserHasRole`) + route/controller DSS admin & staff + feature test akses per role
-- [ ] Phase 26 - UI DSS admin & staff (halaman terpisah, **bukan** section `.dashboard-section` baru di staff) + grup nav "DSS" di sidebar
-- [ ] Phase 27 - UI pelanggan: section rekomendasi produk di landing page
-- [ ] Phase 28 - Demo seeder (riwayat transaksi 30 hari), verifikasi penuh, section "Bahan Screenshot Laporan DSS" di changelog
+- [x] Phase 25 - Middleware role baru (`EnsureUserHasRole`, alias `role`) + route/controller DSS admin & staff + feature test akses per role
+- [x] Phase 25 - `app/Services/DssAnalysisService.php` (baru): orkestrasi AHP -> VIKOR -> restock, `saveScores()` (run `draft` otomatis + `dss_supplier_scores`), `storeRun()` (`dss_runs` + payload JSON), `criteriaWithWeights()`, `suppliersWithScores()`
+- [x] Phase 25 - Route staff/admin lama kini dibungkus middleware role; 5 route DSS baru (`staff.dss`, `staff.dss.scores.store`, `admin.dss`, `admin.dss.suppliers`, `admin.dss.run`)
+- [x] Phase 25 - Test baru: `DssRoleAccessTest` (4), `DssScoreControllerTest` (2), `DssAnalysisControllerTest` (2) - `php artisan test` **68/68 lolos, 454 assertions**
+- [x] Phase 26 - UI DSS admin & staff (halaman terpisah, **bukan** section `.dashboard-section` baru di staff) + grup nav "DSS" di sidebar
+- [x] Phase 26 - Blade baru: `resources/views/staff/dss.blade.php` (kriteria + bobot AHP, form skor pemasok) dan `resources/views/admin/dss.blade.php` (metrik AHP, ranking VIKOR, rekomendasi restock, riwayat run, tabel skor)
+- [x] Phase 26 - Controller dual mode HTML/JSON (`Accept: application/json`); POST form HTML -> redirect + flash, API tetap JSON 201
+- [x] Phase 26 - Test baru: `tests/Feature/DssPageRenderTest.php` (6 test) - `php artisan test` **74/74 lolos, 477 assertions**; `view:cache` sukses
+- [x] Phase 27 - UI pelanggan: section rekomendasi produk di landing page
+- [x] Phase 27 - `app/Http/Controllers/LandingController.php` (baru) menggantikan closure route `/` (route diberi nama `landing`) agar `ProductRecommendationService` bisa di-inject
+- [x] Phase 27 - Seksi "Rekomendasi untukmu" di `resources/views/welcome.blade.php` (kartu produk + alasan), CSS `.rec-note`/`.rec-why`, handler `data-need-auth` jadi delegasi `document`
+- [x] Phase 27 - Pelanggan -> `recommendFor()` (personal), pengunjung/staff/admin -> `recommendForGuest()` (umum); test `tests/Feature/LandingRecommendationTest.php` (4) - `php artisan test` **78/78 lolos, 490 assertions**
+- [x] Phase 28 - Demo seeder (riwayat transaksi 30 hari), verifikasi penuh, section "Bahan Screenshot Laporan DSS" di changelog
+- [x] Phase 28 - `database/seeders/DssDemoTransactionSeeder.php` (baru): 30 hari transaksi (2-4/hari, 1-3 detail, 2 produk laris), 4 akun pelanggan demo, stok tidak diubah, FK `transactions.customer_id` dideteksi otomatis (MySQL `users.id` / SQLite `customers.id`), idempoten
+- [x] Phase 28 - `database/seeders/DssScoreSeeder.php` (baru): skor pemasok per kriteria pada run draft "Penilaian Pemasok Demo" (harga dari rata-rata penawaran, lead_time/moq dari profil, kualitas/reputasi/layanan dari rating), idempoten
+- [x] Phase 28 - Migrasi `2026_10_21_132140_widen_dss_supplier_score_precision.php`: `dss_supplier_scores.score` `decimal(6,2)` -> `decimal(12,2)` (harga beli mentah rupiah)
+- [x] Phase 28 - Kedua seeder didaftarkan di `database/seeders/DatabaseSeeder.php` (setelah `DssSeeder`)
+- [x] Phase 28 - Test baru: `DssDemoTransactionSeederTest` (3), `DssScoreSeederTest` (3) - `php artisan test` **84/84 lolos, 510 assertions** (baseline 78/490); `pint --dirty` passed
+- [x] Phase 28 - Verifikasi MySQL: seed 93 transaksi/30 hari + 30 baris skor; `/admin/dss` 52 KB (ranking VIKOR 5 pemasok, terbaik "Konveksi Bandung Sentosa" = "Solusi Tunggal", 1 produk "Perlu Restock" Rp 850.000); `/staff/dss` 52 KB; landing 35 KB
+- [x] Phase 28 - `changelog.md`: entri Phase 28 + section "Bahan Screenshot Laporan DSS"
