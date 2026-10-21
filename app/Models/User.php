@@ -42,4 +42,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Favorite::class);
     }
+
+    // Relasi ke run analisis DSS yang dibuat pengguna ini
+    public function dssRuns()
+    {
+        return $this->hasMany(DssRun::class, 'created_by');
+    }
 }

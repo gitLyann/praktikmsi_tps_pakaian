@@ -16,7 +16,9 @@ class RestockRequest extends Model
         'employee_id',
         'jumlah_restock',
         'status',
-        'catatan'
+        'catatan',
+        'supplier_id',
+        'dss_run_id'
     ];
 
     // Relasi ke Produk
@@ -29,5 +31,17 @@ class RestockRequest extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    // Relasi ke pemasok yang dipilih (hasil rekomendasi DSS)
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    // Relasi ke run analisis DSS yang menjadi dasar pengajuan
+    public function dssRun()
+    {
+        return $this->belongsTo(DssRun::class);
     }
 }

@@ -36,6 +36,24 @@ class Product extends Model
         return $this->hasMany(Favorite::class);
     }
 
+    // Relasi ke penawaran pemasok untuk produk ini
+    public function productSuppliers()
+    {
+        return $this->hasMany(ProductSupplier::class);
+    }
+
+    // Relasi ke pemasok yang bisa memasok produk ini
+    public function suppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'product_suppliers');
+    }
+
+    // Relasi ke rekomendasi restock DSS untuk produk ini
+    public function restockRecommendations()
+    {
+        return $this->hasMany(DssRestockRecommendation::class);
+    }
+
     // Path gambar relatif terhadap folder public, atau null bila produk belum punya foto
     public function getImageUrlAttribute(): ?string
     {

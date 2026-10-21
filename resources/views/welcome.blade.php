@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>La Mamora - Toko Outfit Official</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{{-- Design system La Mamora: satu sumber token visual (dipakai bersama dashboard) --}}
+<link href="{{ asset('css/la-mamora.css') }}" rel="stylesheet">
 <style>
-:root{--navy:#14213d;--sky:#e3eefb;--sky2:#f6faff;--orange:#ff6b2c;--muted:#5f6b7f;--line:#dbe5f3;--white:#fff}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:var(--navy);background:var(--sky2);line-height:1.6}

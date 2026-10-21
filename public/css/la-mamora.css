@@ -1,0 +1,924 @@
+/* ==========================================================================
+   La Mamora - Design System
+   Satu sumber token visual untuk seluruh aplikasi (landing Phase 18,
+   dashboard admin/staff, dashboard pelanggan, dan modul DSS).
+
+   Token warna diambil apa adanya dari landing page "La Mamora" (Phase 18)
+   supaya tidak ada perbedaan visual antara halaman publik dan dashboard.
+   Nama token memakai prefiks --lm- agar tidak bentrok dengan
+   --bs-* milik Bootstrap 5.3.
+
+   Override komponen Bootstrap 5.3 di-scope dengan body.lm-dashboard supaya
+   landing page (yang memakai CSS inline sendiri) tidak ikut berubah.
+   ========================================================================== */
+
+:root {
+    /* ---- Warna inti (identik dengan landing page) ---- */
+    --lm-navy: #14213d;
+    --lm-navy-soft: #1d2f52;
+    --lm-navy-hover: #0b1426;
+    --lm-sky: #e3eefb;
+    --lm-sky-2: #f6faff;
+    --lm-surface: #f4f7fc;
+    --lm-orange: #ff6b2c;
+    --lm-orange-hover: #e85a1f;
+    --lm-muted: #5f6b7f;
+    --lm-line: #dbe5f3;
+    --lm-white: #fff;
+
+    /* ---- Warna status (versi terang) ---- */
+    --lm-success: #1c8c4e;
+    --lm-success-soft: #e3f6ec;
+    --lm-danger: #d64545;
+    --lm-danger-soft: #fdeaea;
+    --lm-warning: #b7791f;
+    --lm-warning-soft: #fdf3e0;
+    --lm-info: #2b6cb0;
+    --lm-info-soft: #e6f0fb;
+
+    /* ---- Tipografi ---- */
+    --lm-font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --lm-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /* ---- Radius ---- */
+    --lm-radius-sm: 9px;
+    --lm-radius: 12px;
+    --lm-radius-lg: 18px;
+    --lm-radius-xl: 22px;
+    --lm-radius-pill: 99px;
+
+    /* ---- Shadow ---- */
+    --lm-shadow-sm: 0 4px 14px rgba(20, 33, 61, .06);
+    --lm-shadow: 0 10px 26px rgba(20, 33, 61, .08);
+    --lm-shadow-lg: 0 14px 30px rgba(20, 33, 61, .1);
+    --lm-shadow-focus: 0 0 0 3px rgba(255, 107, 44, .18);
+
+    /* ---- Spasi ---- */
+    --lm-space-1: .25rem;
+    --lm-space-2: .5rem;
+    --lm-space-3: .75rem;
+    --lm-space-4: 1rem;
+    --lm-space-5: 1.5rem;
+    --lm-space-6: 2rem;
+
+    /* ---- Lebar ---- */
+    --lm-sidebar-width: 280px;
+    --lm-topbar-height: 64px;
+
+    /* ---- Z-index ---- */
+    --lm-z-sidebar: 1050;
+    --lm-z-overlay: 1040;
+    --lm-z-modal: 1080;
+}
+
+/* Alias nama token lama (dipakai landing page Phase 18) ke token canonical.
+   Semua nilai tetap tinggal di satu file ini, landing page tidak perlu
+   menulis blok :root-nya sendiri lagi. */
+:root {
+    --navy: var(--lm-navy);
+    --sky: var(--lm-sky);
+    --sky2: var(--lm-sky-2);
+    --orange: var(--lm-orange);
+    --muted: var(--lm-muted);
+    --line: var(--lm-line);
+    --white: var(--lm-white);
+}
+
+/* ==========================================================================
+   Jembatan ke Bootstrap 5.3
+   Override variabel CSS Bootstrap supaya seluruh markup Bootstrap yang sudah
+   ada (card, table, badge, form, alert, button) otomatis memakai palet
+   La Mamora tanpa perlu menulis ulang view.
+   ========================================================================== */
+
+:root {
+    --bs-body-font-family: var(--lm-font);
+    --bs-body-color: var(--lm-navy);
+    --bs-body-bg: var(--lm-sky-2);
+    --bs-secondary-color: var(--lm-muted);
+    --bs-secondary-color-rgb: 95, 107, 127;
+    --bs-tertiary-color: var(--lm-muted);
+    --bs-tertiary-color-rgb: 95, 107, 127;
+    --bs-tertiary-bg: var(--lm-surface);
+    --bs-border-color: var(--lm-line);
+    --bs-link-color: var(--lm-navy);
+    --bs-link-hover-color: var(--lm-orange);
+    --bs-border-radius: var(--lm-radius);
+    --bs-border-radius-sm: var(--lm-radius-sm);
+    --bs-border-radius-lg: var(--lm-radius-lg);
+    --bs-border-radius-pill: var(--lm-radius-pill);
+    --bs-box-shadow: var(--lm-shadow);
+    --bs-focus-ring-color: rgba(255, 107, 44, .25);
+    --bs-emphasis-color: var(--lm-navy);
+
+    /* Palet Bootstrap diarahkan ke token La Mamora. Nilai rgb dipakai utility
+       rgba() milik Bootstrap (mis. bg-primary bg-opacity-10) sehingga opasitas
+       tetap bekerja seperti semula. */
+    --bs-primary: var(--lm-navy);
+    --bs-primary-rgb: 20, 33, 61;
+    --bs-dark: var(--lm-navy);
+    --bs-dark-rgb: 20, 33, 61;
+    --bs-warning: var(--lm-orange);
+    --bs-warning-rgb: 255, 107, 44;
+    --bs-danger: var(--lm-danger);
+    --bs-danger-rgb: 214, 69, 69;
+    --bs-success: var(--lm-success);
+    --bs-success-rgb: 28, 140, 78;
+    --bs-info: var(--lm-info);
+    --bs-info-rgb: 43, 108, 176;
+}
+
+body.lm-dashboard {
+    font-family: var(--lm-font);
+    color: var(--lm-navy);
+    background-color: var(--lm-sky-2);
+    -webkit-font-smoothing: antialiased;
+}
+
+body.lm-dashboard .text-muted {
+    color: var(--lm-muted) !important;
+}
+
+/* Tombol ---------------------------------------------------------------- */
+
+body.lm-dashboard .btn {
+    font-family: var(--lm-font);
+    font-weight: 600;
+    border-radius: var(--lm-radius-pill);
+    padding: .45rem 1.1rem;
+    transition: all .18s ease;
+}
+
+body.lm-dashboard .btn-sm {
+    padding: .3rem .8rem;
+    font-size: .82rem;
+    border-radius: var(--lm-radius-pill);
+}
+
+body.lm-dashboard .btn-primary {
+    --bs-btn-bg: var(--lm-navy);
+    --bs-btn-border-color: var(--lm-navy);
+    --bs-btn-hover-bg: var(--lm-navy-hover);
+    --bs-btn-hover-border-color: var(--lm-navy-hover);
+    --bs-btn-active-bg: var(--lm-navy-hover);
+    --bs-btn-active-border-color: var(--lm-navy-hover);
+    --bs-btn-disabled-bg: var(--lm-muted);
+    --bs-btn-disabled-border-color: var(--lm-muted);
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+}
+
+body.lm-dashboard .btn-outline-primary {
+    --bs-btn-color: var(--lm-navy);
+    --bs-btn-border-color: var(--lm-navy);
+    --bs-btn-hover-bg: var(--lm-navy);
+    --bs-btn-hover-border-color: var(--lm-navy);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--lm-navy);
+    --bs-btn-active-border-color: var(--lm-navy);
+    --bs-btn-active-color: #fff;
+}
+
+body.lm-dashboard .btn-warning {
+    --bs-btn-bg: var(--lm-orange);
+    --bs-btn-border-color: var(--lm-orange);
+    --bs-btn-hover-bg: var(--lm-orange-hover);
+    --bs-btn-hover-border-color: var(--lm-orange-hover);
+    --bs-btn-active-bg: var(--lm-orange-hover);
+    --bs-btn-active-border-color: var(--lm-orange-hover);
+    --bs-btn-color: var(--lm-navy);
+    --bs-btn-hover-color: var(--lm-navy);
+    --bs-btn-active-color: var(--lm-navy);
+}
+
+body.lm-dashboard .btn-outline-warning {
+    --bs-btn-color: var(--lm-orange);
+    --bs-btn-border-color: var(--lm-orange);
+    --bs-btn-hover-bg: var(--lm-orange);
+    --bs-btn-hover-border-color: var(--lm-orange);
+    --bs-btn-hover-color: #fff;
+}
+
+body.lm-dashboard .btn-info {
+    --bs-btn-bg: var(--lm-info);
+    --bs-btn-border-color: var(--lm-info);
+    --bs-btn-hover-bg: #245f96;
+    --bs-btn-hover-border-color: #245f96;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+}
+
+body.lm-dashboard .btn-outline-info {
+    --bs-btn-color: var(--lm-info);
+    --bs-btn-border-color: var(--lm-info);
+    --bs-btn-hover-bg: var(--lm-info);
+    --bs-btn-hover-border-color: var(--lm-info);
+    --bs-btn-hover-color: #fff;
+}
+
+body.lm-dashboard .btn-outline-danger {
+    --bs-btn-color: var(--lm-danger);
+    --bs-btn-border-color: var(--lm-danger);
+    --bs-btn-hover-bg: var(--lm-danger);
+    --bs-btn-hover-border-color: var(--lm-danger);
+    --bs-btn-hover-color: #fff;
+}
+
+body.lm-dashboard .btn-secondary {
+    --bs-btn-bg: var(--lm-muted);
+    --bs-btn-border-color: var(--lm-muted);
+    --bs-btn-hover-bg: #4c5666;
+    --bs-btn-hover-border-color: #4c5666;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+}
+
+/* Kartu ----------------------------------------------------------------- */
+
+body.lm-dashboard .card {
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius-lg);
+    box-shadow: var(--lm-shadow-sm);
+    background-color: var(--lm-white);
+}
+
+body.lm-dashboard .card-header {
+    border-bottom: 1px solid var(--lm-line);
+    background-color: var(--lm-white);
+    border-top-left-radius: var(--lm-radius-lg);
+    border-top-right-radius: var(--lm-radius-lg);
+}
+
+body.lm-dashboard .card-header.bg-primary,
+body.lm-dashboard .card-header.bg-dark,
+body.lm-dashboard .card-header.bg-secondary,
+body.lm-dashboard .card-header.bg-info {
+    border-radius: var(--lm-radius-lg) var(--lm-radius-lg) 0 0;
+}
+
+body.lm-dashboard .bg-light {
+    background-color: var(--lm-surface) !important;
+}
+
+body.lm-dashboard .table-light {
+    --bs-table-bg: var(--lm-surface);
+}
+
+/* Tabel ----------------------------------------------------------------- */
+
+body.lm-dashboard .table {
+    --bs-table-color: var(--lm-navy);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--lm-line);
+    --bs-table-hover-bg: var(--lm-sky-2);
+    --bs-table-hover-color: var(--lm-navy);
+    --bs-table-striped-bg: var(--lm-sky-2);
+    --bs-table-striped-color: var(--lm-navy);
+}
+
+body.lm-dashboard .table > :not(caption) > * > * {
+    padding: .7rem .75rem;
+}
+
+body.lm-dashboard .table thead th {
+    font-size: .74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--lm-muted);
+    background-color: var(--lm-surface);
+    border-bottom: 1px solid var(--lm-line);
+    white-space: nowrap;
+}
+
+/* Badge ----------------------------------------------------------------- */
+
+body.lm-dashboard .badge {
+    font-weight: 600;
+    letter-spacing: .02em;
+    border-radius: var(--lm-radius-pill);
+    padding: .3em .7em;
+}
+
+/* Form ------------------------------------------------------------------ */
+
+body.lm-dashboard .form-label {
+    font-weight: 600;
+    font-size: .85rem;
+    color: var(--lm-navy);
+}
+
+body.lm-dashboard .form-control,
+body.lm-dashboard .form-select {
+    border-color: var(--lm-line);
+    border-radius: var(--lm-radius);
+    color: var(--lm-navy);
+    background-color: var(--lm-sky-2);
+}
+
+body.lm-dashboard .form-control:focus,
+body.lm-dashboard .form-select:focus {
+    background-color: var(--lm-white);
+    border-color: var(--lm-orange);
+    box-shadow: var(--lm-shadow-focus);
+}
+
+body.lm-dashboard .form-text {
+    color: var(--lm-muted);
+}
+
+/* Alert ----------------------------------------------------------------- */
+
+body.lm-dashboard .alert {
+    border-radius: var(--lm-radius);
+    border: 1px solid transparent;
+}
+
+body.lm-dashboard .alert-success {
+    background-color: var(--lm-success-soft);
+    border-color: rgba(28, 140, 78, .25);
+    color: #14663a;
+}
+
+body.lm-dashboard .alert-danger {
+    background-color: var(--lm-danger-soft);
+    border-color: rgba(214, 69, 69, .25);
+    color: #9b2c2c;
+}
+
+body.lm-dashboard .alert-warning {
+    background-color: var(--lm-warning-soft);
+    border-color: rgba(183, 121, 31, .25);
+    color: #8a5a12;
+}
+
+body.lm-dashboard .alert-info {
+    background-color: var(--lm-info-soft);
+    border-color: rgba(43, 108, 176, .25);
+    color: #1f5488;
+}
+
+/* ==========================================================================
+   Komponen La Mamora (.lm-*)
+   Prefix .lm- dipakai supaya tidak pernah bentrok dengan kelas Bootstrap
+   maupun dengan CSS inline di landing page / katalog pelanggan.
+   ========================================================================== */
+
+/* Shell & topbar -------------------------------------------------------- */
+
+.lm-shell {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.lm-topbar-eyebrow {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--lm-muted);
+    line-height: 1.2;
+}
+
+.lm-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lm-space-3);
+    min-height: var(--lm-topbar-height);
+    padding: var(--lm-space-3) var(--lm-space-6);
+    background-color: rgba(246, 250, 255, .88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--lm-line);
+}
+
+.lm-topbar-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--lm-navy);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.lm-topbar-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--lm-space-2);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.lm-topbar-toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius);
+    background: var(--lm-white);
+    color: var(--lm-navy);
+    font-size: 1.1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.lm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .3rem .75rem;
+    border-radius: var(--lm-radius-pill);
+    background: var(--lm-sky);
+    color: var(--lm-navy);
+    font-size: .76rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lm-chip i {
+    font-size: .9rem;
+}
+
+/* Kartu statistik ------------------------------------------------------ */
+
+.lm-stat-card {
+    display: flex;
+    align-items: center;
+    gap: var(--lm-space-4);
+    padding: var(--lm-space-4) var(--lm-space-5);
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius-lg);
+    background: var(--lm-white);
+    box-shadow: var(--lm-shadow-sm);
+    height: 100%;
+}
+
+.lm-stat-icon {
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--lm-radius-pill);
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    background: var(--lm-sky);
+    color: var(--lm-navy);
+}
+
+.lm-stat-icon.is-orange {
+    background: #ffece1;
+    color: var(--lm-orange);
+}
+
+.lm-stat-icon.is-success {
+    background: var(--lm-success-soft);
+    color: var(--lm-success);
+}
+
+.lm-stat-icon.is-danger {
+    background: var(--lm-danger-soft);
+    color: var(--lm-danger);
+}
+
+.lm-stat-icon.is-warning {
+    background: var(--lm-warning-soft);
+    color: var(--lm-warning);
+}
+
+.lm-stat-icon.is-info {
+    background: var(--lm-info-soft);
+    color: var(--lm-info);
+}
+
+.lm-stat-body {
+    min-width: 0;
+}
+
+.lm-stat-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--lm-muted);
+}
+
+.lm-stat-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--lm-navy);
+}
+
+.lm-stat-note {
+    font-size: .74rem;
+    color: var(--lm-muted);
+}
+
+/* Badge status ---------------------------------------------------------- */
+
+.lm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .28em .75em;
+    border-radius: var(--lm-radius-pill);
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+
+.lm-badge-pending {
+    background: var(--lm-warning-soft);
+    color: var(--lm-warning);
+}
+
+.lm-badge-approved {
+    background: var(--lm-success-soft);
+    color: var(--lm-success);
+}
+
+.lm-badge-rejected {
+    background: var(--lm-danger-soft);
+    color: var(--lm-danger);
+}
+
+.lm-badge-info {
+    background: var(--lm-info-soft);
+    color: var(--lm-info);
+}
+
+.lm-badge-neutral {
+    background: var(--lm-sky);
+    color: var(--lm-navy);
+}
+
+.lm-badge-rank {
+    min-width: 2rem;
+    justify-content: center;
+    background: var(--lm-sky);
+    color: var(--lm-navy);
+}
+
+.lm-badge-rank.is-top {
+    background: var(--lm-navy);
+    color: #fff;
+}
+
+/* Empty state ----------------------------------------------------------- */
+
+.lm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    padding: var(--lm-space-6) var(--lm-space-4);
+    text-align: center;
+    color: var(--lm-muted);
+    background: var(--lm-sky-2);
+    border: 1px dashed var(--lm-line);
+    border-radius: var(--lm-radius-lg);
+}
+
+.lm-empty i {
+    font-size: 1.8rem;
+    color: var(--lm-navy);
+    opacity: .6;
+}
+
+.lm-empty-title {
+    font-weight: 700;
+    color: var(--lm-navy);
+}
+
+.lm-empty-text {
+    font-size: .85rem;
+    max-width: 46ch;
+}
+
+/* Tabel & form ---------------------------------------------------------- */
+
+.lm-table-wrap {
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius-lg);
+    overflow: hidden;
+    background: var(--lm-white);
+}
+
+.lm-table-wrap .table {
+    margin-bottom: 0;
+}
+
+.lm-section-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--lm-navy);
+    margin: 0;
+}
+
+.lm-section-desc {
+    font-size: .85rem;
+    color: var(--lm-muted);
+}
+
+.lm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--lm-space-4);
+}
+
+/* Matriks perbandingan AHP --------------------------------------------- */
+
+.lm-matrix {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .88rem;
+}
+
+.lm-matrix th,
+.lm-matrix td {
+    border: 1px solid var(--lm-line);
+    padding: .55rem .6rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.lm-matrix thead th {
+    background: var(--lm-surface);
+    font-size: .74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--lm-muted);
+}
+
+.lm-matrix tbody th {
+    background: var(--lm-sky-2);
+    font-weight: 600;
+    text-align: left;
+    color: var(--lm-navy);
+}
+
+.lm-matrix .is-diagonal {
+    background: var(--lm-surface);
+    color: var(--lm-muted);
+    font-weight: 700;
+}
+
+.lm-matrix input {
+    width: 100%;
+    min-width: 92px;
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius-sm);
+    padding: .35rem .5rem;
+    background: var(--lm-white);
+    color: var(--lm-navy);
+    text-align: center;
+    font-family: var(--lm-font);
+}
+
+.lm-matrix input:focus {
+    outline: 0;
+    border-color: var(--lm-orange);
+    box-shadow: var(--lm-shadow-focus);
+}
+
+/* Skor DSS -------------------------------------------------------------- */
+
+.lm-score {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--lm-navy);
+}
+
+.lm-score-bar {
+    height: 8px;
+    border-radius: var(--lm-radius-pill);
+    background: var(--lm-sky);
+    overflow: hidden;
+}
+
+.lm-score-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--lm-radius-pill);
+    background: var(--lm-navy);
+}
+
+.lm-criterion-list {
+    display: grid;
+    gap: .65rem;
+}
+
+.lm-criterion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lm-space-3);
+    padding: .6rem .9rem;
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius);
+    background: var(--lm-white);
+}
+
+.lm-criterion-name {
+    font-weight: 600;
+    color: var(--lm-navy);
+}
+
+.lm-criterion-type {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--lm-muted);
+}
+
+/* Ringkasan metrik AHP -------------------------------------------------- */
+
+.lm-metric-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: var(--lm-space-3);
+}
+
+.lm-metric {
+    padding: .75rem 1rem;
+    border: 1px solid var(--lm-line);
+    border-radius: var(--lm-radius);
+    background: var(--lm-sky-2);
+}
+
+.lm-metric-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--lm-muted);
+}
+
+.lm-metric-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--lm-navy);
+    font-variant-numeric: tabular-nums;
+}
+
+.lm-metric-value.is-danger {
+    color: var(--lm-danger);
+}
+
+.lm-metric-value.is-success {
+    color: var(--lm-success);
+}
+
+/* ==========================================================================
+   Layout dashboard
+   ========================================================================== */
+
+body.lm-dashboard .main-content {
+    flex: 1;
+    min-height: 100vh;
+    background-color: var(--lm-sky-2);
+    padding: var(--lm-space-6);
+}
+
+body.lm-dashboard .sidebar {
+    min-height: 100vh;
+    background-color: var(--lm-white);
+    border-right: 1px solid var(--lm-line);
+    box-shadow: var(--lm-shadow-sm);
+}
+
+body.lm-dashboard .sidebar-header {
+    padding: var(--lm-space-5) var(--lm-space-4);
+    border-bottom: 1px solid var(--lm-line);
+}
+
+body.lm-dashboard .sidebar-brand {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--lm-navy);
+    text-decoration: none;
+}
+
+/* Logo La Mamora - kotak "L" navy persis seperti landing page */
+body.lm-dashboard .sidebar-brand .lm-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--lm-radius-sm);
+    background: var(--lm-navy);
+    color: #fff;
+    display: inline-grid;
+    place-items: center;
+    font-style: normal;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+body.lm-dashboard .sidebar-nav {
+    padding: var(--lm-space-4) 0;
+}
+
+body.lm-dashboard .sidebar-nav .nav-section {
+    padding: 0 var(--lm-space-4);
+    margin-bottom: var(--lm-space-4);
+}
+
+body.lm-dashboard .sidebar-nav .nav-section-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--lm-muted);
+    padding: .5rem 0;
+}
+
+body.lm-dashboard .sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: .55rem var(--lm-space-4);
+    color: var(--lm-muted);
+    text-decoration: none;
+    border-radius: var(--lm-radius);
+    margin: .125rem 0;
+    font-size: .92rem;
+    font-weight: 500;
+    transition: all .18s ease;
+}
+
+body.lm-dashboard .sidebar-nav .nav-link:hover {
+    background-color: var(--lm-sky);
+    color: var(--lm-navy);
+}
+
+body.lm-dashboard .sidebar-nav .nav-link.active {
+    background-color: var(--lm-sky);
+    color: var(--lm-navy);
+    font-weight: 700;
+}
+
+body.lm-dashboard .sidebar-nav .nav-link i {
+    font-size: 1.05rem;
+    width: 1.5rem;
+    text-align: center;
+    margin-right: .6rem;
+}
+
+body.lm-dashboard .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(20, 33, 61, .5);
+    z-index: var(--lm-z-overlay);
+}
+
+body.lm-dashboard .sidebar-overlay.show {
+    display: block;
+}
+
+@media (max-width: 767.98px) {
+    body.lm-dashboard .sidebar {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: var(--lm-sidebar-width);
+        z-index: var(--lm-z-sidebar);
+        transition: left .3s ease;
+        box-shadow: var(--lm-shadow-lg);
+    }
+
+    body.lm-dashboard .sidebar.show {
+        left: 0;
+    }
+
+    body.lm-dashboard .main-content {
+        padding: var(--lm-space-4);
+    }
+
+    .lm-topbar {
+        padding: var(--lm-space-3) var(--lm-space-4);
+    }
+
+    .lm-topbar-toggle {
+        display: inline-flex;
+    }
+}

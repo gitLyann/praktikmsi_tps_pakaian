@@ -809,3 +809,111 @@ Permintaan: ganti semua logo TPS Pakaian dengan logo La Mamora seperti di landin
 - `php artisan view:cache` -> "Blade templates cached successfully", lalu `view:clear`.
 - Baca ulang area logo: sidebar `lm-mark` + teks, CSS `.logo` navy di toko-shell & index, brand `L La Mamora.` ketiganya terkonfirmasi.
 - Catatan: uji browser (tampilan kotak L di tiap surface) belum dilakukan.
+
+---
+
+## 2026-10-21 - Phase 22: Design System Dashboard La Mamora (satu sumber token)
+
+Permintaan: dashboard admin dan staff diselaraskan dengan token visual landing page Phase 18, token dijadikan satu sumber (file CSS bersama), dan modul DSS Phase 23-28 dibangun di atasnya. Keputusan pengguna: penomoran fase **22-28**, **middleware role baru** dibuat sendiri, **Laravel Boost dilewati**, **file CSS statis** dipakai (bukan Vite/Tailwind).
+
+### 1. Perubahan berkas
+- **`public/css/la-mamora.css` (baru, ~22,7 KB)** - design system sebagai satu sumber token:
+  - Block `:root` token canonical berprefiks `--lm-*`: navy `#14213d`, sky `#e3eefb`, sky-2 `#f6faff`, orange `#ff6b2c`, muted `#5f6b7f`, line `#dbe5f3`, white `#fff` (nilai **persis** sama dengan landing page Phase 18), plus status (success/danger/warning/info), tipografi (Plus Jakarta Sans), radius (9/12/18/22/99), shadow, spasi, lebar sidebar/topbar, dan z-index.
+  - Block alias `:root` (`--navy`, `--sky`, `--sky2`, `--orange`, `--muted`, `--line`, `--white` -> `var(--lm-*)`) supaya landing page yang masih memakai nama token lama tidak perlu ditulis ulang - nilainya tetap tinggal di satu file ini.
+  - Override variabel Bootstrap 5.3 (`--bs-body-*`, `--bs-primary*`, `--bs-warning*`, `--bs-danger*`, `--bs-success*`, `--bs-info*`, `--bs-border-radius*`, `--bs-focus-ring-color`, dll) - palet Bootstrap diarahkan ke token La Mamora; nilai `-rgb` ikut diatur agar utility `bg-opacity-10` tetap bekerja seperti semula.
+  - Komponen `.lm-*`: `.lm-shell`, `.lm-topbar` (+`.lm-topbar-eyebrow/.lm-topbar-title/.lm-topbar-meta/.lm-topbar-toggle`), `.lm-chip`, `.lm-stat-card/.lm-stat-icon/.lm-stat-label/.lm-stat-value/.lm-stat-note` (+ varian `is-orange/is-success/is-danger/is-warning/is-info`), `.lm-badge` (`lm-badge-pending/approved/rejected/info/neutral/rank`), `.lm-empty`, `.lm-table-wrap`, `.lm-section-title/.lm-section-desc`, `.lm-form-grid`, `.lm-matrix` (matriks perbandingan AHP), `.lm-score/.lm-score-bar`, `.lm-criterion`, `.lm-metric-row/.lm-metric`, `.min-w-0`, `.sidebar-overlay`.
+  - Override komponen Bootstrap **di-scope `body.lm-dashboard`** (button, card, table, badge, form, alert, `.bg-light`, `.table-light`, `.btn-warning` -> bg orange + teks navy) agar landing page dan dashboard pelanggan tidak ikut berubah.
+  - Blok layout dashboard: `.sidebar` (navy border + shadow), `.sidebar-header`, `.sidebar-brand .lm-mark` (kotak "L" navy 30px - sama persis dengan landing), `.sidebar-nav .nav-link` (+ state active/hover), dan aturan mobile (sidebar off-canvas + `.sidebar-overlay`).
+- **`resources/views/layouts/app.blade.php`** - `<body class="lm-dashboard">` (mengaktifkan tema), link `<link href="{{ asset('css/la-mamora.css') }}">`, topbar baru (tombol `#sidebarToggler` + judul `#lmTopbarTitle` + `.lm-chip` tanggal/peran), CSS overlay produk di-tokenisasi (`var(--lm-white)` dll), dan JS baru: judul topbar mengikuti section aktif lewat atribut `data-lm-title` + `MutationObserver` (class `d-none` section ditukar).
+- **`resources/views/admin/dashboard.blade.php`** - 6 section diberi `data-lm-title` ("Dashboard Manager", "Analisis Penjualan", "Monitoring Stok Realtime", "Kelola Produk", "Persetujuan Restock", "Riwayat Stok"); 4 kartu KPI memakai `.lm-stat-icon/.lm-stat-label/.lm-stat-value/.lm-stat-note` (ikon bulat navy/soft-tint + label kapital + angka tabular).
+- **`resources/views/staff/dashboard.blade.php`** - 5 section diberi `data-lm-title` ("Dashboard Staff", "Monitoring Stok", "Pengajuan Restock", "Riwayat Stok", "Pengaturan"); 3 kartu statistik memakai kelas `.lm-stat-*` yang sama. **Class `dashboard-section` tidak ditambah/diubah** agar assertion `StaffDashboardTabTest` (5 section, 4 `d-none`) tetap lolos; `data-lm-title` diletakkan setelah atribut `id`.
+- **`resources/views/welcome.blade.php`** - blok `:root{}` inline dihapus (nilainya kini dari `la-mamora.css`), link CSS bersama ditambahkan. Landing **tidak** didesain ulang; markup dan kelas `.btn/.card` miliknya tetap menang karena `<style>` inline-nya dimuat setelah `<link>`.
+
+### 2. Hasil verifikasi
+- `php artisan test` -> **7/7 lolos, 98 assertions** (identik dengan baseline sebelum Phase 22; `StaffDashboardTabTest` 5 method tetap hijau termasuk hitungan section, 1x form logout, badge Pending, dan `Master Data Terdaftar`).
+- `php artisan view:cache` -> "Blade templates cached successfully" (semua view kompilasi tanpa error), lalu `view:clear`.
+- Probe HTTP (server bawaan `php artisan serve`): `GET /` -> **200** (24.375 byte, memuat `<link .../css/la-mamora.css>`), `GET /css/la-mamora.css` -> **200** (22.696 byte, token `--lm-navy: #14213d` terbaca).
+- `vendor\bin\pint --test` -> gagal di **22 berkas pre-existing** (AuthController, model, migrasi lama, `routes/api.php`, dll) yang **tidak disentuh** Phase 22; 0 berkas yang disentuh Phase 22 masuk daftar failure.
+- `git diff --stat` Phase 22: 4 view berubah (+111/-161) + 1 file baru `public/css/la-mamora.css`; tidak ada perubahan skema/data.
+
+### 3. Batasan yang disepakati
+- **Laravel Boost tidak dipasang** (keputusan pengguna) - `AGENTS.md` masih mewajibkan instalasi Boost untuk sesi berikutnya; `composer.json` tidak diubah.
+- Token dikirim lewat **file CSS statis** `public/css/la-mamora.css` (tanpa Vite/Tailwind/build step) - file harus ikut ter-deploy di folder `public/`.
+- Override Bootstrap di-scope `body.lm-dashboard` -> **landing page** dan **dashboard pelanggan** (`layouts/toko-shell.blade.php`, `toko/*`) tidak berubah visual; katalog pelanggan masih memakai palet biru Phase 15/16 dan tidak disentuh di Phase 22.
+- Halaman staff **tidak** menambah section baru (harus tetap 5) dan **tidak** menambah form logout kedua; UI DSS staff karena itu akan dibuat sebagai **halaman terpisah** (Phase 26), bukan section tambahan.
+- Belum ada UI DSS yang dibuat di Phase 22 - file ini hanya menyiapkan fondasi token + komponen untuk Phase 23-28.
+- Belum diverifikasi di browser (tampilan akhir dashboard admin/staff, responsivitas mobile, dan perpindahan judul topbar) - hanya probe HTTP dan uji otomatis.
+
+---
+
+## 2026-10-21 - Phase 23: Database Decision Support System (DSS)
+
+Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat pemasok), dan rekomendasi restock. Semua perubahan skema dibuat lewat **migration baru** - tidak ada tabel/kolom existing yang dihapus atau diubah tipe datanya.
+
+### 1. Perubahan berkas
+- **8 migration baru** (prefix `2026_10_21_`):
+  - `090000_create_suppliers_table` - `suppliers`: name, code (unique), contact_name, phone, email, address, city, **lead_time_days**, **min_order_qty**, rating (0-5), is_active, notes.
+  - `090100_create_product_suppliers_table` - `product_suppliers`: FK `products` + `suppliers` (cascade), harga beli, min_order_qty, lead_time_days, is_preferred, notes, unique(product_id, supplier_id).
+  - `090200_create_dss_criteria_table` - `dss_criteria`: code (unique), name, description, **type** (benefit/cost), weight (hasil AHP, nullable), is_active, sort_order.
+  - `090300_create_dss_criteria_comparisons_table` - `dss_criteria_comparisons`: FK 2 kriteria + `value` (skala perbandingan), unique per pasangan.
+  - `090400_create_dss_runs_table` - `dss_runs`: name, type (ahp/vikor/restock), status, created_by -> users, criteria_count, **lambda_max / ci / cr / ri**, is_consistent, payload (JSON).
+  - `090500_create_dss_supplier_scores_table` - `dss_supplier_scores`: run + supplier + kriteria + score + weight, unique(run, supplier, kriteria).
+  - `090600_create_dss_restock_recommendations_table` - `dss_restock_recommendations`: run, product, supplier, current_stock, avg_daily_sales, lead_time_days, safety_stock, reorder_point, recommended_qty, estimated_cost, status, catatan.
+  - `090700_add_dss_columns_to_restock_requests_table` - menambah `supplier_id` + `dss_run_id` (nullable) beserta index. **Constraint FK hanya dipasang di MySQL** (`DB::connection()->getDriverName() === 'mysql'`); SQLite tidak mendukung penambahan FK ke tabel existing, jadi di SQLite kolom sengaja tanpa constraint.
+- **7 model baru** di `app/Models/`: `Supplier`, `ProductSupplier`, `DssCriterion`, `DssCriterionComparison`, `DssRun`, `DssSupplierScore`, `DssRestockRecommendation` - lengkap dengan relasi dua arah dan `$casts` (decimal -> float, json -> array).
+- **Relasi baru pada model existing**: `Product::productSuppliers()/suppliers()/restockRecommendations()`, `RestockRequest::supplier()/dssRun()`, `User::dssRuns()`.
+- **4 factory baru**: `SupplierFactory`, `DssCriterionFactory` (state `benefit()`/`cost()`), `ProductSupplierFactory`, plus `ProductFactory` & `CategoryFactory` (belum ada sebelumnya dan dibutuhkan test).
+- **`database/seeders/DssSeeder.php` (baru)** - 5 pemasok (lead time 3-14 hari, MOQ 10-50), 3 penawaran per produk (harga beli 58%-78% dari harga jual, 1 pemasok preferred), 6 kriteria AHP (harga/cost 0.30, kualitas/benefit 0.25, lead_time/cost 0.18, reputasi/benefit 0.12, moq/cost 0.08, layanan/benefit 0.07), dan **30 matriks perbandingan** yang dibangun dari perbandingan bobot acuan sehingga matriks konsisten (CR = 0). Seeder **idempoten** (`updateOrCreate`) dan membuat produk contoh bila tabel produk kosong.
+- **`database/seeders/DatabaseSeeder.php`** - mendaftarkan `DssSeeder`.
+- **`tests/Feature/DssSchemaTest.php` (baru)** - 4 test: master pemasok + penawaran produk, kriteria + matriks perbandingan, run analisis + skor + rekomendasi (termasuk `needsRestock()` dan `payload` JSON), serta pengajuan restock yang tertaut ke supplier + run DSS.
+
+### 2. Hasil verifikasi
+- `php artisan migrate:fresh --seed` dengan env override SQLite in-memory (`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`) -> **27 migration semua DONE**, seeder jalan tanpa error. `migrate:fresh` **tidak pernah** dijalankan terhadap MySQL (dilarang `AGENTS.md`).
+- `php artisan migrate --force` pada MySQL `praktikmsi_tps_pakaian` -> 8 migration baru **DONE**; data existing utuh: users 4, categories 5, products 5, employees 1, transactions 6, transaction_details 7, restock_requests 7, favorites 0.
+- Seeding MySQL (`db:seed --class=DssSeeder`) -> suppliers 5, product_suppliers 15 (5 produk x 3 pemasok), dss_criteria 6, dss_criteria_comparisons 30. Jalankan kedua -> jumlah tidak berubah (idempoten terbukti).
+- Konsistensi matriks AHP dihitung ulang dari data tersimpan: bobot hasil = **0.3000, 0.2500, 0.1800, 0.1200, 0.0800, 0.0700** (identik dengan bobot acuan), lambda max = 5.999991, CI = -0.000002, CR = -0.000001 (konsisten; deviasi < 1e-5 hanya karena pembulatan 4 desimal).
+- Struktur MySQL diverifikasi via `information_schema`: kolom `supplier_id`/`dss_run_id` ada di `restock_requests` dengan FK ke `suppliers`/`dss_runs` (`nullOnDelete`) dan index masing-masing.
+- `php artisan test` -> **11/11 lolos, 119 assertions** (baseline 7/7 + 4 test baru `DssSchemaTest`).
+- `vendor\bin\pint --test` -> **passed** untuk seluruh 20 berkas baru/ disentuh Phase 23 (7 model + 8 migration + 5 factory/seeder + 1 test). Kegagalan 22 berkas pre-existing tidak bertambah.
+
+### 3. Batasan yang disepakati
+- Data lama **tidak** dihapus dan tabel existing **tidak** diubah strukturnya; penambahan kolom pada `restock_requests` hanya kolom nullable baru.
+- Constraint FK `restock_requests` -> `suppliers`/`dss_runs` **hanya ada di MySQL**; di SQLite kolomnya tetap ada tetapi tanpa constraint (batasan driver SQLite untuk tabel existing).
+- `product_suppliers` memakai `belongsToMany` polos lewat tabel pivot `product_suppliers`; kolom pivot tambahan (harga, MOQ, lead time) accessed lewat model `ProductSupplier`, bukan lewat `withPivot` di relasi `Product::suppliers()`.
+- Skor VIKOR belum ada di database (tabel `dss_supplier_scores` masih kosong) - pengisiannya dikerjakan di Phase 24-26.
+- `dss_runs`, `dss_supplier_scores`, dan `dss_restock_recommendations` sengaja dibiarkan kosong setelah seeding; isinya dibuat saat analisis dijalankan.
+
+---
+
+## 2026-10-21 - Phase 24: Service Layer DSS (AHP, VIKOR, Rekomendasi Restock & Produk)
+
+Permintaan: lapisan perhitungan DSS yang bisa dipakai ulang (dipakai controller/UI di Phase 25-26) beserta unit test **perhitungan manual** agar angka AHP/VIKOR bisa dipertanggungjawabkan di laporan.
+
+### 1. Perubahan berkas
+- **`app/Services/AhpService.php` (baru)** - AHP lengkap: `calculate()` (normalisasi kolom -> bobot = rata-rata baris -> lambda max dari matriks ASLI -> CI -> CR dengan RI Saaty 1-10), `buildMatrix()` (pasangan hilang dianggap 1 = sama penting), `analyze()` (baca `dss_criteria` + `dss_criteria_comparisons`, mengembalikan `criteria_weights` **berkunci id kriteria**), `emptyResult()`. Konstanta `RANDOM_INDEX` dan `CONSISTENCY_THRESHOLD = 0.10`.
+- **`app/Services/VikorService.php` (baru)** - VIKOR: `calculate()` (normalisasi benefit `x/max` & cost `(max-x)/(max-min)`, `S_i = SUM(v_ij)`, `R_i = MAX(v_ij / r_j+)`, `Q_i = v*(S- - S_i) + (1-v)*(R_i - R+)`, pengurutan Q **menaik**, ambang `1/(J-1)`), `buildDecisionMatrix()`, `analyze()` (baca `dss_supplier_scores`; **jika belum ada skor -> ranking kosong**, bukan angka nol palsu). Klasifikasi: `Solusi Kompromi` / `Diterima` / `Alternatif` / `Tidak Diterima` + flag terpisah `has_advantage` & `is_stable`.
+- **`app/Services/RestockRecommendationService.php` (baru)** - `analyze()` (rata-rata penjualan harian dari transaksi `completed` dalam 30 hari, demand lead time, safety stock = ceil(demand x 0,25), reorder point, jumlah pesanan dibulatkan ke MOQ pemasok, estimasi biaya), `persist()` (simpan ke `dss_restock_recommendations`), `toRestockRequest()` (buat pengajuan restock tertaut supplier + run DSS), `salesPerProduct()`, `pickSupplierOffer()` (urutan: peringkat VIKOR -> pemasok `is_preferred` -> penawaran pertama), `summarize()`.
+- **`app/Services/ProductRecommendationService.php` (baru)** - rekomendasi produk untuk pelanggan: `recommendFor()` (membaca riwayat belanja + kategori favorit + popularitas 90 hari) dan `recommendForGuest()`. Skor sederhana & bisa dijelaskan: +3 per kategori favorit (bobot dibatasi 3), +2 bila produk terlaris, +1 bila stok tersedia, -2 bila sudah pernah dibeli; produk yang sudah dibeli didorong ke bawah. Setiap hasil membawa **alasan** (`reasons`) untuk ditampilkan di UI.
+- **`app/Models/DssSupplierScore.php`** - docblock diperjelas: `score` = nilai mentah kriteria (harga, lead time, rating); arah benefit/cost mengikuti `DssCriterion::type`.
+- **`database/migrations/2026_10_21_090500_create_dss_supplier_scores_table.php`** - **komentar saja** (tidak ada perubahan skema): penjelasan bahwa `score` menyimpan nilai mentah kriteria.
+- **6 berkas test baru**: `tests/Unit/AhpServiceTest.php` (7 test, termasuk contoh matriks Saaty klasik), `tests/Unit/VikorServiceTest.php` (10 test, termasuk perhitungan manual 3 alternatif), `tests/Feature/AhpAnalysisTest.php` (4 test AHP dari database), `tests/Feature/DssPipelineTest.php` (2 test alur AHP -> VIKOR -> peringkat + kasus tanpa skor), `tests/Feature/RestockRecommendationServiceTest.php` (11 test perhitungan & persistensi restock), `tests/Feature/ProductRecommendationServiceTest.php` (6 test rekomendasi produk).
+
+### 2. Hasil verifikasi
+- `php artisan test` -> **51/51 lolos, 269 assertions** (baseline Phase 23 = 11 test / 119 assertions; +40 test / +150 assertion di Phase 24).
+- **Perhitungan manual AHP** (dipakai di `AhpServiceTest`): matriks `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot **4/7, 2/7, 1/7**, lambda max = **3**, CI = **0**, CR = **0** (konsisten). Matriks 4x4 proporsional 8:4:2:1 -> lambda max 4, bobot 8/15, 4/15, 2/15, 1/15, jumlah bobot = 1.
+- **Perhitungan manual VIKOR** (dipakai di `VikorServiceTest`): 3 alternatif x 2 kriteria (benefit 0,6 & cost 0,4) -> S = 1,0000 / 0,6266667 / 0,1200; R = 0,6000 / 0,3600 / 0,1200; Q = -0,4400 / -0,3733333 / -0,2400; peringkat A > B > C, ambang 1/(J-1) = 0,5.
+- **Probe terhadap MySQL `praktikmsi_tps_pakaian`**: AHP dihitung ulang dari data tersimpan -> bobot **0,3000 / 0,2500 / 0,1800 / 0,1200 / 0,0800 / 0,0700** (identik dengan bobot acuan), lambda max 5,999991, CI 0,000000, CR 0,000000, konsisten = ya. VIKOR mengurutkan 5 pemasok dengan S/R/Q (peringkat #1 "Konveksi Bandung Sentosa" Q = -0,2348). Analisis restock berjalan untuk 5 produk (ringkasan: 5 produk, 0 perlu restock, biaya 0) dan rekomendasi produk untuk pengunjung mengembalikan 4 produk dengan alasan.
+- `vendor\bin\pint --test` -> **passed** untuk seluruh 9 berkas Phase 24 (4 service + 5 test + 1 migration yang disentuh). Kegagalan 22 berkas pre-existing **tidak bertambah** (dicek `pint --test` seluruh repo: 22 file, sama seperti baseline).
+- Tidak ada perubahan skema maupun data pada MySQL di Phase 24 (hanya service + test + komentar dokumentasi).
+
+### 3. Batasan yang disepakati
+- **Rumus Q memakai tanda standar VIKOR**: `Q = v*(S- - S) + (1-v)*(R - R+)` dengan `S-` = utility terkecil dan `R+` = regresi terbesar. Draft awal sempat menulis `(S - S-)` (terbalik) dan **sudah dikoreksi** sebelum finalisasi.
+- **Label klasifikasi** ditentukan dari perbandingan S dan R antara peringkat 1 dan 2 (klasifikasi VIKOR asli): keduanya lebih baik -> `Solusi Kompromi`; salah satu lebih baik -> `Diterima`; tidak ada yang lebih baik -> `Tidak Diterima`. Uji keunggulan/stabilitas ketat (1/(J-1)) dilaporkan terpisah sebagai flag `has_advantage` & `is_stable`, karena dengan jumlah alternatif kecil ambang 1/(J-1) secara matematis hampir tidak terjangkau.
+- **Perilaku khusus VIKOR yang memang terjadi**: alternatif yang unggul di semua kriteria justru mendapat R tertinggi, sehingga sering berlabel `Diterima` (bukan `Solusi Kompromi`). Ini konsekuensi rumus R, bukan bug - sudah diuji eksplisit di `DssPipelineTest`.
+- **Tie-break Q sama**: diurutkan dari utility (S) tertinggi lalu regresi (R) terkecil, supaya peringkat deterministik dan masuk akal.
+- `dss_supplier_scores.score` berisi **nilai mentah** kriteria; normalisasi dan arah benefit/cost ditangani `VikorService` berdasarkan `dss_criteria.type`.
+- **Belum** ada Penulisan `dss_runs` / `dss_supplier_scores` dari service (hanya `RestockRecommendationService::persist()` yang menulis `dss_restock_recommendations`). Orkestrasi run analisis lengkap + input skor pemasok dikerjakan di Phase 25-26 bersama controller/UI.
+- `ProductRecommendationService` memakai **skorExplainable sederhana**, bukan model MCDM tersendiri, agar alasannya bisa ditampilkan ke pengguna.
+- `transactions.customer_id` di MySQL menunjuk `users.id` (di-redirect oleh migrasi lama `2026_09_17_155756`), sedangkan di SQLite masih menunjuk `customers.id`. Test membuat baris `customers` dengan `id` = `id` user agar konsisten di kedua driver.
+- **Data demo saat ini belum ada produk di bawah reorder point** (volume penjualan contoh kecil) -> tabel rekomendasi restock akan menampilkan keadaan kosong sampai riwayat transaksi 30 hari diisi (Phase 28).
+- Belum diverifikasi di browser - Phase 24 murni lapisan service (tanpa UI).

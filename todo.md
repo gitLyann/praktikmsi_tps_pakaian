@@ -183,3 +183,51 @@
 - [ ] Phase 21 - **Belum diverifikasi di browser** - tampilan kotak "L" navy di sidebar/katalog/dashboard pelanggan masih perlu dicek manual; test suite **tidak dijalankan** sesuai permintaan
 - [ ] Phase 21 - `ChatbotSeeder` (DB) masih menyebut "TPS Pakaian" di 2 jawaban bot - tidak diubah sesuai cakupan yang dipilih; bila perlu konsisten, update isi `replies` + seed ulang
 - [ ] Phase 21 - `public/favicon.ico` tidak diganti (tidak ada asset logo La Mamora; landing juga tanpa favicon)
+
+### Phase 22 (Design System Dashboard La Mamora)
+- [x] Phase 22 - Keputusan pengguna: fase **22-28**, **middleware role baru** dibuat sendiri, **Laravel Boost dilewati**, **file CSS statis** (bukan Vite/Tailwind)
+- [x] Phase 22 - `public/css/la-mamora.css` (baru): token canonical `--lm-*` (navy/sky/sky-2/orange/muted/line/white **persis** sama dengan landing Phase 18) + status + tipografi + radius + shadow + spasi + z-index
+- [x] Phase 22 - Alias `:root` (`--navy`, `--sky`, `--sky2`, `--orange`, `--muted`, `--line`, `--white`) -> `var(--lm-*)` supaya landing page tidak perlu ditulis ulang
+- [x] Phase 22 - Override variabel Bootstrap 5.3 (`--bs-*`) diarahkan ke palet La Mamora; nilai `-rgb` ikut diatur agar utility `bg-opacity-10` tetap jalan
+- [x] Phase 22 - Komponen `.lm-*`: topbar (`.lm-topbar/.lm-topbar-title/.lm-chip/.lm-topbar-toggle`), statistik (`.lm-stat-card/.lm-stat-icon/.lm-stat-label/.lm-stat-value/.lm-stat-note`), status (`.lm-badge*`), `.lm-empty`, `.lm-table-wrap`, `.lm-form-grid`, `.lm-matrix` (AHP), `.lm-score/.lm-score-bar`, `.lm-criterion`, `.lm-metric*`, `.min-w-0`
+- [x] Phase 22 - Override Bootstrap **di-scope `body.lm-dashboard`** -> landing page & dashboard pelanggan tidak berubah visual
+- [x] Phase 22 - Layout dashboard: `.sidebar` (border navy + shadow), `.sidebar-brand .lm-mark` (kotak "L" navy 30px), `.sidebar-nav .nav-link` (+active/hover), sidebar off-canvas + `.sidebar-overlay` untuk mobile
+- [x] Phase 22 - `resources/views/layouts/app.blade.php`: `<body class="lm-dashboard">`, link CSS bersama, topbar baru (tombol sidebar + judul + chip tanggal/peran), CSS overlay produk di-tokenisasi
+- [x] Phase 22 - JS sinkron judul topbar: atribut `data-lm-title` per section + `MutationObserver` (deteksi pertukaran class `d-none`)
+- [x] Phase 22 - `resources/views/admin/dashboard.blade.php`: 6 section dapat `data-lm-title`; 4 kartu KPI pakai `.lm-stat-*`
+- [x] Phase 22 - `resources/views/staff/dashboard.blade.php`: 5 section dapat `data-lm-title`; 3 kartu statistik pakai `.lm-stat-*` (class `dashboard-section` **tidak** diubah agar assertion test tetap lolos)
+- [x] Phase 22 - `resources/views/welcome.blade.php`: blok `:root` inline dihapus, link CSS bersama ditambahkan (landing tidak didesain ulang)
+- [x] Phase 22 - Verifikasi: `php artisan test` **7/7 lolos, 98 assertions** (identik baseline); `php artisan view:cache` sukses; probe HTTP `GET /` = 200 (24.375 byte) dan `GET /css/la-mamora.css` = 200 (22.696 byte); `pint --test` gagal hanya di **22 berkas pre-existing** yang tidak disentuh
+- [x] Phase 22 - `changelog.md` ditulis (Phase 22: perubahan berkas, hasil verifikasi, batasan yang disepakati)
+- [ ] Phase 22 - **Belum diverifikasi di browser** - tampilan akhir dashboard admin/staff, sidebar mobile, dan perpindahan judul topbar saat pindah section masih perlu dicek manual
+
+### Phase 23 (Database DSS)
+- [x] Phase 23 - 8 migration baru (prefix `2026_10_21_`): `suppliers`, `product_suppliers`, `dss_criteria`, `dss_criteria_comparisons`, `dss_runs`, `dss_supplier_scores`, `dss_restock_recommendations`, + `restock_requests` (kolom `supplier_id`/`dss_run_id`)
+- [x] Phase 23 - FK `restock_requests` hanya dipasang di MySQL (SQLite tidak mendukung penambahan FK ke tabel existing) - sudah diuji di kedua driver
+- [x] Phase 23 - 7 model baru (`Supplier`, `ProductSupplier`, `DssCriterion`, `DssCriterionComparison`, `DssRun`, `DssSupplierScore`, `DssRestockRecommendation`) + relasi baru pada `Product`, `RestockRequest`, `User`
+- [x] Phase 23 - Factory: `SupplierFactory`, `DssCriterionFactory` (state benefit/cost), `ProductSupplierFactory`, `ProductFactory`, `CategoryFactory`
+- [x] Phase 23 - `DssSeeder`: 5 pemasok, 15 penawaran produk, 6 kriteria AHP, 30 matriks perbandingan (konsisten CR = 0), idempoten, terdaftar di `DatabaseSeeder`
+- [x] Phase 23 - `tests/Feature/DssSchemaTest.php`: 4 test (penawaran produk, kriteria + matriks, run + skor + rekomendasi, pengajuan restock tertaut DSS)
+- [x] Phase 23 - Verifikasi: `migrate:fresh --seed` SQLite in-memory sukses (27 migration); `migrate --force` MySQL sukses tanpa merusak data lama; `php artisan test` **11/11 lolos, 119 assertions**; Pint passed untuk 20 berkas baru; matriks AHP dihitung ulang -> bobot 0.30/0.25/0.18/0.12/0.08/0.07, CR = 0
+
+### Phase 24 (Service Layer DSS)
+- [x] Phase 24 - `app/Services/AhpService.php` (baru): `calculate()` (normalisasi kolom -> bobot rata-rata baris -> lambda max dari matriks ASLI -> CI -> CR dengan RI Saaty 1-10), `buildMatrix()`, `analyze()` (baca DB, `criteria_weights` berkunci id kriteria), `CONSISTENCY_THRESHOLD = 0.10`
+- [x] Phase 24 - `app/Services/VikorService.php` (baru): normalisasi benefit/cost, `S_i`, `R_i`, `Q_i = v*(S- - S_i) + (1-v)*(R_i - R+)` (**tanda S dikoreksi** dari draft awal), peringkat Q menaik, ambang `1/(J-1)`, flag `has_advantage`/`is_stable`, label `Solusi Kompromi`/`Diterima`/`Alternatif`/`Tidak Diterima`; tanpa skor -> ranking kosong
+- [x] Phase 24 - `app/Services/RestockRecommendationService.php` (baru): rata-rata penjualan 30 hari (hanya transaksi `completed`), demand lead time, safety stock (faktor 0,25), reorder point, pembulatan ke MOQ pemasok, `persist()` ke `dss_restock_recommendations`, `toRestockRequest()` (tertaut supplier + run), `pickSupplierOffer()` (VIKOR -> is_preferred -> pertama)
+- [x] Phase 24 - `app/Services/ProductRecommendationService.php` (baru): `recommendFor()` + `recommendForGuest()`, skor explainable (+3 kategori favorit, +2 terlaris, +1 stok, -2 sudah dibeli) + array `reasons` untuk UI
+- [x] Phase 24 - 6 test baru: `tests/Unit/AhpServiceTest.php` (7), `tests/Unit/VikorServiceTest.php` (10), `tests/Feature/AhpAnalysisTest.php` (4), `tests/Feature/DssPipelineTest.php` (2), `tests/Feature/RestockRecommendationServiceTest.php` (11), `tests/Feature/ProductRecommendationServiceTest.php` (6)
+- [x] Phase 24 - Perhitungan manual terverifikasi: AHP `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot 4/7, 2/7, 1/7, lambda max 3, CI 0, CR 0; VIKOR 3 alternatif -> S/R/Q & peringkat A > B > C (ambang 0,5)
+- [x] Phase 24 - Probe MySQL: bobot AHP dari data tersimpan 0,30/0,25/0,18/0,12/0,08/0,07 (CR = 0), VIKOR mengurutkan 5 pemasok, analisis restock 5 produk, rekomendasi produk 4 item
+- [x] Phase 24 - Verifikasi: `php artisan test` **51/51 lolos, 269 assertions** (baseline 11/11); `pint --test` passed untuk 9 berkas Phase 24, total repo tetap 22 berkas pre-existing gagal
+- [x] Phase 24 - `changelog.md` ditulis (Phase 24: perubahan berkas, hasil verifikasi, batasan yang disepakati)
+- [ ] Phase 24 - Orkestrasi run analisis lengkap (**Buat `dss_runs` + `dss_supplier_scores`**) belum ada - baru service perhitungannya; input skor pemasok & penyimpanan run dikerjakan di Phase 25-26
+- [ ] Phase 24 - Data demo saat ini belum ada produk di bawah reorder point -> tabel restock akan kosong sampai riwayat transaksi 30 hari diisi (Phase 28)
+
+### Phase 23-28 (Modul DSS - Decision Support System)
+- [x] Phase 23 - Database DSS: 7 migration baru (supplier, product_supplier, kriteria AHP, bobot AHP, perbandingan, hasil VIKOR, run analisis) + 6 model + factory + seeder
+- [x] Phase 23 - `restock_requests` ditambah kolom `supplier_id` + `dss_run_id` (FK hanya di MySQL, SQLite tidak mendukung FK ke tabel existing)
+- [x] Phase 24 - Service: `AhpService` (normalisasi, bobot, lambda max, CI/CR), `VikorService` (S/R/Q, ranking, advantage & stability), `RestockRecommendationService`, `ProductRecommendationService` + unit test manual (AHP `[[1,2,4],[1/2,1,2],[1/4,1/2,1]]` -> bobot 4/7,2/7,1/7, CR=0)
+- [ ] Phase 25 - Middleware role baru (`EnsureUserHasRole`) + route/controller DSS admin & staff + feature test akses per role
+- [ ] Phase 26 - UI DSS admin & staff (halaman terpisah, **bukan** section `.dashboard-section` baru di staff) + grup nav "DSS" di sidebar
+- [ ] Phase 27 - UI pelanggan: section rekomendasi produk di landing page
+- [ ] Phase 28 - Demo seeder (riwayat transaksi 30 hari), verifikasi penuh, section "Bahan Screenshot Laporan DSS" di changelog

@@ -42,19 +42,19 @@
     </div>
 
     {{-- ================= SECTION: DASHBOARD (Sekilas Lintas Menu) ================= --}}
-    <div class="dashboard-section" id="dashboard">
+    <div class="dashboard-section" id="dashboard" data-lm-title="Dashboard Manager">
         {{-- KPI Executive Summary --}}
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                        <div class="lm-stat-icon is-success">
                             <i class="bi bi-cash-stack fs-4"></i>
                         </div>
                         <div>
-                            <div class="text-muted small text-uppercase">Total Omset</div>
-                            <div class="h4 mb-0 fw-bold">Rp {{ number_format($kpi['omset'], 0, ',', '.') }}</div>
-                            <div class="text-muted" style="font-size:.72rem">Periode berjalan</div>
+                            <div class="lm-stat-label">Total Omset</div>
+                            <div class="lm-stat-value">Rp {{ number_format($kpi['omset'], 0, ',', '.') }}</div>
+                            <div class="lm-stat-note">Periode berjalan</div>
                         </div>
                     </div>
                 </div>
@@ -62,13 +62,13 @@
             <div class="col-12 col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                        <div class="lm-stat-icon">
                             <i class="bi bi-cart-check fs-4"></i>
                         </div>
                         <div>
-                            <div class="text-muted small text-uppercase">Produk Terjual</div>
-                            <div class="h4 mb-0 fw-bold">{{ number_format($kpi['produk_terjual']) }} pcs</div>
-                            <div class="text-muted" style="font-size:.72rem">Dari transaction_details</div>
+                            <div class="lm-stat-label">Produk Terjual</div>
+                            <div class="lm-stat-value">{{ number_format($kpi['produk_terjual']) }} pcs</div>
+                            <div class="lm-stat-note">Dari transaction_details</div>
                         </div>
                     </div>
                 </div>
@@ -76,13 +76,13 @@
             <div class="col-12 col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                        <div class="lm-stat-icon is-warning">
                             <i class="bi bi-exclamation-triangle fs-4"></i>
                         </div>
                         <div>
-                            <div class="text-muted small text-uppercase">Stok Kritis</div>
-                            <div class="h4 mb-0 fw-bold">{{ $kpi['stok_kritis'] }} produk</div>
-                            <div class="text-muted" style="font-size:.72rem">Stok &lt; 5 pcs</div>
+                            <div class="lm-stat-label">Stok Kritis</div>
+                            <div class="lm-stat-value">{{ $kpi['stok_kritis'] }} produk</div>
+                            <div class="lm-stat-note">Stok &lt; 5 pcs</div>
                         </div>
                     </div>
                 </div>
@@ -90,13 +90,13 @@
             <div class="col-12 col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width:3rem;height:3rem">
+                        <div class="lm-stat-icon is-info">
                             <i class="bi bi-hourglass-split fs-4"></i>
                         </div>
                         <div>
-                            <div class="text-muted small text-uppercase">Restock Pending</div>
-                            <div class="h4 mb-0 fw-bold">{{ $kpi['restock_pending'] }} pengajuan</div>
-                            <div class="text-muted" style="font-size:.72rem">Menunggu keputusan</div>
+                            <div class="lm-stat-label">Restock Pending</div>
+                            <div class="lm-stat-value">{{ $kpi['restock_pending'] }} pengajuan</div>
+                            <div class="lm-stat-note">Menunggu keputusan</div>
                         </div>
                     </div>
                 </div>
@@ -179,7 +179,7 @@
     </div>
 
     {{-- ================= SECTION: ANALISIS PENJUALAN (MIS) ================= --}}
-    <div id="analisis-mis" class="dashboard-section d-none">
+    <div id="analisis-mis" class="dashboard-section d-none" data-lm-title="Analisis Penjualan">
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Analisis Penjualan</h5>
@@ -266,7 +266,7 @@
     </div>
 
     {{-- ===== Exception Reporting: Low Stock Alert (stok < 5 pcs) ===== --}}
-    <div id="stok-realtime" class="dashboard-section d-none mb-4">
+    <div id="stok-realtime" class="dashboard-section d-none mb-4" data-lm-title="Monitoring Stok Realtime">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Peringatan Stok Menipis (Stok &lt; 5 pcs)</h5>
@@ -319,7 +319,7 @@
          Form "Tambah Master Produk" sengaja disembunyikan: halaman Manager fokus
          pada RUD (lihat, ubah, hapus) + Approval OAS. Penambahan master produk
          dilakukan lewat dashboard Staff. --}}
-    <div id="kelola-produk" class="dashboard-section d-none">
+    <div id="kelola-produk" class="dashboard-section d-none" data-lm-title="Kelola Produk">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Daftar Master Produk</h5>
@@ -424,7 +424,7 @@
     </div>
 
     {{-- ================= PERSETUJUAN RESTOCK (OAS) ================= --}}
-    <div id="persetujuan-restock" class="dashboard-section d-none">
+    <div id="persetujuan-restock" class="dashboard-section d-none" data-lm-title="Persetujuan Restock">
         <h4 class="mb-3"><i class="bi bi-check-circle me-2"></i>Persetujuan Restock Barang (OAS)</h4>
 
         <div class="card shadow-sm border-0">
@@ -487,7 +487,7 @@
     </div>
 
     {{-- ================= MIS: AUDIT TRAIL / ACTIVITY LOG RESTOCK ================= --}}
-    <div id="riwayat-stok" class="dashboard-section d-none">
+    <div id="riwayat-stok" class="dashboard-section d-none" data-lm-title="Riwayat Stok">
         <h4 class="mb-3"><i class="bi bi-clock-history me-2"></i>Audit Trail Pengajuan Restock</h4>
 
         <div class="card shadow-sm border-0">

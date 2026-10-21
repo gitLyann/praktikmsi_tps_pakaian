@@ -21,5 +21,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Data dasar Decision Support System (pemasok, kriteria AHP, matriks perbandingan).
+        $this->call(DssSeeder::class);
     }
 }

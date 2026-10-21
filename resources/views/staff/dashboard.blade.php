@@ -54,18 +54,18 @@
 
     <div id="staffDashboard">
         {{-- ================= SECTION: DASHBOARD (RINGKASAN) ================= --}}
-        <div class="dashboard-section" id="dashboard">
+        <div class="dashboard-section" id="dashboard" data-lm-title="Dashboard Staff">
             <!-- Widget Statistik -->
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-body d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                            <div class="lm-stat-icon">
                                 <i class="bi bi-box-seam fs-4"></i>
                             </div>
                             <div>
-                                <div class="text-muted small text-uppercase">Total Produk</div>
-                                <div class="h4 mb-0 fw-bold">{{ $totalProduk }}</div>
+                                <div class="lm-stat-label">Total Produk</div>
+                                <div class="lm-stat-value">{{ $totalProduk }}</div>
                             </div>
                         </div>
                     </div>
@@ -73,12 +73,12 @@
                 <div class="col-12 col-md-4">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-body d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                            <div class="lm-stat-icon is-warning">
                                 <i class="bi bi-exclamation-triangle fs-4"></i>
                             </div>
                             <div>
-                                <div class="text-muted small text-uppercase">Stok Kritis</div>
-                                <div class="h4 mb-0 fw-bold">{{ $stokKritis }}</div>
+                                <div class="lm-stat-label">Stok Kritis</div>
+                                <div class="lm-stat-value">{{ $stokKritis }}</div>
                             </div>
                         </div>
                     </div>
@@ -86,12 +86,12 @@
                 <div class="col-12 col-md-4">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-body d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                            <div class="lm-stat-icon is-info">
                                 <i class="bi bi-hourglass-split fs-4"></i>
                             </div>
                             <div>
-                                <div class="text-muted small text-uppercase">Restock Pending</div>
-                                <div class="h4 mb-0 fw-bold">{{ $restockPending }}</div>
+                                <div class="lm-stat-label">Restock Pending</div>
+                                <div class="lm-stat-value">{{ $restockPending }}</div>
                             </div>
                         </div>
                     </div>
@@ -180,7 +180,7 @@
         </div>
 
         {{-- ================= SECTION: MONITORING STOK ================= --}}
-        <div class="dashboard-section d-none" id="monitoring-stok">
+        <div class="dashboard-section d-none" id="monitoring-stok" data-lm-title="Monitoring Stok">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Detail Produk & Monitoring Stok</h5>
@@ -287,7 +287,7 @@
         </div>
 
         {{-- ================= SECTION: PENGAJUAN RESTOCK ================= --}}
-        <div class="dashboard-section d-none" id="pengajuan-restock">
+        <div class="dashboard-section d-none" id="pengajuan-restock" data-lm-title="Pengajuan Restock">
             <div class="row g-4">
                 <!-- Form Pengajuan Restock (OAS) -->
                 <div class="col-12 col-lg-5">
@@ -490,7 +490,7 @@
         </div>
 
         {{-- ================= SECTION: RIYATAT STOK (AUDIT TRAIL) ================= --}}
-        <div class="dashboard-section d-none" id="riwayat-stok">
+        <div class="dashboard-section d-none" id="riwayat-stok" data-lm-title="Riwayat Stok">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Riwayat Aktivitas Stok</h5>
@@ -556,7 +556,7 @@
         </div>
 
         {{-- ================= SECTION: PENGATURAN ================= --}}
-        <div class="dashboard-section d-none" id="pengaturan">
+        <div class="dashboard-section d-none" id="pengaturan" data-lm-title="Pengaturan">
             <div class="row g-4">
                 <div class="col-12 col-lg-6">
                     <div class="card shadow-sm border-0">
