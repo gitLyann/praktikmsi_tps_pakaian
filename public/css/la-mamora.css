@@ -13,45 +13,90 @@
    ========================================================================== */
 
 :root {
-    /* ---- Warna inti (identik dengan landing page) ---- */
-    --lm-navy: #14213d;
-    --lm-navy-soft: #1d2f52;
-    --lm-navy-hover: #0b1426;
-    --lm-sky: #e3eefb;
-    --lm-sky-2: #f6faff;
-    --lm-surface: #f4f7fc;
-    --lm-orange: #ff6b2c;
-    --lm-orange-hover: #e85a1f;
-    --lm-muted: #5f6b7f;
-    --lm-line: #dbe5f3;
-    --lm-white: #fff;
+    /* ---- Warna inti (dialihkan dari theme-baru.css) ---- */
+    --lm-primary: #aff33e;
+    --lm-primary-foreground: #000000;
+    --lm-primary-hover: #9bdb2f;
+    --lm-background: #fbfcf8;
+    --lm-foreground: #0f172a;
+    --lm-card: #ffffff;
+    --lm-card-foreground: #0f172a;
+    --lm-popover: #ffffff;
+    --lm-popover-foreground: #0f172a;
+    --lm-secondary: #334155;
+    --lm-secondary-foreground: #f8fafc;
+    --lm-muted: #64748b;
+    --lm-muted-bg: #f1f5f9;
+    --lm-accent: #f0fdf4;
+    --lm-accent-foreground: #166534;
+    --lm-destructive: #dc2626;
+    --lm-border: #e2e8f0;
+    --lm-input: #e2e8f0;
+    --lm-ring: #aff33e;
+    --lm-on-color: #ffffff;
+    --lm-topbar-bg: rgba(251, 252, 248, .88);
+    --lm-overlay: rgba(2, 6, 23, .5);
+
+    /* ---- Alias token lama (nama dipertahankan, nilai dialihkan) ---- */
+    --lm-navy: var(--lm-foreground);
+    --lm-navy-soft: var(--lm-secondary);
+    --lm-navy-hover: #020617;
+    --lm-sky: var(--lm-muted-bg);
+    --lm-sky-2: var(--lm-background);
+    --lm-surface: var(--lm-muted-bg);
+    --lm-orange: var(--lm-primary);
+    --lm-orange-hover: var(--lm-primary-hover);
+    --lm-line: var(--lm-border);
+    --lm-white: var(--lm-card);
 
     /* ---- Warna status (versi terang) ---- */
-    --lm-success: #1c8c4e;
-    --lm-success-soft: #e3f6ec;
-    --lm-danger: #d64545;
-    --lm-danger-soft: #fdeaea;
-    --lm-warning: #b7791f;
-    --lm-warning-soft: #fdf3e0;
-    --lm-info: #2b6cb0;
-    --lm-info-soft: #e6f0fb;
+    --lm-success: #15803d;
+    --lm-success-soft: #dcfce7;
+    --lm-danger: #dc2626;
+    --lm-danger-soft: #fee2e2;
+    --lm-warning: #b45309;
+    --lm-warning-soft: #fef3c7;
+    --lm-info: #2563eb;
+    --lm-info-soft: #dbeafe;
+
+    /* ---- Chart / status ---- */
+    --lm-chart-1: #aff33e;
+    --lm-chart-2: #334155;
+    --lm-chart-3: #22c55e;
+    --lm-chart-4: #64748b;
+    --lm-chart-5: #94a3b8;
+
+    /* ---- Sidebar ---- */
+    --lm-sidebar: #ffffff;
+    --lm-sidebar-foreground: #0f172a;
+    --lm-sidebar-accent: #f8fafc;
+    --lm-sidebar-accent-foreground: #0f172a;
+    --lm-sidebar-primary: #aff33e;
+    --lm-sidebar-primary-foreground: #000000;
+    --lm-sidebar-border: #f1f5f9;
+    --lm-sidebar-ring: #aff33e;
+
+    /* ---- Logo ---- */
+    --lm-logo-ring: #0f172a;
+    --lm-logo-letter: #aff33e;
 
     /* ---- Tipografi ---- */
-    --lm-font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --lm-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --lm-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --lm-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     /* ---- Radius ---- */
+    --lm-radius-base: 1rem;
     --lm-radius-sm: 9px;
     --lm-radius: 12px;
     --lm-radius-lg: 18px;
     --lm-radius-xl: 22px;
     --lm-radius-pill: 99px;
 
-    /* ---- Shadow ---- */
-    --lm-shadow-sm: 0 4px 14px rgba(20, 33, 61, .06);
-    --lm-shadow: 0 10px 26px rgba(20, 33, 61, .08);
-    --lm-shadow-lg: 0 14px 30px rgba(20, 33, 61, .1);
-    --lm-shadow-focus: 0 0 0 3px rgba(255, 107, 44, .18);
+    /* ---- Shadow (offset-y 8px, blur 20px, opacity .05) ---- */
+    --lm-shadow-sm: 0 4px 12px rgba(15, 23, 42, .04);
+    --lm-shadow: 0 8px 20px rgba(15, 23, 42, .05);
+    --lm-shadow-lg: 0 8px 28px rgba(15, 23, 42, .08);
+    --lm-shadow-focus: 0 0 0 3px rgba(175, 243, 62, .35);
 
     /* ---- Spasi ---- */
     --lm-space-1: .25rem;
@@ -93,39 +138,145 @@
 
 :root {
     --bs-body-font-family: var(--lm-font);
-    --bs-body-color: var(--lm-navy);
-    --bs-body-bg: var(--lm-sky-2);
+    --bs-body-color: var(--lm-foreground);
+    --bs-body-color-rgb: 15, 23, 42;
+    --bs-body-bg: var(--lm-background);
+    --bs-body-bg-rgb: 251, 252, 248;
     --bs-secondary-color: var(--lm-muted);
-    --bs-secondary-color-rgb: 95, 107, 127;
+    --bs-secondary-color-rgb: 100, 116, 139;
     --bs-tertiary-color: var(--lm-muted);
-    --bs-tertiary-color-rgb: 95, 107, 127;
-    --bs-tertiary-bg: var(--lm-surface);
-    --bs-border-color: var(--lm-line);
-    --bs-link-color: var(--lm-navy);
-    --bs-link-hover-color: var(--lm-orange);
-    --bs-border-radius: var(--lm-radius);
+    --bs-tertiary-color-rgb: 100, 116, 139;
+    --bs-tertiary-bg: var(--lm-muted-bg);
+    --bs-border-color: var(--lm-border);
+    --bs-border-color-translucent: rgba(15, 23, 42, .1);
+    --bs-link-color: var(--lm-accent-foreground);
+    --bs-link-color-rgb: 22, 101, 52;
+    --bs-link-hover-color: var(--lm-foreground);
+    --bs-border-radius: var(--lm-radius-base);
     --bs-border-radius-sm: var(--lm-radius-sm);
     --bs-border-radius-lg: var(--lm-radius-lg);
     --bs-border-radius-pill: var(--lm-radius-pill);
     --bs-box-shadow: var(--lm-shadow);
-    --bs-focus-ring-color: rgba(255, 107, 44, .25);
-    --bs-emphasis-color: var(--lm-navy);
+    --bs-focus-ring-color: rgba(175, 243, 62, .35);
+    --bs-emphasis-color: var(--lm-foreground);
+    --bs-emphasis-color-rgb: 15, 23, 42;
 
     /* Palet Bootstrap diarahkan ke token La Mamora. Nilai rgb dipakai utility
        rgba() milik Bootstrap (mis. bg-primary bg-opacity-10) sehingga opasitas
        tetap bekerja seperti semula. */
-    --bs-primary: var(--lm-navy);
-    --bs-primary-rgb: 20, 33, 61;
-    --bs-dark: var(--lm-navy);
-    --bs-dark-rgb: 20, 33, 61;
-    --bs-warning: var(--lm-orange);
-    --bs-warning-rgb: 255, 107, 44;
+    --bs-primary: var(--lm-primary);
+    --bs-primary-rgb: 175, 243, 62;
+    --bs-primary-text-emphasis: #3f6212;
+    --bs-primary-bg-subtle: #f0fdf4;
+    --bs-primary-border-subtle: #bbf7d0;
+    --bs-secondary: var(--lm-secondary);
+    --bs-secondary-rgb: 51, 65, 85;
+    --bs-secondary-text-emphasis: #1e293b;
+    --bs-secondary-bg-subtle: #f1f5f9;
+    --bs-secondary-border-subtle: #e2e8f0;
+    --bs-dark: var(--lm-foreground);
+    --bs-dark-rgb: 15, 23, 42;
+    --bs-warning: var(--lm-primary);
+    --bs-warning-rgb: 175, 243, 62;
     --bs-danger: var(--lm-danger);
-    --bs-danger-rgb: 214, 69, 69;
+    --bs-danger-rgb: 220, 38, 38;
     --bs-success: var(--lm-success);
-    --bs-success-rgb: 28, 140, 78;
+    --bs-success-rgb: 21, 128, 61;
     --bs-info: var(--lm-info);
-    --bs-info-rgb: 43, 108, 176;
+    --bs-info-rgb: 37, 99, 235;
+    --bs-light: var(--lm-muted-bg);
+    --bs-light-rgb: 241, 245, 249;
+}
+
+/* ==========================================================================
+   Mode gelap
+   Class .dark dipasang di <html> bersamaan dengan data-bs-theme="dark".
+   Token lama hanya diganti nilainya, nama tetap sama.
+   ========================================================================== */
+
+:root.dark,
+:root.lm-dark,
+:root[data-bs-theme="dark"] {
+    --lm-background: #020617;
+    --lm-foreground: #f8fafc;
+    --lm-card: #0f172a;
+    --lm-card-foreground: #f8fafc;
+    --lm-popover: #0f172a;
+    --lm-popover-foreground: #f8fafc;
+    --lm-secondary: #1e293b;
+    --lm-secondary-foreground: #f8fafc;
+    --lm-muted: #94a3b8;
+    --lm-muted-bg: #1e293b;
+    --lm-accent: #14532d;
+    --lm-accent-foreground: #aff33e;
+    --lm-destructive: #f87171;
+    --lm-border: #1e293b;
+    --lm-input: #1e293b;
+    --lm-ring: #aff33e;
+    --lm-topbar-bg: rgba(2, 6, 23, .88);
+    --lm-overlay: rgba(0, 0, 0, .6);
+
+    --lm-navy-hover: #e2e8f0;
+
+    --lm-success: #4ade80;
+    --lm-success-soft: #14532d;
+    --lm-danger: #f87171;
+    --lm-danger-soft: #450a0a;
+    --lm-warning: #fbbf24;
+    --lm-warning-soft: #451a03;
+    --lm-info: #60a5fa;
+    --lm-info-soft: #172554;
+
+    --lm-chart-1: #aff33e;
+    --lm-chart-2: #94a3b8;
+    --lm-chart-3: #4ade80;
+    --lm-chart-4: #64748b;
+    --lm-chart-5: #cbd5e1;
+
+    --lm-sidebar: #020617;
+    --lm-sidebar-foreground: #f8fafc;
+    --lm-sidebar-accent: #1e293b;
+    --lm-sidebar-accent-foreground: #f8fafc;
+    --lm-sidebar-primary: #aff33e;
+    --lm-sidebar-primary-foreground: #020617;
+    --lm-sidebar-border: #1e293b;
+    --lm-sidebar-ring: #aff33e;
+
+    --lm-logo-ring: #aff33e;
+    --lm-logo-letter: #020617;
+
+    --lm-shadow-sm: 0 2px 8px rgba(0, 0, 0, .25);
+    --lm-shadow: 0 8px 20px rgba(0, 0, 0, .35);
+    --lm-shadow-lg: 0 12px 32px rgba(0, 0, 0, .45);
+    --lm-shadow-focus: 0 0 0 3px rgba(175, 243, 62, .4);
+
+    --bs-body-color: var(--lm-foreground);
+    --bs-body-color-rgb: 248, 250, 252;
+    --bs-body-bg: var(--lm-background);
+    --bs-body-bg-rgb: 2, 6, 23;
+    --bs-secondary-color: var(--lm-muted);
+    --bs-secondary-color-rgb: 148, 163, 184;
+    --bs-tertiary-color: var(--lm-muted);
+    --bs-tertiary-color-rgb: 148, 163, 184;
+    --bs-tertiary-bg: var(--lm-muted-bg);
+    --bs-border-color: var(--lm-border);
+    --bs-border-color-translucent: rgba(226, 232, 240, .12);
+    --bs-link-color: var(--lm-accent-foreground);
+    --bs-link-color-rgb: 175, 243, 62;
+    --bs-link-hover-color: #d9f99d;
+    --bs-emphasis-color: var(--lm-foreground);
+    --bs-emphasis-color-rgb: 248, 250, 252;
+    --bs-primary-text-emphasis: #d9f99d;
+    --bs-primary-bg-subtle: #1a2e05;
+    --bs-primary-border-subtle: #3f6212;
+    --bs-secondary-text-emphasis: #e2e8f0;
+    --bs-secondary-bg-subtle: #0f172a;
+    --bs-secondary-border-subtle: #1e293b;
+    --bs-dark: #f8fafc;
+    --bs-dark-rgb: 248, 250, 252;
+    --bs-light: #1e293b;
+    --bs-light-rgb: 30, 41, 59;
+    --bs-focus-ring-color: rgba(175, 243, 62, .4);
 }
 
 body.lm-dashboard {
@@ -156,57 +307,57 @@ body.lm-dashboard .btn-sm {
 }
 
 body.lm-dashboard .btn-primary {
-    --bs-btn-bg: var(--lm-navy);
-    --bs-btn-border-color: var(--lm-navy);
-    --bs-btn-hover-bg: var(--lm-navy-hover);
-    --bs-btn-hover-border-color: var(--lm-navy-hover);
-    --bs-btn-active-bg: var(--lm-navy-hover);
-    --bs-btn-active-border-color: var(--lm-navy-hover);
+    --bs-btn-bg: var(--lm-primary);
+    --bs-btn-border-color: var(--lm-primary);
+    --bs-btn-hover-bg: var(--lm-primary-hover);
+    --bs-btn-hover-border-color: var(--lm-primary-hover);
+    --bs-btn-active-bg: var(--lm-primary-hover);
+    --bs-btn-active-border-color: var(--lm-primary-hover);
     --bs-btn-disabled-bg: var(--lm-muted);
     --bs-btn-disabled-border-color: var(--lm-muted);
-    --bs-btn-color: #fff;
-    --bs-btn-hover-color: #fff;
-    --bs-btn-active-color: #fff;
+    --bs-btn-color: var(--lm-primary-foreground);
+    --bs-btn-hover-color: var(--lm-primary-foreground);
+    --bs-btn-active-color: var(--lm-primary-foreground);
 }
 
 body.lm-dashboard .btn-outline-primary {
-    --bs-btn-color: var(--lm-navy);
-    --bs-btn-border-color: var(--lm-navy);
-    --bs-btn-hover-bg: var(--lm-navy);
-    --bs-btn-hover-border-color: var(--lm-navy);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-active-bg: var(--lm-navy);
-    --bs-btn-active-border-color: var(--lm-navy);
-    --bs-btn-active-color: #fff;
+    --bs-btn-color: var(--lm-accent-foreground);
+    --bs-btn-border-color: var(--lm-primary);
+    --bs-btn-hover-bg: var(--lm-primary);
+    --bs-btn-hover-border-color: var(--lm-primary);
+    --bs-btn-hover-color: var(--lm-primary-foreground);
+    --bs-btn-active-bg: var(--lm-primary);
+    --bs-btn-active-border-color: var(--lm-primary);
+    --bs-btn-active-color: var(--lm-primary-foreground);
 }
 
 body.lm-dashboard .btn-warning {
-    --bs-btn-bg: var(--lm-orange);
-    --bs-btn-border-color: var(--lm-orange);
-    --bs-btn-hover-bg: var(--lm-orange-hover);
-    --bs-btn-hover-border-color: var(--lm-orange-hover);
-    --bs-btn-active-bg: var(--lm-orange-hover);
-    --bs-btn-active-border-color: var(--lm-orange-hover);
-    --bs-btn-color: var(--lm-navy);
-    --bs-btn-hover-color: var(--lm-navy);
-    --bs-btn-active-color: var(--lm-navy);
+    --bs-btn-bg: var(--lm-primary);
+    --bs-btn-border-color: var(--lm-primary);
+    --bs-btn-hover-bg: var(--lm-primary-hover);
+    --bs-btn-hover-border-color: var(--lm-primary-hover);
+    --bs-btn-active-bg: var(--lm-primary-hover);
+    --bs-btn-active-border-color: var(--lm-primary-hover);
+    --bs-btn-color: var(--lm-primary-foreground);
+    --bs-btn-hover-color: var(--lm-primary-foreground);
+    --bs-btn-active-color: var(--lm-primary-foreground);
 }
 
 body.lm-dashboard .btn-outline-warning {
-    --bs-btn-color: var(--lm-orange);
-    --bs-btn-border-color: var(--lm-orange);
-    --bs-btn-hover-bg: var(--lm-orange);
-    --bs-btn-hover-border-color: var(--lm-orange);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-color: var(--lm-accent-foreground);
+    --bs-btn-border-color: var(--lm-primary);
+    --bs-btn-hover-bg: var(--lm-primary);
+    --bs-btn-hover-border-color: var(--lm-primary);
+    --bs-btn-hover-color: var(--lm-primary-foreground);
 }
 
 body.lm-dashboard .btn-info {
     --bs-btn-bg: var(--lm-info);
     --bs-btn-border-color: var(--lm-info);
-    --bs-btn-hover-bg: #245f96;
-    --bs-btn-hover-border-color: #245f96;
-    --bs-btn-color: #fff;
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--lm-info);
+    --bs-btn-hover-border-color: var(--lm-info);
+    --bs-btn-color: var(--lm-on-color);
+    --bs-btn-hover-color: var(--lm-on-color);
 }
 
 body.lm-dashboard .btn-outline-info {
@@ -214,7 +365,7 @@ body.lm-dashboard .btn-outline-info {
     --bs-btn-border-color: var(--lm-info);
     --bs-btn-hover-bg: var(--lm-info);
     --bs-btn-hover-border-color: var(--lm-info);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--lm-on-color);
 }
 
 body.lm-dashboard .btn-outline-danger {
@@ -222,16 +373,16 @@ body.lm-dashboard .btn-outline-danger {
     --bs-btn-border-color: var(--lm-danger);
     --bs-btn-hover-bg: var(--lm-danger);
     --bs-btn-hover-border-color: var(--lm-danger);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--lm-on-color);
 }
 
 body.lm-dashboard .btn-secondary {
-    --bs-btn-bg: var(--lm-muted);
-    --bs-btn-border-color: var(--lm-muted);
-    --bs-btn-hover-bg: #4c5666;
-    --bs-btn-hover-border-color: #4c5666;
-    --bs-btn-color: #fff;
-    --bs-btn-hover-color: #fff;
+    --bs-btn-bg: var(--lm-secondary);
+    --bs-btn-border-color: var(--lm-secondary);
+    --bs-btn-hover-bg: var(--lm-foreground);
+    --bs-btn-hover-border-color: var(--lm-foreground);
+    --bs-btn-color: var(--lm-secondary-foreground);
+    --bs-btn-hover-color: var(--lm-background);
 }
 
 /* Kartu ----------------------------------------------------------------- */
@@ -271,9 +422,9 @@ body.lm-dashboard .table {
     --bs-table-color: var(--lm-navy);
     --bs-table-bg: transparent;
     --bs-table-border-color: var(--lm-line);
-    --bs-table-hover-bg: var(--lm-sky-2);
+    --bs-table-hover-bg: var(--lm-muted-bg);
     --bs-table-hover-color: var(--lm-navy);
-    --bs-table-striped-bg: var(--lm-sky-2);
+    --bs-table-striped-bg: var(--lm-muted-bg);
     --bs-table-striped-color: var(--lm-navy);
 }
 
@@ -311,16 +462,16 @@ body.lm-dashboard .form-label {
 
 body.lm-dashboard .form-control,
 body.lm-dashboard .form-select {
-    border-color: var(--lm-line);
+    border-color: var(--lm-input);
     border-radius: var(--lm-radius);
-    color: var(--lm-navy);
-    background-color: var(--lm-sky-2);
+    color: var(--lm-foreground);
+    background-color: var(--lm-card);
 }
 
 body.lm-dashboard .form-control:focus,
 body.lm-dashboard .form-select:focus {
-    background-color: var(--lm-white);
-    border-color: var(--lm-orange);
+    background-color: var(--lm-card);
+    border-color: var(--lm-ring);
     box-shadow: var(--lm-shadow-focus);
 }
 
@@ -337,26 +488,26 @@ body.lm-dashboard .alert {
 
 body.lm-dashboard .alert-success {
     background-color: var(--lm-success-soft);
-    border-color: rgba(28, 140, 78, .25);
-    color: #14663a;
+    border-color: color-mix(in srgb, var(--lm-success) 30%, transparent);
+    color: var(--lm-success);
 }
 
 body.lm-dashboard .alert-danger {
     background-color: var(--lm-danger-soft);
-    border-color: rgba(214, 69, 69, .25);
-    color: #9b2c2c;
+    border-color: color-mix(in srgb, var(--lm-danger) 30%, transparent);
+    color: var(--lm-danger);
 }
 
 body.lm-dashboard .alert-warning {
     background-color: var(--lm-warning-soft);
-    border-color: rgba(183, 121, 31, .25);
-    color: #8a5a12;
+    border-color: color-mix(in srgb, var(--lm-warning) 30%, transparent);
+    color: var(--lm-warning);
 }
 
 body.lm-dashboard .alert-info {
     background-color: var(--lm-info-soft);
-    border-color: rgba(43, 108, 176, .25);
-    color: #1f5488;
+    border-color: color-mix(in srgb, var(--lm-info) 30%, transparent);
+    color: var(--lm-info);
 }
 
 /* ==========================================================================
@@ -397,7 +548,7 @@ body.lm-dashboard .alert-info {
     gap: var(--lm-space-3);
     min-height: var(--lm-topbar-height);
     padding: var(--lm-space-3) var(--lm-space-6);
-    background-color: rgba(246, 250, 255, .88);
+    background-color: var(--lm-topbar-bg);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--lm-line);
 }
@@ -477,8 +628,8 @@ body.lm-dashboard .alert-info {
 }
 
 .lm-stat-icon.is-orange {
-    background: #ffece1;
-    color: var(--lm-orange);
+    background: var(--lm-accent);
+    color: var(--lm-accent-foreground);
 }
 
 .lm-stat-icon.is-success {
@@ -572,8 +723,8 @@ body.lm-dashboard .alert-info {
 }
 
 .lm-badge-rank.is-top {
-    background: var(--lm-navy);
-    color: #fff;
+    background: var(--lm-primary);
+    color: var(--lm-primary-foreground);
 }
 
 /* Empty state ----------------------------------------------------------- */
@@ -717,7 +868,7 @@ body.lm-dashboard .alert-info {
     display: block;
     height: 100%;
     border-radius: var(--lm-radius-pill);
-    background: var(--lm-navy);
+    background: var(--lm-primary);
 }
 
 .lm-criterion-list {
@@ -812,30 +963,30 @@ body.lm-dashboard [data-dss-section] {
 
 body.lm-dashboard .sidebar {
     min-height: 100vh;
-    background-color: var(--lm-white);
-    border-right: 1px solid var(--lm-line);
+    background-color: var(--lm-sidebar);
+    border-right: 1px solid var(--lm-sidebar-border);
     box-shadow: var(--lm-shadow-sm);
 }
 
 body.lm-dashboard .sidebar-header {
     padding: var(--lm-space-5) var(--lm-space-4);
-    border-bottom: 1px solid var(--lm-line);
+    border-bottom: 1px solid var(--lm-sidebar-border);
 }
 
 body.lm-dashboard .sidebar-brand {
     font-weight: 800;
     font-size: 1.15rem;
-    color: var(--lm-navy);
+    color: var(--lm-sidebar-foreground);
     text-decoration: none;
 }
 
-/* Logo La Mamora - kotak "L" navy persis seperti landing page */
+/* Logo La Mamora - kotak "L" dengan token logo agar kontras di kedua mode */
 body.lm-dashboard .sidebar-brand .lm-mark {
     width: 30px;
     height: 30px;
     border-radius: var(--lm-radius-sm);
-    background: var(--lm-navy);
-    color: #fff;
+    background: var(--lm-logo-ring);
+    color: var(--lm-logo-letter);
     display: inline-grid;
     place-items: center;
     font-style: normal;
@@ -876,14 +1027,15 @@ body.lm-dashboard .sidebar-nav .nav-link {
 }
 
 body.lm-dashboard .sidebar-nav .nav-link:hover {
-    background-color: var(--lm-sky);
-    color: var(--lm-navy);
+    background-color: var(--lm-sidebar-accent);
+    color: var(--lm-sidebar-accent-foreground);
 }
 
 body.lm-dashboard .sidebar-nav .nav-link.active {
-    background-color: var(--lm-sky);
-    color: var(--lm-navy);
+    background-color: var(--lm-sidebar-primary);
+    color: var(--lm-sidebar-primary-foreground);
     font-weight: 700;
+    box-shadow: 0 4px 12px rgba(175, 243, 62, .3);
 }
 
 body.lm-dashboard .sidebar-nav .nav-link i {
@@ -900,7 +1052,7 @@ body.lm-dashboard .sidebar-overlay {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(20, 33, 61, .5);
+    background: var(--lm-overlay);
     z-index: var(--lm-z-overlay);
 }
 
