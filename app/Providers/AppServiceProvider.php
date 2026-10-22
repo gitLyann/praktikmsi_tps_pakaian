@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\View\Composers\CustomerContextComposer;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Badge jumlah item keranjang dan penanda role dipakai bersama oleh
+        // seluruh halaman toko. Blade merender halaman anak lebih dulu dari
+        // layout, jadi keduanya perlu terdaftar.
+        View::composer(['toko.*', 'layouts.toko-shell', 'welcome'], CustomerContextComposer::class);
     }
 }

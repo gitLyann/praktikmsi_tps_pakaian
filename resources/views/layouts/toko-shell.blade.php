@@ -26,10 +26,20 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                 <span>Katalog Produk</span>
             </a>
-            <a href="#" data-info="cart">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                <span>Keranjang Belanja</span>
-            </a>
+            @if($isPelanggan)
+                <a href="{{ route('toko.cart') }}" @class(['active' => ($activeNav ?? '') === 'keranjang'])>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    <span>Keranjang Belanja</span>
+                    @if(($cartCount ?? 0) > 0)
+                        <span class="cart-badge">{{ $cartCount }}</span>
+                    @endif
+                </a>
+            @elseif(! Auth::check())
+                <a href="{{ route('login') }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    <span>Keranjang Belanja</span>
+                </a>
+            @endif
             <a href="{{ route('toko.pesanan') }}" @class(['active' => ($activeNav ?? '') === 'pesanan'])>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 16h3a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect width="13" height="8" x="3" y="4" rx="2"/><circle cx="15" cy="20" r="1"/><circle cx="7" cy="20" r="1"/></svg>
                 <span>Pesanan Saya</span>
@@ -59,6 +69,14 @@
                 <p>@yield('subheading', $subheading ?? '')</p>
             </div>
             <div class="tools">
+                @if($isPelanggan)
+                    <a class="ic cart" href="{{ route('toko.cart') }}" aria-label="Keranjang Belanja">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                        @if(($cartCount ?? 0) > 0)
+                            <span class="cart-badge top">{{ $cartCount }}</span>
+                        @endif
+                    </a>
+                @endif
                 <button class="ic alert" aria-label="Notifikasi">🔔</button>
                 <button class="ic" id="theme" aria-label="Mode gelap">☾</button>
                 <button type="button" class="user" id="profileBtn" aria-haspopup="dialog" aria-expanded="false">
@@ -196,15 +214,10 @@
     }
 
     /* ================= MODAL INFO SIDEBAR ================= */
-    // Overview, Katalog, Pesanan Saya, dan Produk Favorit punya route nyata.
-    // Keranjang dan Bantuan belum punya backend, jadi diberi tahu lewat modal.
+    // Overview, Katalog, Keranjang, Pesanan Saya, dan Produk Favorit punya route nyata.
+    // Bantuan belum punya route, jadi diberi tahu lewat modal.
     const svgIcon = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
     const infoContent = {
-        cart: {
-            title: 'Keranjang Belanja',
-            icon: svgIcon('<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>'),
-            text: 'Fitur keranjang masih dalam pengembangan. Untuk sekarang, setiap produk bisa langsung dibeli lewat tombol "Beli Sekarang" pada kartunya.',
-        },
         bantuan: {
             title: 'Pusat Bantuan',
             icon: svgIcon('<circle cx="12" cy="12" r="10"/><path d="m9.09 9 3 3a22 22 0 0 0 2 3"/><path d="M12 17h.01"/>'),

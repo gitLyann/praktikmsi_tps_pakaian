@@ -48,4 +48,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(DssRun::class, 'created_by');
     }
+
+    // Relasi ke keranjang belanja pengguna
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
 }

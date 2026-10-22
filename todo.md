@@ -314,15 +314,34 @@
 - [x] Verifikasi: `--filter=SupplierMasterTest` 11/11 (52); `--filter=StaffSupplierOfferTest` 6/6 (33); regresi Phase 29-30 hijau; `pint` & test suite penuh tidak dijalankan
 - [ ] Phase 33 - **Belum diverifikasi di browser** - seluruh alur Fase C
 
-### Phase 34 (Fase D - Selaraskan UI Pelanggan dengan Design System)
-- [x] Buat public/css/la-mamora-shop.css untuk halaman pelanggan (shell, katalog, detail, favorit, pesanan, modal, chatbot, auth .lm-auth*, mobile).
-- [x] Ubah esources/views/layouts/toko-shell.blade.php jadi memakai la-mamora.css + la-mamora-shop.css beserta drawer, dark mode, modal profil/keranjang/bantuan, dan chatbot.
-- [x] Redesign katalog esources/views/toko/index.blade.php (extends shell), detail esources/views/toko/show.blade.php, esources/views/toko/favorit.blade.php, esources/views/toko/pesanan.blade.php (ke shell). Hapus inline style berlebihan.
-- [x] Redesign esources/views/auth/login.blade.php dan esources/views/auth/register.blade.php memakai .lm-auth* tanpa Bootstrap CDN.
-- [x] Tambah 	ests/Feature/CustomerPagesRenderTest.php; php artisan test --filter=CustomerPagesRenderTest --compact lulus.
-- [x] Pastikan token --lm-shadow-sm, --lm-shadow, --lm-shadow-lg ada di public/css/la-mamora.css dan warna biru Shopee tidak dipakai.
-- [x] Update changelog.md dan 	odo.md Phase 34.
+### Phase 34 (Fase A - UI Pelanggan Selaras dengan Design System)
+- [x] `public/css/la-mamora-shop.css` - sidebar/drawer, kartu katalog, filter, detail, favorit, pesanan, modal, chatbot, auth `.lm-auth*`, dark mode `.lm-dark`
+- [x] `resources/views/layouts/toko-shell.blade.php` - shell La Mamora (drawer, dark mode, modal, chatbot)
+- [x] `resources/views/toko/index.blade.php`, `show.blade.php`, `favorit.blade.php`, `pesanan.blade.php` - extends shell, inline style dibersihkan
+- [x] `resources/views/auth/login.blade.php`, `register.blade.php` - desain ulang `.lm-auth*` (tanpa Bootstrap CDN)
+- [x] `tests/Feature/CustomerPagesRenderTest.php` (7 test) - katalog/detail/favorit/pesanan/login/register, marker CSS/UI, drawer, tanpa warna biru Shopee
+- [x] Token shadow `--lm-shadow-sm/-shadow/-shadow-lg` tersedia di `public/css/la-mamora.css`
+- [x] Verifikasi: `--filter=CustomerPagesRenderTest` 7/7 (77); `php artisan view:cache` berhasil
+
+### Phase 35 (Fase A - Keranjang Pelanggan, isolasi ketat)
+- [x] Audit keranjang/checkout/favorit/riwayat/profil - tidak ada endpoint yang menerima `user_id` dari request
+- [x] `database/migrations/2026_10_21_234447_create_carts_table.php` - `user_id` FK->users cascade, `product_id` FK->products, `quantity`, unique(user_id,product_id)
+- [x] `app/Models/Cart.php` - relasi `User::carts()`, `Product::cartItems()`, `resolveRouteBinding()` ter-scope user login
+- [x] `app/Http/Controllers/CartController.php` - index/tambah/ubah/hapus/kosongkan/checkout + niat tamu
+- [x] Route `toko.cart.*` di middleware `auth` + `role:pelanggan`; item milik user lain -> 404
+- [x] Validasi quantity (min 1) dan cek stok sebelum simpan serta saat checkout
+- [x] Tombol "Tambah ke Keranjang" di kartu produk, detail, favorit, rekomendasi, landing; tamu -> login -> kembali
+- [x] Badge jumlah item di sidebar + topbar lewat `app/View/Composers/CustomerContextComposer.php`
+- [x] `resources/views/toko/cart.blade.php` - halaman keranjang design system La Mamora + CSS di `public/css/la-mamora-shop.css`
+- [x] Checkout dalam `DB::transaction` + `lockForUpdate()`, buat `transactions` + `transaction_details`, kurangi stok, hapus keranjang
+- [x] `app/Services/TransactionCustomerResolver.php` - normalisasi `transactions.customer_id` untuk MySQL (`users.id`) dan SQLite (`customers.id`)
+- [x] Isolasi favorit/riwayat transaksi/profil - `favorit()`, `pesanan()`, dan `toggleFavorite()` memakai `Auth::id()`
+- [x] Staff/admin tidak melihat tombol keranjang dan mendapat 403 pada route keranjang
+- [x] `tests/Feature/CartIsolationTest.php` (16 test), `tests/Feature/CheckoutIsolationTest.php` (6 test), `tests/Feature/FavoriteIsolationTest.php` (5 test)
+- [x] Verifikasi: `--filter=CartIsolationTest` 16/16 (57); `--filter=CheckoutIsolationTest` 6/6 (24); `--filter=FavoriteIsolationTest` 5/5 (20); regresi `CustomerPagesRenderTest` 7/7, `LandingRecommendationTest` 5/5, `ProductRecommendationServiceTest` 8/8, `StaffDashboardTabTest` 5/5, `DssDemoTransactionSeederTest` 3/3, `DssRoleAccessTest` 4/4
+- [x] Update `changelog.md` + `todo.md`
+- [ ] Phase 35 - **Belum diverifikasi di browser** - alur tambah ke keranjang, ubah jumlah, checkout, dan badge
 
 ### Penutup
-- [ ] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock)
+- [x] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock, keranjang)
 - [ ] Commit perubahan setelah diminta

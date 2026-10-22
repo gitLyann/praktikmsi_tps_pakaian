@@ -259,6 +259,41 @@ h3 {
     color: var(--cta);
 }
 
+.ic.cart {
+    position: relative;
+    color: inherit;
+    text-decoration: none;
+}
+
+.ic.cart svg {
+    width: 19px;
+    height: 19px;
+}
+
+/* Badge jumlah item keranjang */
+.cart-badge {
+    margin-left: auto;
+    background: var(--lm-orange);
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.cart-badge.top {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    margin-left: 0;
+    padding: 1px 6px;
+    font-size: 10px;
+    min-width: 17px;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--card);
+}
+
 .user {
     display: flex;
     align-items: center;
@@ -1135,6 +1170,109 @@ h3 {
     font-size: 20px;
     font-weight: 700;
     letter-spacing: -.02em;
+}
+
+/* ==========================================================================
+   6.1 KERANJANG BELANJA
+   ========================================================================== */
+
+.cart-qty {
+    width: 92px;
+    padding: 9px 11px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--lm-sky-2);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+}
+
+.cart-qty:focus {
+    outline: 0;
+    border-color: var(--lm-orange);
+    box-shadow: var(--lm-shadow-focus);
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.cart-item .thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    background: var(--lm-sky);
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+}
+
+.cart-item .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.cart-item .sub {
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.cart-item .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cart-item .controls form {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-item .subtotal {
+    text-align: right;
+}
+
+.cart-item .subtotal small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.cart-item .subtotal b {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+@media (max-width: 720px) {
+    .cart-item {
+        grid-template-columns: 56px 1fr;
+    }
+
+    .cart-item .thumb {
+        width: 56px;
+        height: 56px;
+    }
+
+    .cart-item .subtotal {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
 }
 
 /* ==========================================================================

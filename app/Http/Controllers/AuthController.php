@@ -29,6 +29,12 @@ class AuthController extends Controller
 
             // Redirect berdasarkan role user
             if ($role === 'pelanggan') {
+                // Tamu yang menekan "Tambah ke Keranjang" sebelum login akan
+                // kembali ke keranjangnya begitu login berhasil.
+                if ($request->session()->has('cart.intent')) {
+                    return app(CartController::class)->addFromIntent($request);
+                }
+
                 return redirect()->intended('/toko');
             } elseif ($role === 'staff') {
                 return redirect()->intended('/staff/dashboard');
@@ -76,6 +82,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/')->with('success', 'Anda telah logout.');
     }
 }

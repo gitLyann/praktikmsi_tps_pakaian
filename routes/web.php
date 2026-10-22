@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DssAnalysisController;
 use App\Http\Controllers\DssScoreController;
@@ -23,8 +24,20 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 
+// Niat "tambah ke keranjang" dari tamu: simpan dulu, lalu arahkan ke login
+Route::post('/toko/keranjang/niat/{product}', [CartController::class, 'intent'])->name('toko.cart.intent');
+
 // Halaman Berdasarkan Role (Hanya bisa dibuka jika sudah login)
 Route::middleware(['auth'])->group(function () {
+    // Keranjang pelanggan
+    Route::middleware(['role:pelanggan'])->group(function () {
+        Route::get('/toko/keranjang', [CartController::class, 'index'])->name('toko.cart');
+        Route::post('/toko/keranjang/tambah/{product}', [CartController::class, 'add'])->name('toko.cart.add');
+        Route::post('/toko/keranjang/update/{cart}', [CartController::class, 'update'])->name('toko.cart.update');
+        Route::post('/toko/keranjang/hapus/{cart}', [CartController::class, 'remove'])->name('toko.cart.remove');
+        Route::post('/toko/keranjang/kosongkan', [CartController::class, 'clear'])->name('toko.cart.clear');
+        Route::post('/toko/keranjang/checkout', [CartController::class, 'checkout'])->name('toko.cart.checkout');
+    });
 
     // Halaman Pembeli / Catalog Pakaian (TPS)
     Route::get('/toko', [TokoController::class, 'index'])->name('toko.index');

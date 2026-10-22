@@ -45,7 +45,16 @@
                         <b>Rp {{ number_format($product->price, 0, ',', '.') }}</b>
                         <span class="mini{{ $product->stock > 0 ? '' : ' out' }}">{{ $product->stock }} Pcs</span>
                     </div>
-                    <a href="{{ route('toko.show', $product->id) }}" class="buy" style="display:block;text-align:center;text-decoration:none">Lihat Detail</a>
+                    <div class="actions">
+                        @if($isPelanggan)
+                            <form action="{{ route('toko.cart.add', $product) }}" method="POST" style="display:inline">
+                                @csrf
+                                <input type="hidden" name="quantity" value="1">
+                                <button class="buy" type="submit" @if($product->stock < 1) disabled @endif>+ Keranjang</button>
+                            </form>
+                        @endif
+                        <a href="{{ route('toko.show', $product->id) }}" class="buy" style="display:inline-block;text-align:center;text-decoration:none">Lihat Detail</a>
+                    </div>
                 </article>
             @empty
                 <div class="empty">

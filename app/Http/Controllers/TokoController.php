@@ -6,32 +6,46 @@ use App\Models\Category;
 use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Services\TransactionCustomerResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class TokoController extends Controller
 {
+    public function __construct(private readonly TransactionCustomerResolver $customerResolver)
+    {
+    }
+
     // Menampilkan daftar produk dari database ke katalog pembeli
     public function index()
     {
         $products = Product::with('category')->latest()->get();
 
-    // Dipakai untuk checkbox filter kategori di sidebar katalog
-    $categories = Category::orderBy('name')->pluck('name');
+        // Dipakai untuk checkbox filter kategori di sidebar katalog
+        $categories = Category::orderBy('name')->pluck('name');
 
-    // Daftar id produk yang sudah difavoritkan pengguna, supaya tombol hati
-    // di katalog langsung tampil dalam keadaan aktif tanpa request tambahan.
-    $favoritIds = Favorite::where('user_id', auth()->id())
-        ->pluck('product_id')
-        ->all();
+        // Daftar id produk yang sudah difavoritkan pengguna, supaya tombol hati
+        // di katalog langsung tampil dalam keadaan aktif tanpa request tambahan.
+        $favoritIds = [];
 
-    return view('toko.index', compact('products', 'categories', 'favoritIds'));
+        if (Auth::check()) {
+            $favoritIds = Favorite::where('user_id', Auth::id())
+                ->pluck('product_id')
+                ->all();
+        }
+
+        return view('toko.index', compact('products', 'categories', 'favoritIds'));
     }
 
     // Halaman "Pesanan Saya": riwayat transaksi milik pengguna yang sedang login
     public function pesanan()
     {
-        $transactions = Transaction::where('customer_id', auth()->id())
+        // Transaksi hanya bisa dibaca berdasarkan user yang sedang login.
+        // Id yang dipakai menyesuaikan skema FK `transactions.customer_id`.
+        $customerIds = $this->customerResolver->customerIdsFor(Auth::user());
+
+        $transactions = Transaction::whereIn('customer_id', $customerIds)
             ->latest('date')
             ->get();
 
@@ -51,7 +65,7 @@ class TokoController extends Controller
     // Menambah atau menghapus produk dari daftar favorit pengguna
     public function toggleFavorite(Request $request, Product $product)
     {
-        $userId = auth()->id();
+        $userId = Auth::id();
 
         $favorit = Favorite::where('user_id', $userId)
             ->where('product_id', $product->id)
@@ -93,7 +107,7 @@ class TokoController extends Controller
         // tidak di-join ke query luar, sehingga MySQL menolak order by-nya.
         $products = Product::query()
             ->join('favorites', 'favorites.product_id', '=', 'products.id')
-            ->where('favorites.user_id', auth()->id())
+            ->where('favorites.user_id', Auth::id())
             ->with('category')
             ->orderByDesc('favorites.created_at')
             ->select('products.*')
@@ -127,7 +141,7 @@ class TokoController extends Controller
 
             // Simpan record transaksi ke database
             $transaction = Transaction::create([
-                'customer_id' => auth()->user()->id,
+                'customer_id' => $this->customerResolver->customerIdFor(Auth::user()),
                 'employee_id' => null,
                 'date' => now(),
                 'total' => $total,
@@ -152,7 +166,11 @@ class TokoController extends Controller
     // Helper kecil untuk mengecek apakah produk sudah ada di favorit pengguna
     private function apakahFavorit(Product $product): bool
     {
-        return Favorite::where('user_id', auth()->id())
+        if (!Auth::check()) {
+            return false;
+        }
+
+        return Favorite::where('user_id', Auth::id())
             ->where('product_id', $product->id)
             ->exists();
     }

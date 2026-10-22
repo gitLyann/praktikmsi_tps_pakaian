@@ -40,6 +40,8 @@ header.scrolled{border-color:var(--line)}
 .btn.line{border:1.5px solid #b9c6da;background:#fff}
 .btn.line:hover{border-color:var(--navy)}
 .btn.orange{background:var(--orange);color:#fff}
+.cart-link{position:relative}
+.cart-badge{position:absolute;top:-5px;right:-5px;background:var(--orange);color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;line-height:1.5}
 .burger{display:none;font-size:22px;margin-left:auto}
 
 /* Hero */
@@ -229,6 +231,14 @@ dialog form{display:grid;gap:12px}
         <button class="btn line" data-auth="register">Register</button>
       @else
         <a class="btn line" href="{{ route('toko.index') }}">Katalog</a>
+        @if($isPelanggan)
+          <a class="btn line cart-link" href="{{ route('toko.cart') }}">
+            Keranjang
+            @if(($cartCount ?? 0) > 0)
+              <span class="cart-badge top">{{ $cartCount }}</span>
+            @endif
+          </a>
+        @endif
         <a class="btn dark" href="{{ $dashUrl }}">Dashboard</a>
       @endguest
     </div>
@@ -312,10 +322,19 @@ dialog form{display:grid;gap:12px}
         <div class="row">
           <b>Rp {{ number_format($product->price, 0, ',', '.') }}</b>
           @guest
-            <button class="add" data-need-auth aria-label="Masuk untuk membeli {{ $product->name }}">+</button>
-          @else
-            <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $product->name }} di katalog">→</a>
-          @endguest
+            <form action="{{ route('toko.cart.intent', $product->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <input type="hidden" name="return_to" value="{{ url()->current() }}">
+              <button class="add" type="submit" aria-label="Masuk untuk membeli {{ $product->name }}">+</button>
+            </form>
+          @elseif($isPelanggan)
+            <form action="{{ route('toko.cart.add', $product->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <button class="add" type="submit" aria-label="Tambah {{ $product->name }} ke keranjang">+</button>
+            </form>
+          @endif
         </div>
       </article>
     @empty
@@ -327,7 +346,7 @@ dialog form{display:grid;gap:12px}
 </div></section>
 
 <!-- REKOMENDASI PERSONAL (pelanggan login) -->
-@if($isPersonal)
+@if($isPelanggan)
 <section id="rekomendasi" class="sec alt"><div class="wrap">
   <div class="head"><h2>Rekomendasi untukmu</h2>
     <p>Dipilih otomatis dari riwayat belanja dan kategori favoritmu, jadi lebih sesuai dengan selerimu.</p>
@@ -356,7 +375,20 @@ dialog form{display:grid;gap:12px}
         <small>{{ $kategori }}{{ $recProduct->type ? ' · ' . $recProduct->type : '' }}</small>
         <div class="row">
           <b>Rp {{ number_format($recProduct->price, 0, ',', '.') }}</b>
-          <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $recProduct->name }} di katalog">&rarr;</a>
+          @guest
+            <form action="{{ route('toko.cart.intent', $recProduct->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <input type="hidden" name="return_to" value="{{ url()->current() }}">
+              <button class="add" type="submit" aria-label="Masuk untuk membeli {{ $recProduct->name }}">+</button>
+            </form>
+          @elseif($isPelanggan)
+            <form action="{{ route('toko.cart.add', $recProduct->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <button class="add" type="submit" aria-label="Tambah {{ $recProduct->name }} ke keranjang">+</button>
+            </form>
+          @endif
         </div>
         <div class="rec-why">
           @foreach($item['reasons'] as $reason)
@@ -372,14 +404,14 @@ dialog form{display:grid;gap:12px}
 @endif
 
 <!-- PRODUK TERLARIS -->
-<section id="terlaris" class="sec {{ $isPersonal ? '' : 'alt' }}"><div class="wrap">
+<section id="terlaris" class="sec {{ $isPelanggan ? '' : 'alt' }}"><div class="wrap">
   <div class="head"><h2>Produk Terlaris</h2>
     <p>Produk paling banyak terjual di La Mamora, dihitung dari transaksi selesai 90 hari terakhir.</p>
   </div>
   <div class="rec-note">
     <span>&#128293;</span>
     <span>
-      @if($isPersonal)
+      @if($isPelanggan)
         <b>Paling laris</b> di antara produk yang baru kamu lihat.
       @else
         <b>Rekomendasi populer</b> untuk pengunjung yang baru mencari outfit.
@@ -407,10 +439,19 @@ dialog form{display:grid;gap:12px}
         <div class="row">
           <b>Rp {{ number_format($bestProduct->price, 0, ',', '.') }}</b>
           @guest
-            <button class="add" data-need-auth aria-label="Masuk untuk membeli {{ $bestProduct->name }}">+</button>
-          @else
-            <a class="add" href="{{ route('toko.index') }}" aria-label="Lihat {{ $bestProduct->name }} di katalog">&rarr;</a>
-          @endguest
+            <form action="{{ route('toko.cart.intent', $bestProduct->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <input type="hidden" name="return_to" value="{{ url()->current() }}">
+              <button class="add" type="submit" aria-label="Masuk untuk membeli {{ $bestProduct->name }}">+</button>
+            </form>
+          @elseif($isPelanggan)
+            <form action="{{ route('toko.cart.add', $bestProduct->id) }}" method="POST" style="display:inline">
+              @csrf
+              <input type="hidden" name="quantity" value="1">
+              <button class="add" type="submit" aria-label="Tambah {{ $bestProduct->name }} ke keranjang">+</button>
+            </form>
+          @endif
         </div>
         <div class="rec-why">
           <span>{{ $item['sold'] }} pcs terjual</span>

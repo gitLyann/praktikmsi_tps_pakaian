@@ -29,14 +29,14 @@ class LandingController extends Controller
         ];
 
         $user = $request->user();
-        $isPersonal = $user !== null && $user->role === 'pelanggan';
+        $isPelanggan = $user !== null && $user->role === 'pelanggan';
 
-        $recommended = $isPersonal
+        $recommended = $isPelanggan
             ? $recommendations->recommendFor($user)
             : $recommendations->recommendForGuest();
 
         $bestSelling = $recommendations->bestSelling(4);
 
-        return view('welcome', compact('products', 'categories', 'stats', 'recommended', 'bestSelling', 'isPersonal'));
+        return view('welcome', compact('products', 'categories', 'stats', 'recommended', 'bestSelling'));
     }
 }

@@ -92,13 +92,29 @@
                             <b>Rp {{ number_format($product->price, 0, ',', '.') }}</b>
                             <span class="mini{{ $product->stock > 0 ? '' : ' out' }}">{{ $product->stock }} Pcs</span>
                         </div>
-                        <button class="buy" type="button" data-buy="{{ $product->id }}"
-                                data-name="{{ $product->name }}"
-                                data-price="{{ (int) $product->price }}"
-                                data-stock="{{ (int) $product->stock }}"
-                                @disabled($product->stock <= 0)>
-                            {{ $product->stock > 0 ? 'Beli Sekarang' : 'Stok Habis' }}
-                        </button>
+                        <div class="actions">
+                            @if($isPelanggan)
+                                <form action="{{ route('toko.cart.add', $product->id) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button class="buy" type="submit" @disabled($product->stock <= 0)>+ Keranjang</button>
+                                </form>
+                            @elseif(! Auth::check())
+                                <form action="{{ route('toko.cart.intent', $product->id) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    <input type="hidden" name="quantity" value="1">
+                                    <input type="hidden" name="return_to" value="{{ url()->current() }}">
+                                    <button class="buy" type="submit" @disabled($product->stock <= 0)>+ Keranjang</button>
+                                </form>
+                            @endif
+                            <button class="buy" type="button" data-buy="{{ $product->id }}"
+                                    data-name="{{ $product->name }}"
+                                    data-price="{{ (int) $product->price }}"
+                                    data-stock="{{ (int) $product->stock }}"
+                                    @disabled($product->stock <= 0)>
+                                {{ $product->stock > 0 ? 'Beli Sekarang' : 'Stok Habis' }}
+                            </button>
+                        </div>
                     </article>
                 @empty
                     <div class="empty">Belum ada produk yang tersedia di katalog saat ini.</div>

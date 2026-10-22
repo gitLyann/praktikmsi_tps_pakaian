@@ -1012,14 +1012,25 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 
 ---
 
+## 2026-10-22 - Phase 35: Keranjang Pelanggan (DB-only) & Isolasi Data
+- Audit: belum ada tabel/route keranjang (pembelian langsung via `toko.buy`); favorit/riwayat transaksi sudah terikat `auth()->id()`, tidak ada endpoint yang menerima `user_id` dari request; profil memakai `Auth::user()`.
+- Tambah tabel `carts` (`user_id` FK->users cascade, `product_id` FK->products, `quantity`, unique(user_id,product_id)) + `app/Models/Cart.php` dengan `User::carts()` dan `Product::cartItems()`.
+- `app/Http/Controllers/CartController.php`: index/tambah/ubah/hapus/kosongkan/checkout + niat tamu; route `toko.cart.*` di middleware `auth` + `role:pelanggan`.
+- Isolasi: `Cart::resolveRouteBinding()` hanya mencari keranjang milik user login sehingga id milik orang lain 404; `checkout` memproses `$user->carts()` saja; `intent`/`addFromIntent` menolak staff/admin.
+- Checkout dalam `DB::transaction` + `lockForUpdate()`: buat `transactions` + `transaction_details`, kurangi stok, hapus keranjang pemilik.
+- `app/Services/TransactionCustomerResolver.php` menormalkan `transactions.customer_id` untuk MySQL (`users.id`) dan SQLite (`customers.id`), dipakai checkout, pembelian langsung, dan riwayat pesanan.
+- Tombol "Tambah ke Keranjang" di kartu produk, detail, favorit, rekomendasi, dan landing; tamu diarahkan login lalu kembali. Badge jumlah item di sidebar + topbar lewat `CustomerContextComposer`.
+- `resources/views/toko/cart.blade.php` mengikuti design system La Mamora; CSS keranjang ditambahkan ke `public/css/la-mamora-shop.css`.
+- Verifikasi: `--filter=CartIsolationTest` 16/16 (57), `--filter=CheckoutIsolationTest` 6/6 (24), `--filter=FavoriteIsolationTest` 5/5 (20), `--filter=CustomerPagesRenderTest` 7/7 (77), `--filter=LandingRecommendationTest` 5/5 (19), `--filter=ProductRecommendationServiceTest` 8/8 (22), `--filter=StaffDashboardTabTest` 5/5 (96), `--filter=DssDemoTransactionSeederTest` 3/3 (11), `--filter=DssRoleAccessTest` 4/4 (11).
+- Batas: `pint` dan test suite penuh tidak dijalankan; fitur belum diverifikasi manual di browser.
 
 ---
 
 ## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-22)
 - **Base URL**: `http://localhost:8000` (jalanin `php artisan serve` bila belum aktif).
 - **Akun demo**: admin `admin@gmail.com` / `Manager Toko` (password `password123`), staff `kasir@gmail.com` / `Kasir Toko` (password `password123`), pelanggan `dewi.demo@lamamora.test` (password `password`; teammates: `budi.demo`, `siti.demo`, `andi.demo` @lamamora.test).
-- **Daftar URL**: `/` (landing), `/login`, `/register`, `/toko` (katalog pelanggan), `/toko/produk/{id}`, `/toko/favorit`, `/toko/pesanan`, `/master-supplier` (Master Supplier - admin/staff), `/staff/dashboard` (form Pengajuan Restock & Master Produk dengan penawaran supplier), `/staff/dss` (Penilaian Pemasok, 3 tab), `/admin/dashboard`, `/admin/dss` (Analisis DSS, 6 tab).
-- **Urutan screenshot**: (1) `/` sebagai tamu -> seksi "Produk Terlaris"; (2) `/` login sebagai `dewi.demo@lamamora.test` -> seksi "Rekomendasi untukmu"; (3) `/toko` katalog (shell La Mamora); (4) `/toko/produk/{id}` detail; (5) `/toko/favorit` dan `/toko/pesanan`; (6) `/login` dan `/register` (auth `.lm-auth*`); (7) `/master-supplier` (CRUD/search/filter); (8) `/staff/dashboard` -> form Pengajuan Restock/Master Produk dengan dropdown supplier aktif; (9) `/staff/dss` -> tab Rekomendasi Restock, tab Penilaian Supplier, tab Ranking Supplier; (10) `/admin/dss` -> tab Ringkasan, Bobot AHP, Ranking VIKOR, Restock, Pemasok, Riwayat.
+- **Daftar URL**: `/` (landing), `/login`, `/register`, `/toko` (katalog pelanggan), `/toko/produk/{id}`, `/toko/keranjang` (keranjang belanja + badge), `/toko/favorit`, `/toko/pesanan`, `/master-supplier` (Master Supplier - admin/staff), `/staff/dashboard` (form Pengajuan Restock & Master Produk dengan penawaran supplier), `/staff/dss` (Penilaian Pemasok, 3 tab), `/admin/dashboard`, `/admin/dss` (Analisis DSS, 6 tab).
+- **Urutan screenshot**: (1) `/` sebagai tamu -> seksi "Produk Terlaris"; (2) `/` login sebagai `dewi.demo@lamamora.test` -> seksi "Rekomendasi untukmu"; (3) `/toko` katalog (shell La Mamora) + tombol "+ Keranjang"; (4) `/toko/produk/{id}` detail; (5) `/toko/keranjang` isi keranjang + ringkasan checkout; (6) `/toko/favorit` dan `/toko/pesanan`; (7) `/login` dan `/register` (auth `.lm-auth*`); (8) `/master-supplier` (CRUD/search/filter); (9) `/staff/dashboard` -> form Pengajuan Restock/Master Produk dengan dropdown supplier aktif; (10) `/staff/dss` -> tab Rekomendasi Restock, tab Penilaian Supplier, tab Ranking Supplier; (11) `/admin/dss` -> tab Ringkasan, Bobot AHP, Ranking VIKOR, Restock, Pemasok, Riwayat.
 - **Data siap tampil**: 5 pemasok + 6 kriteria AHP (CR = 0, bobot 0,30/0,25/0,18/0,12/0,08/0,07), 30 baris skor (run draft "Penilaian Pemasok Demo"), 93 transaksi demo 30 hari terakhir, 2 run analisis (run #2 `completed` + 5 rekomendasi restock tersimpan).
 - **Hasil VIKOR demo**: peringkat 1 Konveksi Bandung Sentosa (Q = 0, klasifikasi "Solusi Tunggal"), 2 Konveksi Semarang Abadi (Q = 0,3437), 3 Textile Surabaya Jaya (Q = 0,4016), 4 Konveksi Jakarta Makmur (Q = 0,4118), 5 Konveksi Yogyakarta Langgeng (Q = 1); advantage = ya, ranking stabil.
 - **Rekomendasi restock demo**: 1 produk "Perlu Restock" - Gaul Totebag, 25 pcs, Rp 850.000, pemasok Konveksi Bandung Sentosa.

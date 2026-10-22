@@ -78,19 +78,29 @@
             </div>
 
             <div class="actions">
-                <button type="button" class="fav lg" data-fav="{{ route('toko.favorit.toggle', $product->id) }}"
-                        aria-pressed="{{ $sudahFavorit ? 'true' : 'false' }}"
-                        aria-label="{{ $sudahFavorit ? 'Hapus dari favorit' : 'Tambahkan ke favorit' }}">
+                @if($isPelanggan)
+                    <form action="{{ route('toko.cart.add', $product) }}" method="POST" style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+                        @csrf
+                        <input type="number" name="quantity" value="1" min="1" max="{{ $product->stock }}" style="width:90px;padding:10px 12px;border-radius:12px;border:1px solid var(--lm-line)">
+                        <button class="btn orange" type="submit" @if($product->stock < 1) disabled @endif>Tambah ke Keranjang</button>
+                    </form>
+                @elseif(! Auth::check())
+                    <form action="{{ route('toko.cart.intent', $product->id) }}" method="POST" style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+                        @csrf
+                        <input type="hidden" name="quantity" value="1">
+                        <input type="hidden" name="return_to" value="{{ url()->current() }}">
+                        <button class="btn orange" type="submit" @if($product->stock < 1) disabled @endif>Tambah ke Keranjang</button>
+                    </form>
+                @endif
+                <button type="button" class="fav lg" data-fav="{{ route('toko.favorit.toggle', $product->id) }}" aria-pressed="{{ $sudahFavorit ? 'true' : 'false' }}" aria-label="{{ $sudahFavorit ? 'Hapus dari favorit' : 'Tambahkan ke favorit' }}">
                     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                 </button>
-
                 <button type="button" class="btn" id="detailBuy" @disabled($product->stock <= 0)
                         data-name="{{ $product->name }}"
                         data-price="{{ (int) $product->price }}"
                         data-stock="{{ (int) $product->stock }}">
                     {{ $product->stock > 0 ? 'Beli Sekarang' : 'Stok Habis' }}
                 </button>
-
                 <a href="{{ route('toko.favorit') }}" class="btn ghost">Lihat Favorit</a>
             </div>
         </div>

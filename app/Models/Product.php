@@ -54,6 +54,12 @@ class Product extends Model
         return $this->hasMany(DssRestockRecommendation::class);
     }
 
+    // Relasi ke keranjang
+    public function cartItems()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
     // Path gambar relatif terhadap folder public, atau null bila produk belum punya foto
     public function getImageUrlAttribute(): ?string
     {
