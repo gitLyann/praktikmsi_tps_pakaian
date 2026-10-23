@@ -35,45 +35,29 @@
         @endif
 
         @if(session('error'))
-            <div class="mb-3">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-                </div>
-            </div>
+            <x-ui.toast type="danger" class="mb-3">{{ session('error') }}</x-ui.toast>
         @endif
 
         @if($errors->any())
-            <div class="mb-3">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <ul class="mb-0 ps-3">
-                        @foreach($errors->all() as $errorMessage)
-                            <li>{{ $errorMessage }}</li>
-                        @endforeach
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-                </div>
-            </div>
+            <x-ui.toast type="danger" class="mb-3">
+                <ul class="mb-0 ps-3">
+                    @foreach($errors->all() as $errorMessage)
+                        <li>{{ $errorMessage }}</li>
+                    @endforeach
+                </ul>
+            </x-ui.toast>
         @endif
 
         {{-- Navigasi tab --}}
-        <ul class="nav nav-pills mb-4 flex-wrap gap-1" data-dss-tabs>
-            <li class="nav-item">
-                <a href="#dss-restock" class="nav-link active" data-dss-tab="dss-restock">
-                    <i class="bi bi-box-seam me-1"></i>Rekomendasi Restock
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-penilaian" class="nav-link" data-dss-tab="dss-penilaian">
-                    <i class="bi bi-pencil-square me-1"></i>Penilaian Supplier
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-ranking" class="nav-link" data-dss-tab="dss-ranking">
-                    <i class="bi bi-trophy me-1"></i>Ranking Supplier
-                </a>
-            </li>
-        </ul>
+        <x-ui.tabs
+            :items="[
+                ['id' => 'dss-restock', 'label' => 'Rekomendasi Restock', 'icon' => 'bi bi-box-seam', 'active' => true],
+                ['id' => 'dss-penilaian', 'label' => 'Penilaian Supplier', 'icon' => 'bi bi-pencil-square'],
+                ['id' => 'dss-ranking', 'label' => 'Ranking Supplier', 'icon' => 'bi bi-trophy'],
+            ]"
+            dss
+            class="mb-4"
+        />
 
         {{-- ============================ REKOMENDASI RESTOCK ============================ --}}
         <div data-dss-section="dss-restock">
@@ -165,11 +149,11 @@
                 </div>
                 <div class="card-body">
                     @if($restockRequests->isEmpty())
-                        <div class="lm-empty">
-                            <i class="bi bi-inbox"></i>
-                            <div class="lm-empty-title">Belum ada pengajuan restock</div>
-                            <div class="lm-empty-text">Klik "Ajukan Restock" pada tabel di atas.</div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-inbox"
+                            title="Belum ada pengajuan restock"
+                            description='Klik "Ajukan Restock" pada tabel di atas.'
+                        />
                     @else
                         <div class="lm-table-wrap">
                             <table class="table table-bordered align-middle mb-0">
@@ -247,13 +231,11 @@
                 </div>
                 <div class="card-body">
                     @if($suppliers === [] || $criteria === [])
-                        <div class="lm-empty">
-                            <i class="bi bi-truck"></i>
-                            <div class="lm-empty-title">Data penilaian belum lengkap</div>
-                            <div class="lm-empty-text">
-                                Form penilaian membutuhkan minimal satu pemasok dan satu kriteria penilaian.
-                            </div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-truck"
+                            title="Data penilaian belum lengkap"
+                            description="Form penilaian membutuhkan minimal satu pemasok dan satu kriteria penilaian."
+                        />
                     @else
                         <form method="POST" action="{{ route('staff.dss.scores.store') }}">
                             @csrf
@@ -327,11 +309,11 @@
                     </p>
 
                     @if($vikor['scores'] === [])
-                        <div class="lm-empty">
-                            <i class="bi bi-clipboard-data"></i>
-                            <div class="lm-empty-title">Belum ada skor pemasok</div>
-                            <div class="lm-empty-text">Isi form penilaian terlebih dahulu di tab "Penilaian Supplier".</div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-bar-chart"
+                            title="Belum ada skor pemasok"
+                            description="Isi form penilaian terlebih dahulu di tab 'Penilaian Supplier'."
+                        />
                     @else
                         <div class="lm-metric-row mb-4">
                             <div class="lm-metric">

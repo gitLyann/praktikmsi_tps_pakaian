@@ -139,14 +139,14 @@
                     <button type="button" class="lm-theme-toggle ic" data-theme-toggle aria-label="Aktifkan mode gelap" aria-pressed="false" title="Mode gelap">
                         <i class="bi bi-moon-stars" data-theme-icon></i>
                     </button>
-                    <span class="lm-chip">
+                    <x-ui.chip>
                         <i class="bi bi-calendar3"></i>
                         {{ now()->translatedFormat('d M Y') }}
-                    </span>
-                    <span class="lm-chip">
+                    </x-ui.chip>
+                    <x-ui.chip>
                         <i class="bi bi-person-circle"></i>
                         {{ ucfirst(Auth::user()->role ?? 'user') }}
-                    </span>
+                    </x-ui.chip>
                 </div>
             </header>
 

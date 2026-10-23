@@ -377,6 +377,13 @@
 - [x] Verifikasi: `--filter=CartIsolationTest|CheckoutIsolationTest|CatalogFilterTest|CartAddFlowTest|CheckoutPaymentTest|CustomerPagesRenderTest|FavoriteIsolationTest` 51/51; `pint`/suite penuh tidak dijalankan
 - [ ] Phase 38 - **Belum diverifikasi di browser** - drawer, panel filter, akordeon pembayaran terang/gelap
 
+### Phase 39 - Restyle dashboard admin & staff (HeroUI-like)
+- [x] **FASE A** Buat 16 komponen Blade `resources/views/components/ui/*` sesuai API
+- [x] **FASE A** Tambah layer CSS `.ui-*` di `public/css/la-mamora.css` (token/radius/shadow/fokus/badge/table/tabs/form/modal/sidebar)
+- [x] **FASE B** Terapkan ke `layouts/app.blade.php`, `layouts/sidebar.blade.php`, `admin/dashboard.blade.php`, `staff/dashboard.blade.php`, `admin/dss.blade.php`, `staff/dss.blade.php`, `supplier/master.blade.php`
+- [x] Verifikasi test `--filter` dashboard/DSS/supplier + `php artisan view:cache`
+- [x] Update `changelog.md` (maks 15 baris) & `todo.md`
+
 ### Penutup
 - [x] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock, keranjang)
 - [ ] Commit perubahan setelah diminta

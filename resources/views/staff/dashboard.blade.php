@@ -8,37 +8,24 @@
 @section('content')
     <!-- Alert Success -->
     @if(session('success'))
-        <div class="mb-3">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-            </div>
-        </div>
+        <x-ui.toast type="success" class="mb-3">{{ session('success') }}</x-ui.toast>
     @endif
 
     <!-- Alert Error -->
     @if(session('error'))
-        <div class="mb-3">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-            </div>
-        </div>
+        <x-ui.toast type="danger" class="mb-3">{{ session('error') }}</x-ui.toast>
     @endif
 
     <!-- Error validasi form edit produk juga ditampilkan di overlay kustom,
          alert ini sebagai cadangan ketika overlay tidak bisa dibuka kembali. -->
     @if($errors->any() && !old('_produk_id'))
-        <div class="mb-3">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <ul class="mb-0 ps-3">
-                    @foreach($errors->all() as $errorMessage)
-                        <li>{{ $errorMessage }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-            </div>
-        </div>
+        <x-ui.toast type="danger" class="mb-3">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $errorMessage)
+                    <li>{{ $errorMessage }}</li>
+                @endforeach
+            </ul>
+        </x-ui.toast>
     @endif
 
 
@@ -58,43 +45,30 @@
             <!-- Widget Statistik -->
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="lm-stat-icon">
-                                <i class="bi bi-box-seam fs-4"></i>
-                            </div>
-                            <div>
-                                <div class="lm-stat-label">Total Produk</div>
-                                <div class="lm-stat-value">{{ $totalProduk }}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <x-ui.stat-card
+                        label="Total Produk"
+                        :value="$totalProduk"
+                        icon="bi bi-box-seam"
+                        class="h-100"
+                    />
                 </div>
                 <div class="col-12 col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="lm-stat-icon is-warning">
-                                <i class="bi bi-exclamation-triangle fs-4"></i>
-                            </div>
-                            <div>
-                                <div class="lm-stat-label">Stok Kritis</div>
-                                <div class="lm-stat-value">{{ $stokKritis }}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <x-ui.stat-card
+                        label="Stok Kritis"
+                        :value="$stokKritis"
+                        icon="bi bi-exclamation-triangle"
+                        tone="warning"
+                        class="h-100"
+                    />
                 </div>
                 <div class="col-12 col-md-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="lm-stat-icon is-info">
-                                <i class="bi bi-hourglass-split fs-4"></i>
-                            </div>
-                            <div>
-                                <div class="lm-stat-label">Restock Pending</div>
-                                <div class="lm-stat-value">{{ $restockPending }}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <x-ui.stat-card
+                        label="Restock Pending"
+                        :value="$restockPending"
+                        icon="bi bi-hourglass-split"
+                        tone="info"
+                        class="h-100"
+                    />
                 </div>
             </div>
 
@@ -141,7 +115,7 @@
                     <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Ringkasan Pengajuan Terbaru</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <x-ui.table label="Ringkasan pengajuan restock terbaru">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -174,7 +148,7 @@
                                 @endforelse
                             </tbody>
                         </table>
-                    </div>
+                    </x-ui.table>
                 </div>
             </div>
         </div>
@@ -199,7 +173,7 @@
                         </div>
                     </div>
 
-                    <div class="table-responsive">
+                    <x-ui.table label="Detail produk dan monitoring stok">
                         <table class="table table-bordered table-hover align-middle mb-0" id="productTable">
                             <thead class="table-light">
                                 <tr>
@@ -281,7 +255,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </x-ui.table>
                 </div>
             </div>
         </div>
@@ -358,10 +332,10 @@
                             <span><i class="bi bi-hourglass-split me-2"></i>Daftar Pengajuan Menunggu Keputusan (Pending Only)</span>
                             <span class="badge bg-white text-info">{{ $pendingRestocks->count() }}</span>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
+                <div class="card-body">
+                    <x-ui.table label="Pengajuan restock menunggu persetujuan">
+                        <table class="table table-bordered align-middle mb-0">
+                            <thead class="table-light">
                                         <tr>
                                             <th>ID</th>
                                             <th>Produk</th>
@@ -387,9 +361,10 @@
                                         @endforelse
                                     </tbody>
                                 </table>
-                            </div>
+                            </x-ui.table>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -577,7 +552,7 @@
                     <p class="text-muted small mb-3">
                         Menggabungkan aktivitas pendaftaran master produk baru dan pengajuan restock, diurutkan dari yang terbaru.
                     </p>
-                    <div class="table-responsive">
+                    <x-ui.table label="Riwayat aktivitas stok">
                         <table class="table table-bordered table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -622,7 +597,7 @@
                                 @endforelse
                             </tbody>
                         </table>
-                    </div>
+                    </x-ui.table>
                 </div>
             </div>
         </div>

@@ -8,30 +8,20 @@
 @section('content')
     <!-- Notifikasi Sukses -->
     @if(session('success'))
-        <div class="mb-3">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-            </div>
-        </div>
+        <x-ui.toast type="success" class="mb-3">{{ session('success') }}</x-ui.toast>
     @endif
 
     <!-- Notifikasi Error -->
     @if(session('error'))
-        <div class="mb-3">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-            </div>
-        </div>
+        <x-ui.toast type="danger" class="mb-3">{{ session('error') }}</x-ui.toast>
     @endif
 
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h3 class="mb-0"><i class="bi bi-check-circle me-2"></i>Dashboard Manager</h3>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.dashboard') }}#kelola-produk" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-box-seam me-1"></i> Kelola Produk
-            </a>
+            <x-ui.button href="{{ route('admin.dashboard') }}#kelola-produk" variant="outline" size="sm" icon="bi bi-box-seam">
+                Kelola Produk
+            </x-ui.button>
         </div>
     </div>
 
@@ -46,60 +36,43 @@
         {{-- KPI Executive Summary --}}
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="lm-stat-icon is-success">
-                            <i class="bi bi-cash-stack fs-4"></i>
-                        </div>
-                        <div>
-                            <div class="lm-stat-label">Total Omset</div>
-                            <div class="lm-stat-value">Rp {{ number_format($kpi['omset'], 0, ',', '.') }}</div>
-                            <div class="lm-stat-note">Periode berjalan</div>
-                        </div>
-                    </div>
-                </div>
+                <x-ui.stat-card
+                    label="Total Omset"
+                    :value="'Rp ' . number_format($kpi['omset'], 0, ',', '.')"
+                    note="Periode berjalan"
+                    icon="bi bi-cash-stack"
+                    tone="success"
+                    class="h-100"
+                />
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="lm-stat-icon">
-                            <i class="bi bi-cart-check fs-4"></i>
-                        </div>
-                        <div>
-                            <div class="lm-stat-label">Produk Terjual</div>
-                            <div class="lm-stat-value">{{ number_format($kpi['produk_terjual']) }} pcs</div>
-                            <div class="lm-stat-note">Dari transaction_details</div>
-                        </div>
-                    </div>
-                </div>
+                <x-ui.stat-card
+                    label="Produk Terjual"
+                    :value="number_format($kpi['produk_terjual']) . ' pcs'"
+                    note="Dari transaction_details"
+                    icon="bi bi-cart-check"
+                    class="h-100"
+                />
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="lm-stat-icon is-warning">
-                            <i class="bi bi-exclamation-triangle fs-4"></i>
-                        </div>
-                        <div>
-                            <div class="lm-stat-label">Stok Kritis</div>
-                            <div class="lm-stat-value">{{ $kpi['stok_kritis'] }} produk</div>
-                            <div class="lm-stat-note">Stok &lt; 5 pcs</div>
-                        </div>
-                    </div>
-                </div>
+                <x-ui.stat-card
+                    label="Stok Kritis"
+                    :value="$kpi['stok_kritis'] . ' produk'"
+                    note="Stok < 5 pcs"
+                    icon="bi bi-exclamation-triangle"
+                    tone="warning"
+                    class="h-100"
+                />
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="lm-stat-icon is-info">
-                            <i class="bi bi-hourglass-split fs-4"></i>
-                        </div>
-                        <div>
-                            <div class="lm-stat-label">Restock Pending</div>
-                            <div class="lm-stat-value">{{ $kpi['restock_pending'] }} pengajuan</div>
-                            <div class="lm-stat-note">Menunggu keputusan</div>
-                        </div>
-                    </div>
-                </div>
+                <x-ui.stat-card
+                    label="Restock Pending"
+                    :value="$kpi['restock_pending'] . ' pengajuan'"
+                    note="Menunggu keputusan"
+                    icon="bi bi-hourglass-split"
+                    tone="info"
+                    class="h-100"
+                />
             </div>
         </div>
 
@@ -278,7 +251,7 @@
                         <i class="bi bi-check-circle me-2"></i>Semua stok aman - tidak ada produk dengan stok di bawah 5 pcs.
                     </div>
                 @else
-                    <div class="table-responsive">
+                    <x-ui.table label="Daftar produk stok menipis">
                         <table class="table table-bordered table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -309,7 +282,7 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    </div>
+                    </x-ui.table>
                 @endif
             </div>
         </div>
@@ -326,7 +299,7 @@
                 <span class="badge bg-light text-dark">{{ $products->count() }} produk</span>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <x-ui.table label="Daftar master produk">
                     <table class="table table-bordered table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -418,7 +391,7 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
+                </x-ui.table>
             </div>
         </div>
     </div>
@@ -429,7 +402,7 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-body">
-                <div class="table-responsive">
+                <x-ui.table label="Daftar pengajuan restock">
                     <table class="table table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
@@ -481,7 +454,7 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
+                </x-ui.table>
             </div>
         </div>
     </div>
@@ -496,7 +469,7 @@
                 <span class="badge bg-light text-dark">{{ $auditTrail->count() }} catatan</span>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <x-ui.table label="Riwayat pengajuan restock">
                     <table class="table table-bordered table-hover align-middle">
                         <thead class="table-light">
                             <tr>
@@ -538,7 +511,7 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
+                </x-ui.table>
             </div>
         </div>
     </div>

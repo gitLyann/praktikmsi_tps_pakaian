@@ -39,47 +39,22 @@
         @endif
 
         @if(session('error'))
-            <div class="mb-3">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="close" aria-label="Close"></button>
-                </div>
-            </div>
+            <x-ui.toast type="danger" class="mb-3">{{ session('error') }}</x-ui.toast>
         @endif
 
         {{-- Navigasi tab modul DSS --}}
-        <ul class="nav nav-pills mb-4 flex-wrap gap-1" data-dss-tabs>
-            <li class="nav-item">
-                <a href="#dss-ringkasan" class="nav-link active" data-dss-tab="dss-ringkasan">
-                    <i class="bi bi-speedometer2 me-1"></i>Ringkasan
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-bobot-ahp" class="nav-link" data-dss-tab="dss-bobot-ahp">
-                    <i class="bi bi-diagram-3 me-1"></i>Bobot AHP
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-ranking" class="nav-link" data-dss-tab="dss-ranking">
-                    <i class="bi bi-trophy me-1"></i>Ranking VIKOR
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-restock" class="nav-link" data-dss-tab="dss-restock">
-                    <i class="bi bi-box-seam me-1"></i>Restock
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-pemasok" class="nav-link" data-dss-tab="dss-pemasok">
-                    <i class="bi bi-truck me-1"></i>Pemasok
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#dss-riwayat" class="nav-link" data-dss-tab="dss-riwayat">
-                    <i class="bi bi-clock-history me-1"></i>Riwayat
-                </a>
-            </li>
-        </ul>
+        <x-ui.tabs
+            :items="[
+                ['id' => 'dss-ringkasan', 'label' => 'Ringkasan', 'icon' => 'bi bi-speedometer2', 'active' => true],
+                ['id' => 'dss-bobot-ahp', 'label' => 'Bobot AHP', 'icon' => 'bi bi-diagram-3'],
+                ['id' => 'dss-ranking', 'label' => 'Ranking VIKOR', 'icon' => 'bi bi-trophy'],
+                ['id' => 'dss-restock', 'label' => 'Restock', 'icon' => 'bi bi-box-seam'],
+                ['id' => 'dss-pemasok', 'label' => 'Pemasok', 'icon' => 'bi bi-truck'],
+                ['id' => 'dss-riwayat', 'label' => 'Riwayat', 'icon' => 'bi bi-clock-history'],
+            ]"
+            dss
+            class="mb-4"
+        />
 
         {{-- ============================ RINGKASAN ============================ --}}
         <div data-dss-section="dss-ringkasan">
@@ -221,11 +196,11 @@
                 </div>
                 <div class="card-body">
                     @if($matrix['criteria'] === [])
-                        <div class="lm-empty">
-                            <i class="bi bi-diagram-3"></i>
-                            <div class="lm-empty-title">Belum ada kriteria penilaian</div>
-                            <div class="lm-empty-text">Tambahkan kriteria pada tabel <code>dss_criteria</code> terlebih dahulu.</div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-list-check"
+                            title="Belum ada kriteria penilaian"
+                            description="Tambahkan kriteria pada tabel dss_criteria terlebih dahulu."
+                        />
                     @else
                         <p class="text-muted small">
                             Isi kotak bagian atas diagonal: nilai perbandingan kriteria baris terhadap kolom
@@ -443,11 +418,11 @@
                 </div>
                 <div class="card-body">
                     @if($suppliers === [])
-                        <div class="lm-empty">
-                            <i class="bi bi-truck"></i>
-                            <div class="lm-empty-title">Belum ada pemasok</div>
-                            <div class="lm-empty-text">Data pemasok dipakai sebagai alternatif dalam VIKOR.</div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-truck"
+                            title="Belum ada pemasok"
+                            description="Data pemasok dipakai sebagai alternatif dalam VIKOR."
+                        />
                     @else
                         <div class="lm-table-wrap">
                             <table class="table table-bordered align-middle mb-0">
@@ -572,11 +547,11 @@
                 </div>
                 <div class="card-body">
                     @if($restockRequests->isEmpty())
-                        <div class="lm-empty">
-                            <i class="bi bi-inbox"></i>
-                            <div class="lm-empty-title">Belum ada pengajuan restock dari DSS</div>
-                            <div class="lm-empty-text">Klik "Buat Pengajuan" pada tabel rekomendasi di atas.</div>
-                        </div>
+                        <x-ui.empty-state
+                            icon="bi bi-send"
+                            title="Belum ada pengajuan restock dari DSS"
+                            description='Klik "Buat Pengajuan" pada tabel rekomendasi di atas.'
+                        />
                     @else
                         <div class="lm-table-wrap">
                             <table class="table table-bordered align-middle mb-0">
@@ -695,12 +670,12 @@
                     <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Daftar Pemasok &amp; Relasi Produk</h5>
                 </div>
                 <div class="card-body">
-                    @if($supplierList->isEmpty())
-                        <div class="lm-empty">
-                            <i class="bi bi-truck"></i>
-                            <div class="lm-empty-title">Belum ada pemasok</div>
-                            <div class="lm-empty-text">Tambahkan pemasok lewat form di atas.</div>
-                        </div>
+                    @if($suppliers === [])
+                        <x-ui.empty-state
+                            icon="bi bi-truck"
+                            title="Belum ada pemasok"
+                            description="Tambahkan pemasok lewat form di atas."
+                        />
                     @else
                         <div class="d-flex flex-column gap-3">
                             @foreach($supplierList as $supplier)
@@ -896,12 +871,18 @@
                     <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Riwayat Analisis (dss_runs)</h5>
                 </div>
                 <div class="card-body">
-                    @if($runs->isEmpty())
-                        <div class="lm-empty">
-                            <i class="bi bi-clock-history"></i>
-                            <div class="lm-empty-title">Belum ada riwayat analisis</div>
-                            <div class="lm-empty-text">Klik "Jalankan &amp; Simpan Analisis" untuk membuat run pertama.</div>
-                        </div>
+                    @if(isset($analyses) && $analyses->isEmpty())
+                        <x-ui.empty-state
+                            icon="bi bi-clock-history"
+                            title="Belum ada riwayat analisis"
+                            description='Klik "Jalankan & Simpan Analisis" untuk membuat run pertama.'
+                        />
+                    @elseif(isset($runs) && $runs->isEmpty())
+                        <x-ui.empty-state
+                            icon="bi bi-clock-history"
+                            title="Belum ada riwayat analisis"
+                            description='Klik "Jalankan & Simpan Analisis" untuk membuat run pertama.'
+                        />
                     @else
                         <div class="lm-table-wrap">
                             <table class="table table-bordered align-middle mb-0">

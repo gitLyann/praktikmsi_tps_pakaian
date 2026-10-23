@@ -1106,3 +1106,821 @@ body.lm-dashboard .sidebar-overlay.show {
         display: inline-flex;
     }
 }
+
+/* ==========================================================================
+   UI Kit — HeroUI-inspired dashboard layer
+   ========================================================================== */
+
+:root {
+    --ui-radius-sm: 10px;
+    --ui-radius: 14px;
+    --ui-radius-lg: 18px;
+    --ui-shadow-xs: 0 1px 2px rgba(15, 23, 42, .05);
+    --ui-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 28px -20px rgba(15, 23, 42, .35);
+    --ui-shadow-hover: 0 2px 6px rgba(15, 23, 42, .06), 0 18px 36px -24px rgba(15, 23, 42, .45);
+    --ui-ease: 150ms cubic-bezier(.2, .8, .2, 1);
+    --ui-focus: 0 0 0 3px rgba(175, 243, 62, .38);
+    --ui-success-fg: #166534;
+    --ui-danger-fg: #b91c1c;
+    --ui-info-fg: #1d4ed8;
+    --ui-warning-fg: #92400e;
+    --ui-tint-success: rgba(34, 197, 94, .12);
+    --ui-tint-danger: rgba(239, 68, 68, .12);
+    --ui-tint-info: rgba(59, 130, 246, .12);
+    --ui-tint-warning: rgba(245, 158, 11, .14);
+}
+
+.dark,
+.lm-dark,
+[data-bs-theme="dark"] {
+    --ui-success-fg: #86efac;
+    --ui-danger-fg: #fca5a5;
+    --ui-info-fg: #93c5fd;
+    --ui-warning-fg: #fcd34d;
+    --ui-tint-success: rgba(34, 197, 94, .16);
+    --ui-tint-danger: rgba(239, 68, 68, .18);
+    --ui-tint-info: rgba(59, 130, 246, .18);
+    --ui-tint-warning: rgba(245, 158, 11, .18);
+    --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, .4);
+    --ui-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 32px -22px rgba(0, 0, 0, .8);
+    --ui-shadow-hover: 0 4px 8px rgba(0, 0, 0, .4), 0 22px 44px -26px rgba(0, 0, 0, .9);
+}
+
+/* Cards ------------------------------------------------------------------ */
+
+body.lm-dashboard .card,
+.ui-card {
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius-lg);
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    box-shadow: var(--ui-shadow);
+}
+
+body.lm-dashboard .card.shadow,
+body.lm-dashboard .card.shadow-sm,
+body.lm-dashboard .card.shadow-lg {
+    box-shadow: var(--ui-shadow) !important;
+}
+
+.ui-card-hover {
+    transition: transform var(--ui-ease), box-shadow var(--ui-ease), border-color var(--ui-ease);
+}
+
+.ui-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ui-shadow-hover);
+    border-color: color-mix(in srgb, var(--lm-primary) 45%, var(--lm-border));
+}
+
+body.lm-dashboard .card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem 1.25rem;
+    background-color: transparent;
+    border-bottom: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0 !important;
+}
+
+body.lm-dashboard .card-header.bg-primary,
+body.lm-dashboard .card-header.bg-dark,
+body.lm-dashboard .card-header.bg-info,
+body.lm-dashboard .card-header.bg-secondary,
+body.lm-dashboard .card-header.bg-warning,
+body.lm-dashboard .card-header.bg-danger,
+body.lm-dashboard .card-header.bg-light,
+body.lm-dashboard .card-header.text-white {
+    background-color: transparent !important;
+    background-image: none;
+    color: var(--lm-foreground) !important;
+}
+
+body.lm-dashboard .card-body {
+    padding: 1.25rem;
+}
+
+body.lm-dashboard .card-footer {
+    padding: 1rem 1.25rem;
+    background-color: transparent;
+    border-top: 1px solid var(--lm-border);
+}
+
+.ui-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+.ui-card-heading {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+}
+
+.ui-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--ui-radius-sm);
+    background-color: color-mix(in srgb, var(--lm-primary) 22%, transparent);
+    color: color-mix(in srgb, var(--lm-foreground) 85%, var(--lm-primary));
+    font-size: .95rem;
+}
+
+.ui-card-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--lm-foreground);
+}
+
+.ui-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* Buttons ---------------------------------------------------------------- */
+
+body.lm-dashboard .btn,
+.ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .5rem .95rem;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    transition: transform var(--ui-ease), box-shadow var(--ui-ease), background-color var(--ui-ease), border-color var(--ui-ease), color var(--ui-ease);
+}
+
+body.lm-dashboard .btn.btn-sm,
+.ui-btn.btn-sm {
+    padding: .3rem .7rem;
+    font-size: .8rem;
+    border-radius: 10px;
+}
+
+body.lm-dashboard .btn.btn-lg,
+.ui-btn.btn-lg {
+    padding: .65rem 1.2rem;
+    font-size: 1rem;
+    border-radius: var(--ui-radius);
+}
+
+body.lm-dashboard .btn:active,
+.ui-btn:active {
+    transform: scale(.98);
+}
+
+body.lm-dashboard .btn:focus-visible,
+.ui-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ui-focus);
+}
+
+body.lm-dashboard .btn-primary,
+.ui-btn.btn-primary {
+    background-color: var(--lm-primary);
+    border-color: var(--lm-primary);
+    color: var(--lm-primary-foreground);
+    box-shadow: 0 8px 18px -14px rgba(175, 243, 62, .95);
+}
+
+body.lm-dashboard .btn-primary:hover,
+.ui-btn.btn-primary:hover {
+    background-color: var(--lm-primary-hover);
+    border-color: var(--lm-primary-hover);
+    color: var(--lm-primary-foreground);
+}
+
+body.lm-dashboard .btn-outline-primary,
+.ui-btn.btn-outline-primary {
+    border-color: color-mix(in srgb, var(--lm-primary) 70%, var(--lm-border));
+    color: var(--lm-foreground);
+    background-color: transparent;
+}
+
+body.lm-dashboard .btn-outline-primary:hover,
+.ui-btn.btn-outline-primary:hover {
+    background-color: color-mix(in srgb, var(--lm-primary) 18%, transparent);
+    border-color: var(--lm-primary);
+    color: var(--lm-foreground);
+}
+
+body.lm-dashboard .btn-outline-secondary,
+.ui-btn.btn-outline-secondary {
+    border-color: var(--lm-border);
+    color: var(--lm-foreground);
+    background-color: transparent;
+}
+
+body.lm-dashboard .btn-outline-secondary:hover,
+.ui-btn.btn-outline-secondary:hover {
+    background-color: var(--lm-muted-bg);
+    border-color: var(--lm-border);
+    color: var(--lm-foreground);
+}
+
+body.lm-dashboard .btn-ghost,
+.ui-btn.btn-ghost {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--lm-muted);
+}
+
+body.lm-dashboard .btn-ghost:hover,
+.ui-btn.btn-ghost:hover {
+    background-color: var(--lm-muted-bg);
+    color: var(--lm-foreground);
+}
+
+/* Stat cards ------------------------------------------------------------- */
+
+.ui-stat-card .ui-stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    padding: 1.15rem 1.25rem;
+}
+
+.ui-stat-head {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+}
+
+.ui-stat-label {
+    color: var(--lm-muted);
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+.ui-stat-value {
+    color: var(--lm-foreground);
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.ui-stat-note {
+    color: var(--lm-muted);
+    font-size: .76rem;
+}
+
+body.lm-dashboard .lm-stat-card {
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow);
+}
+
+/* Badges & chips --------------------------------------------------------- */
+
+body.lm-dashboard .badge {
+    padding: .38em .68em;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    vertical-align: middle;
+}
+
+body.lm-dashboard .badge.bg-primary {
+    background-color: var(--lm-primary) !important;
+    color: var(--lm-primary-foreground) !important;
+}
+
+body.lm-dashboard .badge.bg-success {
+    background-color: var(--ui-tint-success) !important;
+    color: var(--ui-success-fg) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-success-fg) 28%, transparent);
+}
+
+body.lm-dashboard .badge.bg-danger {
+    background-color: var(--ui-tint-danger) !important;
+    color: var(--ui-danger-fg) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-danger-fg) 26%, transparent);
+}
+
+body.lm-dashboard .badge.bg-info {
+    background-color: var(--ui-tint-info) !important;
+    color: var(--ui-info-fg) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-info-fg) 26%, transparent);
+}
+
+body.lm-dashboard .badge.bg-warning {
+    background-color: var(--ui-tint-warning) !important;
+    color: var(--ui-warning-fg) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-warning-fg) 28%, transparent);
+}
+
+body.lm-dashboard .lm-badge {
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+body.lm-dashboard .lm-chip {
+    border-radius: 999px;
+    border: 1px solid var(--lm-border);
+    background-color: var(--lm-card);
+    padding: .3rem .65rem;
+    font-size: .75rem;
+    font-weight: 500;
+}
+
+/* Tables ----------------------------------------------------------------- */
+
+body.lm-dashboard .ui-table-wrap,
+body.lm-dashboard .lm-table-wrap {
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius);
+    background-color: var(--lm-card);
+    overflow: auto;
+}
+
+body.lm-dashboard .ui-table-scroll {
+    max-height: 70vh;
+}
+
+body.lm-dashboard .table {
+    margin-bottom: 0;
+    color: var(--lm-foreground);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--lm-foreground);
+    --bs-table-border-color: var(--lm-border);
+    --bs-table-hover-bg: color-mix(in srgb, var(--lm-primary) 11%, transparent);
+    --bs-table-hover-color: var(--lm-foreground);
+    vertical-align: middle;
+}
+
+body.lm-dashboard .table > :not(caption) > * > * {
+    padding: .68rem .85rem;
+    border-width: 0 0 1px;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+body.lm-dashboard .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--lm-muted-bg);
+    color: var(--lm-muted);
+    font-size: .71rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--lm-border);
+}
+
+body.lm-dashboard .table tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+body.lm-dashboard .table-bordered > :not(caption) > * > *,
+body.lm-dashboard .table.table-bordered > :not(caption) > * > * {
+    border-width: 0 0 1px;
+}
+
+body.lm-dashboard .table.lm-matrix > :not(caption) > * > *,
+body.lm-dashboard .table.table-bordered.lm-matrix > :not(caption) > * > * {
+    border: 1px solid var(--lm-border);
+}
+
+/* Segmented tabs --------------------------------------------------------- */
+
+body.lm-dashboard .nav-pills.ui-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--ui-radius);
+    background-color: var(--lm-muted-bg);
+}
+
+body.lm-dashboard .nav-pills.ui-tabs .nav-link,
+body.lm-dashboard .ui-tabs .nav-link {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: .48rem .9rem;
+    color: var(--lm-muted);
+    font-size: .84rem;
+    font-weight: 600;
+    transition: background-color var(--ui-ease), color var(--ui-ease), box-shadow var(--ui-ease);
+}
+
+body.lm-dashboard .ui-tabs .nav-link i {
+    margin-right: .4rem;
+}
+
+body.lm-dashboard .ui-tabs .nav-link:hover {
+    color: var(--lm-foreground);
+    background-color: color-mix(in srgb, var(--lm-card) 65%, transparent);
+}
+
+body.lm-dashboard .ui-tabs .nav-link.active {
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    border-color: var(--lm-border);
+    box-shadow: var(--ui-shadow-xs);
+}
+
+body.lm-dashboard .ui-tabs .nav-link:focus-visible {
+    outline: none;
+    box-shadow: var(--ui-focus);
+}
+
+/* Forms ------------------------------------------------------------------ */
+
+body.lm-dashboard .form-label {
+    margin-bottom: .35rem;
+    color: var(--lm-foreground);
+    font-size: .79rem;
+    font-weight: 600;
+}
+
+body.lm-dashboard .form-control,
+body.lm-dashboard .form-select,
+.ui-field .form-control,
+.ui-field .form-select {
+    min-height: 42px;
+    padding: .5rem .8rem;
+    border-color: var(--lm-input);
+    border-radius: var(--ui-radius-sm);
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    transition: border-color var(--ui-ease), box-shadow var(--ui-ease);
+}
+
+body.lm-dashboard textarea.form-control {
+    min-height: 96px;
+}
+
+body.lm-dashboard .form-control:focus,
+body.lm-dashboard .form-select:focus,
+.ui-field .form-control:focus,
+.ui-field .form-select:focus {
+    border-color: var(--lm-primary);
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    box-shadow: var(--ui-focus);
+}
+
+body.lm-dashboard .form-control::placeholder {
+    color: var(--lm-muted);
+    opacity: .8;
+}
+
+body.lm-dashboard .input-group > .form-control,
+body.lm-dashboard .input-group > .form-select,
+body.lm-dashboard .input-group > .btn {
+    border-radius: 0;
+}
+
+body.lm-dashboard .input-group > :first-child {
+    border-top-left-radius: var(--ui-radius-sm) !important;
+    border-bottom-left-radius: var(--ui-radius-sm) !important;
+}
+
+body.lm-dashboard .input-group > :last-child {
+    border-top-right-radius: var(--ui-radius-sm) !important;
+    border-bottom-right-radius: var(--ui-radius-sm) !important;
+}
+
+body.lm-dashboard .form-text,
+.ui-field .form-text {
+    color: var(--lm-muted);
+    font-size: .74rem;
+}
+
+.ui-field {
+    margin-bottom: .9rem;
+}
+
+/* Alerts & toasts -------------------------------------------------------- */
+
+body.lm-dashboard .alert {
+    border-radius: var(--ui-radius);
+}
+
+body.lm-dashboard .ui-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    padding: .85rem 1rem;
+    border: 1px solid transparent;
+    box-shadow: var(--ui-shadow-xs);
+}
+
+.ui-toast-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin-top: .1rem;
+    font-size: 1rem;
+}
+
+.ui-toast-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+body.lm-dashboard .ui-toast .btn-close {
+    position: static;
+    flex: 0 0 auto;
+    margin: 0 0 0 .25rem;
+    padding: .5rem;
+}
+
+body.lm-dashboard .alert-success {
+    background-color: var(--ui-tint-success);
+    border-color: color-mix(in srgb, var(--ui-success-fg) 25%, transparent);
+    color: var(--ui-success-fg);
+}
+
+body.lm-dashboard .alert-danger {
+    background-color: var(--ui-tint-danger);
+    border-color: color-mix(in srgb, var(--ui-danger-fg) 25%, transparent);
+    color: var(--ui-danger-fg);
+}
+
+body.lm-dashboard .alert-info {
+    background-color: var(--ui-tint-info);
+    border-color: color-mix(in srgb, var(--ui-info-fg) 25%, transparent);
+    color: var(--ui-info-fg);
+}
+
+body.lm-dashboard .alert-warning {
+    background-color: var(--ui-tint-warning);
+    border-color: color-mix(in srgb, var(--ui-warning-fg) 25%, transparent);
+    color: var(--ui-warning-fg);
+}
+
+/* Modals ----------------------------------------------------------------- */
+
+body.lm-dashboard .modal-content,
+.ui-modal .modal-content {
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius-lg);
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    box-shadow: var(--ui-shadow-hover);
+}
+
+body.lm-dashboard .modal-header,
+.ui-modal .modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--lm-border);
+}
+
+body.lm-dashboard .modal-footer,
+.ui-modal .modal-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--lm-border);
+}
+
+body.lm-dashboard .modal-header .btn-close,
+.ui-modal .modal-header .btn-close {
+    filter: none;
+}
+
+.ui-modal-head .modal-title i {
+    margin-right: .45rem;
+}
+
+/* Dropdowns -------------------------------------------------------------- */
+
+body.lm-dashboard .dropdown-menu,
+.ui-dropdown-menu {
+    padding: .4rem;
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius);
+    background-color: var(--lm-card);
+    box-shadow: var(--ui-shadow);
+}
+
+body.lm-dashboard .dropdown-item,
+.ui-dropdown-menu .dropdown-item {
+    border-radius: 9px;
+    padding: .45rem .65rem;
+    font-size: .84rem;
+}
+
+body.lm-dashboard .dropdown-item:hover {
+    background-color: var(--lm-muted-bg);
+}
+
+/* Pagination ------------------------------------------------------------- */
+
+.ui-pagination .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin: 0;
+}
+
+.ui-pagination .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 .55rem;
+    border: 1px solid var(--lm-border);
+    border-radius: 10px;
+    background-color: var(--lm-card);
+    color: var(--lm-foreground);
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+.ui-pagination .page-item.active .page-link {
+    border-color: var(--lm-primary);
+    background-color: var(--lm-primary);
+    color: var(--lm-primary-foreground);
+}
+
+.ui-pagination .page-item.disabled .page-link {
+    opacity: .45;
+}
+
+/* Empty states ----------------------------------------------------------- */
+
+body.lm-dashboard .lm-empty,
+.ui-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    padding: 1.6rem 1.1rem;
+    border: 1px dashed var(--lm-border);
+    border-radius: var(--ui-radius);
+    background-color: color-mix(in srgb, var(--lm-muted-bg) 55%, transparent);
+    text-align: center;
+}
+
+.ui-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin-bottom: .2rem;
+    border-radius: 999px;
+    background-color: var(--lm-card);
+    color: var(--lm-muted);
+    font-size: 1.1rem;
+    box-shadow: var(--ui-shadow-xs);
+}
+
+/* Avatars ---------------------------------------------------------------- */
+
+.ui-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    overflow: hidden;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--lm-primary) 24%, transparent);
+    color: color-mix(in srgb, var(--lm-foreground) 88%, var(--lm-primary));
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+.ui-avatar-sm {
+    width: 30px;
+    height: 30px;
+    font-size: .72rem;
+}
+
+.ui-avatar-lg {
+    width: 46px;
+    height: 46px;
+    font-size: .95rem;
+}
+
+.ui-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Panels used across dashboards ----------------------------------------- */
+
+body.lm-dashboard .lm-metric {
+    padding: .85rem 1rem;
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius);
+    background-color: var(--lm-card);
+    box-shadow: none;
+}
+
+body.lm-dashboard .lm-metric-value {
+    font-size: 1.3rem;
+    letter-spacing: -.02em;
+}
+
+body.lm-dashboard .lm-criterion {
+    border: 1px solid var(--lm-border);
+    border-radius: var(--ui-radius);
+    background-color: var(--lm-card);
+}
+
+body.lm-dashboard .lm-score {
+    border-radius: 999px;
+    background-color: var(--lm-muted-bg);
+    padding: .2rem .55rem;
+    font-weight: 700;
+}
+
+/* Sidebar ---------------------------------------------------------------- */
+
+body.lm-dashboard .sidebar {
+    background-color: var(--lm-card);
+    border-right: 1px solid var(--lm-border);
+}
+
+body.lm-dashboard .sidebar .nav-link {
+    border-radius: 12px;
+    padding: .55rem .75rem;
+    color: var(--lm-muted);
+    font-weight: 500;
+    transition: background-color var(--ui-ease), color var(--ui-ease), box-shadow var(--ui-ease);
+}
+
+body.lm-dashboard .sidebar .nav-link:hover {
+    background-color: var(--lm-muted-bg);
+    color: var(--lm-foreground);
+}
+
+body.lm-dashboard .sidebar .nav-link.active {
+    background-color: var(--lm-primary);
+    color: var(--lm-primary-foreground);
+    box-shadow: 0 8px 18px -14px rgba(175, 243, 62, .95);
+}
+
+body.lm-dashboard .sidebar .nav-link:focus-visible {
+    outline: none;
+    box-shadow: var(--ui-focus);
+}
+
+/* Shell ------------------------------------------------------------------ */
+
+body.lm-dashboard .lm-topbar {
+    border-bottom: 1px solid var(--lm-border);
+    background-color: var(--lm-card);
+}
+
+body.lm-dashboard .dashboard-section {
+    scroll-margin-top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.lm-dashboard .btn,
+    .ui-btn,
+    .ui-card-hover,
+    body.lm-dashboard .sidebar .nav-link {
+        transition: none;
+    }
+
+    body.lm-dashboard .btn:active,
+    .ui-btn:active {
+        transform: none;
+    }
+
+    .ui-card-hover:hover {
+        transform: none;
+    }
+}
+
+@media print {
+    body.lm-dashboard .card,
+    .ui-card {
+        box-shadow: none;
+    }
+
+    body.lm-dashboard .table thead th {
+        position: static;
+    }
+}

@@ -12,9 +12,10 @@
         @include('layouts.lamamora-logo', ['height' => 34])
         <span>La Mamora.</span>
     </a>
-    <span class="badge bg-primary bg-opacity-10 text-primary ms-3 mt-2 d-inline-block">
-        {{ ucfirst(Auth::user()->role ?? 'user') }}
-    </span>
+    <div class="d-flex align-items-center gap-2 mt-2">
+        <x-ui.avatar :name="Auth::user()->name" size="sm" />
+        <span class="badge ui-badge bg-primary">{{ ucfirst(Auth::user()->role ?? 'user') }}</span>
+    </div>
 </div>
 
 <nav class="sidebar-nav flex-grow-1" aria-label="Main navigation">

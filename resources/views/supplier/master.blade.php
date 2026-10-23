@@ -29,28 +29,21 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <x-ui.toast type="success" class="mb-3">{{ session('success') }}</x-ui.toast>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <x-ui.toast type="danger" class="mb-3">{{ session('error') }}</x-ui.toast>
     @endif
 
     @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <x-ui.toast type="danger" class="mb-3">
             <ul class="mb-0 ps-3">
                 @foreach($errors->all() as $errorMessage)
                     <li>{{ $errorMessage }}</li>
                 @endforeach
             </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        </x-ui.toast>
     @endif
 
     <div class="lm-metric-row mb-4">
@@ -220,13 +213,13 @@
             <span class="lm-badge lm-badge-neutral">{{ $totalSupplier }} data</span>
         </div>
         <div class="card-body">
-            @if($suppliers->isEmpty())
-                <div class="lm-empty">
-                    <i class="bi bi-truck"></i>
-                    <div class="lm-empty-title">Belum ada data pemasok</div>
-                    <div class="lm-empty-text">Tambahkan pemasok lewat form di atas atau ubah kata kunci pencarian.</div>
-                </div>
-            @else
+                @if($suppliers->isEmpty())
+                    <x-ui.empty-state
+                        icon="bi bi-buildings"
+                        title="Belum ada data pemasok"
+                        description="Tambahkan pemasok lewat form di atas atau ubah kata kunci pencarian."
+                    />
+                @else
                 <div class="lm-table-wrap">
                     <table class="table table-bordered align-middle mb-0">
                         <thead class="table-light">
