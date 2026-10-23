@@ -342,6 +342,21 @@
 - [x] Update `changelog.md` + `todo.md`
 - [ ] Phase 35 - **Belum diverifikasi di browser** - alur tambah ke keranjang, ubah jumlah, checkout, dan badge
 
+### Phase 36 (Tema Global - token theme-baru.css, dark mode, kontras)
+- [x] `public/css/la-mamora.css` - `:root` memakai token `theme-baru.css` (primary lime, background, accent-foreground, chart-1..5, sidebar, logo, radius 1rem, shadow 8/20/.05); nama `--lm-*` lama tetap sebagai alias
+- [x] Jembatan Bootstrap 5.3: `--bs-body-bg/-color/-rgb`, `--bs-border-color`, `--bs-border-radius`, `--bs-primary(-rgb)`, `--bs-secondary`, `--bs-link-color`, font Inter
+- [x] Mode gelap: satu blok untuk `.dark`, `.lm-dark`, dan `data-bs-theme="dark"` (background/card/accent/sidebar gelap) + token Bootstrap gelap
+- [x] `resources/views/layouts/theme.blade.php` - modul `window.lmTheme`, toggling `.dark` + `data-bs-theme`, `localStorage('lm-theme')`, default terang, binding `[data-theme-toggle]`, tanpa kedip
+- [x] Tombol ganti tema di topbar dashboard admin/staff, topbar toko, dan navbar landing
+- [x] Font Inter + JetBrains Mono dimuat di landing, toko, login, register, dan dashboard
+- [x] Sidebar admin/staff memakai token sidebar (aktif lime + teks hitam); kartu/tabel/form/modal/dropdown memakai token card/border/input/muted/ring/popover
+- [x] Logo (`.lm-mark`, `.logo`, `.avatar`) memakai `--lm-logo-ring` / `--lm-logo-letter` kontras dua mode
+- [x] Grafik Chart.js admin memakai token `--lm-chart-1..5`; hapus warna Shopee/Bootstrap lama di view
+- [x] `tests/Feature/ThemeToggleRenderTest.php` (3 test) - tombol+modul tema di semua layout, token & mode gelap di stylesheet
+- [x] Verifikasi: `--filter=ThemeToggleRenderTest` 3/3 (26); regresi 43/43 (`CustomerPagesRenderTest`, `StaffDashboardTabTest`, `DssPageRenderTest`, `LandingRecommendationTest`, `DssSidebarNavigationTest`, `SupplierMasterTest`)
+- [x] Update `changelog.md` + `todo.md`
+- [ ] Phase 36 - **Belum diverifikasi di browser** - toggle terang/gelap, kontras tombol/badge/sidebar, dan grafik
+
 ### Penutup
 - [x] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock, keranjang)
 - [ ] Commit perubahan setelah diminta

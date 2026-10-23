@@ -804,6 +804,19 @@
         (function () {
             if (typeof Chart === 'undefined') return;
 
+            /* Palet grafik mengikuti token tema (chart-1..chart-5) supaya ikut
+               berubah saat mode terang/gelap diganti. */
+            const readVar = (name, fallback) => {
+                const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+                return value || fallback;
+            };
+            const chart1 = readVar('--lm-chart-1', '#aff33e');
+            const chart2 = readVar('--lm-chart-2', '#334155');
+            const chart3 = readVar('--lm-chart-3', '#22c55e');
+            const chart4 = readVar('--lm-chart-4', '#64748b');
+            const chart5 = readVar('--lm-chart-5', '#94a3b8');
+            const palette = [chart1, chart2, chart3, chart4, chart5];
+
             /* Tren penjualan bulanan: bar Omset (sumbu kiri) + line Produk Terjual (sumbu kanan) */
             const tren = document.getElementById('chartTren');
             if (tren) {
@@ -815,8 +828,8 @@
                                 type: 'bar',
                                 label: 'Omset (Rp)',
                                 data: @json($trenOmset),
-                                backgroundColor: 'rgba(13, 110, 253, .65)',
-                                borderColor: 'rgba(13, 110, 253, 1)',
+                                backgroundColor: chart3,
+                                borderColor: chart3,
                                 borderWidth: 1,
                                 yAxisID: 'y'
                             },
@@ -824,8 +837,8 @@
                                 type: 'line',
                                 label: 'Produk Terjual (pcs)',
                                 data: @json($trenTerjual),
-                                borderColor: 'rgba(255, 165, 0, 1)',
-                                backgroundColor: 'rgba(255, 165, 0, .15)',
+                                borderColor: chart1,
+                                backgroundColor: "color-mix(in srgb, " + chart1 + " 22%, transparent)",
                                 tension: .3,
                                 fill: false,
                                 yAxisID: 'y1'
@@ -860,7 +873,7 @@
             /* Diagram produk terlaris (hanya dirender bila datanya ada) */
             const top = document.getElementById('chartTopProduk');
             if (top) {
-                const WARNA = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1'];
+                const WARNA = palette;
                 new Chart(top, {
                     type: 'doughnut',
                     data: {

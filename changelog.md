@@ -1026,6 +1026,27 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 
 ---
 
+## 2026-10-23 - Phase 36: Tema Global (token theme-baru.css, dark mode, kontras)
+- `public/css/la-mamora.css`: blok `:root` ditulis ulang memakai token `theme-baru.css` (primary lime `#aff33e` dengan teks hitam, background `#fbfcf8`, accent-foreground `#166534`, chart-1..5, sidebar, logo) tanpa menghapus nama `--lm-*` lama yang kini menjadi alias.
+- Jembatan Bootstrap 5.3 diperluas: `--bs-body-bg/-color`, `--bs-border-color`, `--bs-border-radius: 1rem`, `--bs-primary(-rgb)`, `--bs-secondary`, `--bs-link-color`, `--bs-font-sans-serif` -> Inter; palet emphasis/subtle ikut diturunkan dari token.
+- Mode gelap: class `.dark`, `.lm-dark`, dan `data-bs-theme="dark"` berbagi satu blok token gelap (`background #020617`, `card #0f172a`, `accent #14532d`); langit-langit Bootstrap gelap juga diarahkan ke token.
+- `resources/views/layouts/theme.blade.php` (baru): modul bersama `window.lmTheme` yang memasang `.dark` + `data-bs-theme` di `<html>`, menyimpan pilihan di `localStorage` (`lm-theme`), default terang, dan mengikat semua `[data-theme-toggle]` (dipasang no-flash di `<head>`).
+- Tombol ganti tema ditambahkan ke topbar dashboard admin/staff, topbar toko, navbar landing, dan diaktifkan lewat `#theme` lama; font Inter + JetBrains Mono dimuat di landing, toko, login, register, dan dashboard.
+- Sidebar admin/staff memakai token `sidebar`, dengan item aktif lime + teks hitam; kartu, tabel, form, modal, dropdown memakai token `card/border/input/muted/ring/popover` + shadow 8px/20px/0.05.
+- Logo (`.lm-mark`, `.logo`, `.avatar`) memakai `--lm-logo-ring` / `--lm-logo-letter` agar lime terbaca di terang (lingkaran gelap) dan gelap (lime).
+- Grafik Chart.js admin (`chartTren`, `chartTopProduk`) membaca token `--lm-chart-1..5` via `getComputedStyle` dan ikut berubah saat tema diganti; warna Shopee/Bootstrap lama di view dihapus.
+- Verifikasi: `--filter=ThemeToggleRenderTest` 3/3 (26), `--filter=CustomerPagesRenderTest` 7/7, `--filter=StaffDashboardTabTest`, `--filter=DssPageRenderTest`, `--filter=LandingRecommendationTest`, `--filter=DssSidebarNavigationTest`, `--filter=SupplierMasterTest` total 43/43 lulus.
+- Batas: kontras dihitung manual per token; `pint`/suite penuh dan verifikasi browser tidak dijalankan.
+
+## 2026-10-23 - Phase 37: Logo Resmi La Mamora (inline SVG bertoken)
+- `resources/views/layouts/lamamora-logo.blade.php` (baru): komponen inline SVG logo resmi (`public/images/lamamora-logo.svg`) tanpa metadata c2pa; warna memakai `var(--lm-logo-bg/--lm-logo-ring/--lm-logo-letter)` sehingga ikut tema; menerima parameter `height` (default 40) dan `class`.
+- `public/css/la-mamora.css`: token logo diarahkan ke token canonical - `--lm-logo-ring: var(--lm-primary)`, `--lm-logo-letter: var(--lm-foreground)`, `--lm-logo-bg: transparent` (terang & gelap); rule `.lm-mark` diganti `.sidebar-brand .lm-logo-svg` (34px).
+- `public/css/la-mamora-shop.css`: ukuran `.brand .lm-logo-svg` (36px) dan `.lm-auth-brand .lm-logo-svg` (40px); `.logo` lama dipertahankan sebagai fallback.
+- Logo dipasang inline di navbar landing (44px), sidebar dashboard admin/staff (34px), sidebar toko (36px), serta kartu login & register (40px) - menggantikan kotak huruf "L" lama; konsisten di latar terang dan gelap.
+- Verifikasi: `--filter=ThemeToggleRenderTest` 4/4 (logo inline + token), `--filter=CustomerPagesRenderTest|StaffDashboardTabTest|DssPageRenderTest|LandingRecommendationTest|DssSidebarNavigationTest|SupplierMasterTest` total 47/47 lulus; `vendor/bin/pint` bersih.
+
+---
+
 ## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-22)
 - **Base URL**: `http://localhost:8000` (jalanin `php artisan serve` bila belum aktif).
 - **Akun demo**: admin `admin@gmail.com` / `Manager Toko` (password `password123`), staff `kasir@gmail.com` / `Kasir Toko` (password `password123`), pelanggan `dewi.demo@lamamora.test` (password `password`; teammates: `budi.demo`, `siti.demo`, `andi.demo` @lamamora.test).

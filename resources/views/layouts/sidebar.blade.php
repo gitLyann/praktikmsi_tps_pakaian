@@ -9,7 +9,7 @@
 
 <div class="sidebar-header">
     <a href="#" class="sidebar-brand d-flex align-items-center gap-2">
-        <i class="lm-mark">L</i>
+        @include('layouts.lamamora-logo', ['height' => 34])
         <span>La Mamora.</span>
     </a>
     <span class="badge bg-primary bg-opacity-10 text-primary ms-3 mt-2 d-inline-block">

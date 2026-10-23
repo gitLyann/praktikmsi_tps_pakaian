@@ -25,7 +25,12 @@
 
                 var icon = button.querySelector('[data-theme-icon]');
                 if (icon) {
-                    icon.textContent = dark ? '\u2600' : '\u263E';
+                    if (icon.classList.contains('bi')) {
+                        icon.classList.toggle('bi-moon-stars', !dark);
+                        icon.classList.toggle('bi-sun', dark);
+                    } else {
+                        icon.textContent = dark ? '\u2600' : '\u263E';
+                    }
                 }
             });
 

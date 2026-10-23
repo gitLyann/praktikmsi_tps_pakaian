@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ isset($title) ? $title . ' - ' : '' }}La Mamora - Toko Outfit Official</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link href="{{ asset('css/la-mamora.css') }}" rel="stylesheet">
     <link href="{{ asset('css/la-mamora-shop.css') }}" rel="stylesheet">
     @stack('styles')
+    @include('layouts.theme')
 </head>
 <body>
 
@@ -16,7 +17,7 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="shopSidebar">
-        <div class="brand"><span class="logo">L</span>La Mamora.</div>
+        <div class="brand">@include('layouts.lamamora-logo', ['height' => 36])<span>La Mamora.</span></div>
         <nav class="nav" aria-label="Navigasi utama">
             <a href="{{ route('toko.index') }}" @class(['active' => ($activeNav ?? '') === 'index'])>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -78,7 +79,7 @@
                     </a>
                 @endif
                 <button class="ic alert" aria-label="Notifikasi">🔔</button>
-                <button class="ic" id="theme" aria-label="Mode gelap">☾</button>
+                <button class="ic" data-theme-toggle aria-label="Aktifkan mode gelap" aria-pressed="false" title="Mode gelap"><span data-theme-icon>☾</span></button>
                 <button type="button" class="user" id="profileBtn" aria-haspopup="dialog" aria-expanded="false">
                     <span class="avatar">{{ Str::upper(Str::substr(Auth::user()->name ?? 'P', 0, 1)) }}</span>
                     <span>
@@ -158,7 +159,7 @@
                     <small style="opacity:.75">Siap membantu Anda 24/7</small>
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-light" style="color:#0d6efd" onclick="toggleChatbot()" aria-label="Tutup Chatbot">✕</button>
+            <button type="button" class="btn btn-sm btn-light" style="color:var(--lm-primary-foreground)" onclick="toggleChatbot()" aria-label="Tutup Chatbot">✕</button>
         </div>
 
         <div class="chatbot-messages" id="chatbotMessages" role="log" aria-live="polite">
@@ -176,7 +177,7 @@
                 <button type="submit" class="send" id="chatbotSendBtn" disabled>Kirim ➤</button>
             </form>
             <div style="margin-top:12px" id="quickActions">
-                <small style="color:var(--muted);display:block;margin-bottom:6px">Cepat tanyakan:</small>
+                <small style="color:var(--lm-muted);display:block;margin-bottom:6px">Cepat tanyakan:</small>
                 <div style="display:flex;flex-wrap:wrap;gap:6px">
                     <button type="button" class="quick-action" data-query="jam operasional">🕐 Jam Buka</button>
                     <button type="button" class="quick-action" data-query="cara beli">🛍️ Cara Beli</button>
@@ -299,15 +300,9 @@
         });
     });
 
-    /* ================= DARK MODE ================= */
-    // Palet gelap memakai token La Mamora (navy/orange), disimpan sebagai
-    // kelas .lm-dark pada elemen <html> supaya warnanya didefinisikan di CSS.
-    $('#theme').addEventListener('click', () => {
-        const root = document.documentElement;
-        const gelap = root.classList.toggle('lm-dark');
-        $('#theme').setAttribute('aria-label', gelap ? 'Mode terang' : 'Mode gelap');
-        $('#theme').textContent = gelap ? '☀' : '☾';
-    });
+    /* ================= DARK MODE =================
+       Dipegang oleh modul bersama layouts.theme (window.lmTheme):
+       class .dark + data-bs-theme di <html>, disimpan di localStorage. */
 
     /* ================= CHATBOT ================= */
     const chatbotFab = document.getElementById('chatbotFab');

@@ -29,11 +29,12 @@
     --lm-muted-bg: #f1f5f9;
     --lm-accent: #f0fdf4;
     --lm-accent-foreground: #166534;
-    --lm-destructive: #dc2626;
+    --lm-destructive: #ef4444;
     --lm-border: #e2e8f0;
     --lm-input: #e2e8f0;
     --lm-ring: #aff33e;
     --lm-on-color: #ffffff;
+    --lm-destructive-foreground: #ffffff;
     --lm-topbar-bg: rgba(251, 252, 248, .88);
     --lm-overlay: rgba(2, 6, 23, .5);
 
@@ -77,8 +78,9 @@
     --lm-sidebar-ring: #aff33e;
 
     /* ---- Logo ---- */
-    --lm-logo-ring: #0f172a;
-    --lm-logo-letter: #aff33e;
+    --lm-logo-ring: var(--lm-primary);
+    --lm-logo-letter: var(--lm-foreground);
+    --lm-logo-bg: transparent;
 
     /* ---- Tipografi ---- */
     --lm-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -209,10 +211,11 @@
     --lm-muted-bg: #1e293b;
     --lm-accent: #14532d;
     --lm-accent-foreground: #aff33e;
-    --lm-destructive: #f87171;
+    --lm-destructive: #991b1b;
     --lm-border: #1e293b;
     --lm-input: #1e293b;
     --lm-ring: #aff33e;
+    --lm-destructive-foreground: #ffffff;
     --lm-topbar-bg: rgba(2, 6, 23, .88);
     --lm-overlay: rgba(0, 0, 0, .6);
 
@@ -228,10 +231,10 @@
     --lm-info-soft: #172554;
 
     --lm-chart-1: #aff33e;
-    --lm-chart-2: #94a3b8;
-    --lm-chart-3: #4ade80;
-    --lm-chart-4: #64748b;
-    --lm-chart-5: #cbd5e1;
+    --lm-chart-2: #3b82f6;
+    --lm-chart-3: #22c55e;
+    --lm-chart-4: #a855f7;
+    --lm-chart-5: #f59e0b;
 
     --lm-sidebar: #020617;
     --lm-sidebar-foreground: #f8fafc;
@@ -242,8 +245,9 @@
     --lm-sidebar-border: #1e293b;
     --lm-sidebar-ring: #aff33e;
 
-    --lm-logo-ring: #aff33e;
-    --lm-logo-letter: #020617;
+    --lm-logo-ring: var(--lm-primary);
+    --lm-logo-letter: var(--lm-foreground);
+    --lm-logo-bg: transparent;
 
     --lm-shadow-sm: 0 2px 8px rgba(0, 0, 0, .25);
     --lm-shadow: 0 8px 20px rgba(0, 0, 0, .35);
@@ -575,13 +579,35 @@ body.lm-dashboard .alert-info {
     display: none;
     width: 40px;
     height: 40px;
-    border: 1px solid var(--lm-line);
+    border: 1px solid var(--lm-border);
     border-radius: var(--lm-radius);
-    background: var(--lm-white);
-    color: var(--lm-navy);
+    background: var(--lm-card);
+    color: var(--lm-foreground);
     font-size: 1.1rem;
     align-items: center;
     justify-content: center;
+}
+
+/* Tombol ganti tema terang/gelap di topbar dashboard */
+.lm-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border: 1px solid var(--lm-border);
+    border-radius: var(--lm-radius-pill);
+    background: var(--lm-card);
+    color: var(--lm-foreground);
+    font-size: 1rem;
+    transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.lm-theme-toggle:hover {
+    background: var(--lm-primary);
+    border-color: var(--lm-primary);
+    color: var(--lm-primary-foreground);
 }
 
 .lm-chip {
@@ -980,19 +1006,12 @@ body.lm-dashboard .sidebar-brand {
     text-decoration: none;
 }
 
-/* Logo La Mamora - kotak "L" dengan token logo agar kontras di kedua mode */
-body.lm-dashboard .sidebar-brand .lm-mark {
-    width: 30px;
-    height: 30px;
-    border-radius: var(--lm-radius-sm);
-    background: var(--lm-logo-ring);
-    color: var(--lm-logo-letter);
-    display: inline-grid;
-    place-items: center;
-    font-style: normal;
-    font-size: 15px;
-    font-weight: 800;
-    line-height: 1;
+/* Logo La Mamora - SVG resmi memakai token logo agar kontras di kedua mode */
+body.lm-dashboard .sidebar-brand .lm-logo-svg {
+    width: 34px;
+    height: 34px;
+    display: block;
+    flex-shrink: 0;
 }
 
 body.lm-dashboard .sidebar-nav {

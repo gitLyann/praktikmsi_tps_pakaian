@@ -7,6 +7,10 @@
     <title>{{ $title ?? 'La Mamora - OAS Pakaian' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    {{-- Tipografi design system: Inter (teks) + JetBrains Mono (angka/kode) --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     {{-- Design system La Mamora: satu sumber token visual untuk seluruh dashboard --}}
     <link href="{{ asset('css/la-mamora.css') }}" rel="stylesheet">
     <style>
@@ -16,7 +20,7 @@
         .produk-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.6);
+            background: var(--lm-overlay);
             display: flex;
             align-items: flex-start;
             justify-content: center;
@@ -28,11 +32,13 @@
             display: none;
         }
         .produk-overlay-box {
-            background: var(--lm-white, #fff);
-            border-radius: var(--lm-radius-lg, 16px);
+            background: var(--lm-card);
+            color: var(--lm-card-foreground);
+            border: 1px solid var(--lm-border);
+            border-radius: var(--lm-radius-lg);
             width: 100%;
             max-width: 720px;
-            box-shadow: var(--lm-shadow-lg, 0 20px 50px rgba(0, 0, 0, 0.25));
+            box-shadow: var(--lm-shadow-lg);
         }
         .produk-overlay-head {
             display: flex;
@@ -40,7 +46,7 @@
             justify-content: space-between;
             gap: 10px;
             padding: 18px 22px;
-            border-bottom: 1px solid var(--lm-line, #e9ecef);
+            border-bottom: 1px solid var(--lm-border);
         }
         .produk-overlay-body {
             padding: 22px;
@@ -50,14 +56,14 @@
             justify-content: flex-end;
             gap: 10px;
             padding: 16px 22px;
-            border-top: 1px solid var(--lm-line, #e9ecef);
+            border-top: 1px solid var(--lm-border);
         }
         .produk-preview {
             width: 64px;
             height: 64px;
             border-radius: 10px;
             object-fit: cover;
-            border: 1px solid var(--lm-line, #e9ecef);
+            border: 1px solid var(--lm-border);
         }
 
         /* Overlay read-only "Lihat Produk". Memakai .produk-overlay yang sama
@@ -72,8 +78,8 @@
             max-width: 320px;
             height: 220px;
             object-fit: contain;
-            background: var(--lm-sky-2, #f8f9fa);
-            border: 1px solid var(--lm-line, #e9ecef);
+            background: var(--lm-muted-bg);
+            border: 1px solid var(--lm-border);
             border-radius: 12px;
         }
         .produk-detail-fallback {
@@ -83,27 +89,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--lm-sky-2, #f8f9fa);
-            border: 1px dashed var(--lm-line, #ced4da);
+            background: var(--lm-muted-bg);
+            border: 1px dashed var(--lm-border);
             border-radius: 12px;
-            color: var(--lm-muted, #6c757d);
+            color: var(--lm-muted);
             font-size: 0.9rem;
         }
         /* white-space: pre-wrap supaya baris baru di deskripsi tidak collapsed */
         .produk-detail-deskripsi {
             white-space: pre-wrap;
-            background: var(--lm-sky-2, #f8f9fa);
-            border: 1px solid var(--lm-line, #e9ecef);
+            background: var(--lm-muted-bg);
+            border: 1px solid var(--lm-border);
             border-radius: 10px;
             padding: 12px 14px;
-            color: var(--lm-muted, #495057);
+            color: var(--lm-muted);
         }
         .produk-detail-kosong {
-            color: var(--lm-muted, #6c757d);
+            color: var(--lm-muted);
             font-style: italic;
         }
     </style>
     @stack('styles')
+    {{-- Pasang tema sebelum paint supaya tidak ada kedipan terang->gelap --}}
+    @include('layouts.theme')
 </head>
 {{-- body.lm-dashboard mengaktifkan tema La Mamora (token + override Bootstrap) --}}
 <body class="lm-dashboard">
@@ -128,6 +136,9 @@
                     </div>
                 </div>
                 <div class="lm-topbar-meta">
+                    <button type="button" class="lm-theme-toggle ic" data-theme-toggle aria-label="Aktifkan mode gelap" aria-pressed="false" title="Mode gelap">
+                        <i class="bi bi-moon-stars" data-theme-icon></i>
+                    </button>
                     <span class="lm-chip">
                         <i class="bi bi-calendar3"></i>
                         {{ now()->translatedFormat('d M Y') }}

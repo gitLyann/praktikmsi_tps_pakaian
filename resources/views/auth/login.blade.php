@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login - La Mamora</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link href="{{ asset('css/la-mamora.css') }}" rel="stylesheet">
     <link href="{{ asset('css/la-mamora-shop.css') }}" rel="stylesheet">
+    @include('layouts.theme')
 </head>
 <body class="lm-auth">
     <div class="lm-auth-card">
         <div class="lm-auth-brand">
-            <span class="logo">L</span>La Mamora.
+            @include('layouts.lamamora-logo', ['height' => 40])<span>La Mamora.</span>
         </div>
         <h1 class="lm-auth-title">Masuk ke Akun</h1>
         <p class="lm-auth-lead">Gunakan email dan password yang terdaftar untuk melanjutkan.</p>
