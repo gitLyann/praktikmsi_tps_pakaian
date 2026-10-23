@@ -100,23 +100,61 @@ h3 {
 
 .app {
     display: grid;
-    grid-template-columns: 244px 1fr;
+    grid-template-columns: 1fr;
     gap: 16px;
     padding: 16px;
     min-height: 100vh;
 }
 
+/* Sidebar selalu berupa drawer: tersembunyi di kiri, meluncur saat dibuka
+   lewat tombol hamburger di topbar (semua ukuran layar). */
 .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 86vw;
+    height: 100vh;
+    border-radius: 0;
+    border-right: 1px solid var(--lm-sidebar-border);
     background: var(--lm-sidebar);
-    border: 1px solid var(--lm-sidebar-border);
-    border-radius: var(--radius);
     padding: 22px 18px;
     display: flex;
     flex-direction: column;
-    position: sticky;
-    top: 16px;
-    height: calc(100vh - 32px);
-    box-shadow: var(--lm-shadow-sm);
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 1050;
+    overflow-y: auto;
+}
+
+body.sidebar-open .sidebar {
+    transform: none;
+    box-shadow: var(--lm-shadow-lg);
+}
+
+/* Kunci gulir halaman selama drawer terbuka */
+body.sidebar-open {
+    overflow: hidden;
+}
+
+/* Tombol tutup (X) di dalam drawer */
+.sidebar-close {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--field);
+    color: var(--muted);
+    place-items: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.sidebar-close:hover {
+    background: var(--line);
+    color: var(--ink);
 }
 
 .brand {
@@ -127,6 +165,17 @@ h3 {
     font-weight: 800;
     padding: 0 6px 26px;
     letter-spacing: -.02em;
+}
+
+.brand-row .brand {
+    padding-bottom: 0;
+}
+
+.brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
 }
 
 .logo {
@@ -196,6 +245,33 @@ h3 {
     width: 3.5px;
     border-radius: 0 3px 3px 0;
     background: var(--lm-sidebar-primary-foreground);
+}
+
+/* Tombol keluar di drawer memakai gaya nav yang sama */
+.nav-logout {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 12px 13px;
+    border-radius: 11px;
+    color: var(--ink);
+    font-size: 14.5px;
+    font-weight: 500;
+    text-align: left;
+    transition: background .15s, color .15s;
+}
+
+.nav-logout svg {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    stroke-width: 1.9;
+}
+
+.nav-logout:hover {
+    background: var(--lm-sidebar-accent);
+    color: var(--lm-accent-foreground);
 }
 
 .spacer {
@@ -339,9 +415,9 @@ h3 {
     color: var(--muted);
 }
 
-/* Tombol drawer (hanya tampil di layar kecil) */
+/* Tombol drawer (hamburger) tampil di semua ukuran layar */
 .sidebar-toggle {
-    display: none;
+    display: grid;
     width: 40px;
     height: 40px;
     border-radius: 11px;
@@ -358,7 +434,15 @@ h3 {
 }
 
 .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--lm-overlay);
+    z-index: 1040;
     display: none;
+}
+
+body.sidebar-open .sidebar-overlay {
+    display: block;
 }
 
 .content {
@@ -1888,40 +1972,6 @@ h3 {
         padding: 12px;
     }
 
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 264px;
-        height: 100vh;
-        border-radius: 0;
-        border-right: 1px solid var(--line);
-        transform: translateX(-100%);
-        transition: transform .25s ease;
-        z-index: 1050;
-    }
-
-    body.sidebar-open .sidebar {
-        transform: none;
-        box-shadow: var(--lm-shadow-lg);
-    }
-
-    .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: var(--lm-overlay);
-        z-index: 1040;
-    }
-
-    body.sidebar-open .sidebar-overlay {
-        display: block;
-    }
-
-    .sidebar-toggle {
-        display: grid;
-    }
-
     .content-grid {
         grid-template-columns: 1fr;
     }
@@ -1992,4 +2042,345 @@ h3 {
     .price {
         font-size: 24px;
     }
+}
+
+/* ==========================================================================
+   KATALOG: PANEL FILTER LIPAT + CHIP FILTER AKTIF
+   ========================================================================== */
+.content-grid {
+    grid-template-columns: 1fr;
+}
+
+.filters[hidden] {
+    display: none;
+}
+
+.filters {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 300px;
+    max-width: 88vw;
+    z-index: 1050;
+    border-radius: 0;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    display: block;
+}
+
+body.filter-open .filters {
+    transform: translateX(0);
+}
+
+body.filter-open {
+    overflow: hidden;
+}
+
+.filter-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--lm-overlay);
+    z-index: 1045;
+}
+
+.filter-overlay[hidden] {
+    display: none;
+}
+
+.crumb-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.crumb-text {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.btn-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--line);
+    background: var(--field);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 13.5px;
+}
+
+.btn-filter:hover {
+    border-color: var(--accent);
+    color: var(--accent-foreground);
+    background: var(--accent);
+}
+
+.btn-filter svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2;
+}
+
+.filter-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 99px;
+    background: var(--cta);
+    color: var(--lm-white);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.filters .filter-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.filters .filter-head h2 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.filter-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 9px 12px;
+    background: var(--field);
+    margin-bottom: 14px;
+}
+
+.filter-search input {
+    border: 0;
+    background: none;
+    width: 100%;
+    font-size: 14px;
+    color: var(--ink);
+}
+
+.filter-sort {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 6px 0 6px;
+}
+
+.filter-select {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--field);
+    border-radius: 11px;
+    padding: 11px 13px;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 16px;
+}
+
+.opt-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.filters .acc[aria-expanded="true"] span,
+.pay-head[aria-expanded="true"] .pay-caret {
+    transform: rotate(180deg);
+}
+
+.filters .checks[hidden] {
+    display: none;
+}
+
+.active-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.chips-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 99px;
+    background: var(--field);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.chip:hover {
+    border-color: var(--cta);
+    color: var(--cta);
+}
+
+.chip.reset {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-color: transparent;
+}
+
+/* ==========================================================================
+   PEMBAYARAN: AKORDEON METODE (SIMULASI)
+   ========================================================================== */
+.pay-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    display: block;
+    margin: 14px 0 6px;
+}
+
+.pay-acc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 46vh;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.pay-group {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.pay-group.open {
+    border-color: var(--accent);
+}
+
+.pay-head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--field);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 14px;
+    text-align: left;
+}
+
+.pay-caret {
+    transition: transform .15s;
+}
+
+.pay-body {
+    padding: 12px 14px 14px;
+}
+
+.pay-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.pay-brands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.pay-brand {
+    padding: 4px 10px;
+    border-radius: 7px;
+    background: var(--field);
+    border: 1px solid var(--line);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--ink);
+}
+
+.pay-options {
+    display: grid;
+    gap: 7px;
+}
+
+.pay-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink);
+}
+
+.pay-option:has(input:checked) {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.pay-option input {
+    accent-color: var(--accent);
+}
+
+.pay-field {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.pay-field input {
+    margin-top: 6px;
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--field);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--ink);
+}
+
+.pay-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+}
+
+.pay-total {
+    margin-top: 14px;
+    border-bottom: 0 !important;
+    padding-top: 14px;
+}
+
+.mono {
+    font-family: var(--lm-font-mono);
+    letter-spacing: .02em;
 }

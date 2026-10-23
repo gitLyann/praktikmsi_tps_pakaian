@@ -357,6 +357,26 @@
 - [x] Update `changelog.md` + `todo.md`
 - [ ] Phase 36 - **Belum diverifikasi di browser** - toggle terang/gelap, kontras tombol/badge/sidebar, dan grafik
 
+### Phase 37 (Logo Resmi La Mamora - inline SVG bertoken)
+- [x] `resources/views/layouts/lamamora-logo.blade.php` - komponen inline SVG logo resmi tanpa metadata c2pa; `height` (default 40) + `class`
+- [x] `public/css/la-mamora.css` - token `--lm-logo-ring/--lm-logo-letter/--lm-logo-bg`; rule `.sidebar-brand .lm-logo-svg` (34px)
+- [x] `public/css/la-mamora-shop.css` - ukuran `.brand .lm-logo-svg` (36px) dan `.lm-auth-brand .lm-logo-svg` (40px)
+- [x] Logo dipasang di navbar landing, sidebar dashboard, sidebar toko, kartu login & register
+- [x] Verifikasi: `--filter=ThemeToggleRenderTest` 4/4; regresi 47/47; `vendor/bin/pint` bersih
+
+### Phase 38 (Perbaikan UI Pelanggan - drawer, filter server, keranjang, pembayaran simulasi)
+- [x] **A.** `toko-shell.blade.php` + `la-mamora-shop.css` - sidebar jadi drawer fixed semua layar (X, overlay, Esc, klik item, lock scroll); menu Profil buka modal akun
+- [x] **B.** `TokoController::index` + `resolveCatalogFilters()` (q, kategori/jenis/ukuran/warna[], min/max, urut `terbaru|termurah|termahal|terlaris` via `withSum`); view panel lipat + chip filter aktif + Reset; `Product::transactionDetails()`
+- [x] **B.** `CategorySeeder` idempoten (Atasan, Celana, Outer, Bahan kain, Aksesori) didaftarkan di `DatabaseSeeder`
+- [x] **C.** Tombol "+ Keranjang" hanya membuka modal konfirmasi; item tersimpan hanya setelah POST ber-CSRF ke `toko.cart.add`/`intent`
+- [x] **D.** Migrasi `payment_methods` + `transaction_payments`; model `PaymentMethod`/`TransactionPayment`; `PaymentService`; `PaymentMethodSeeder` (Kartu, ATM/VA, E-Money, Direct Debit, Gerai, Tunai)
+- [x] **D.** `Transaction::payment()` + `payment_method_label`; modal katalog/detail & checkout memakai akordeon metode; server menolak kode tidak aktif, simpan kode singkat, VA prefix per bank / kode gerai + `expires_at` 24 jam, `phone_last4`
+- [x] **D.** Keamanan: nomor kartu/CVV/nomor rekening tanpa atribut `name`, tidak dikirim/disimpan/di-log; simulasi tanpa payment gateway
+- [x] Riwayat: metode lama (E-Wallet, M-Banking, Transfer Bank, Cash) tampil via fallback `PaymentMethod::labelFor()`; badge "Menunggu Pembayaran"
+- [x] `tests/Feature/CatalogFilterTest.php` (5), `CartAddFlowTest.php` (4), `CheckoutPaymentTest.php` (8); `CheckoutIsolationTest` diperbarui ke kode valid
+- [x] Verifikasi: `--filter=CartIsolationTest|CheckoutIsolationTest|CatalogFilterTest|CartAddFlowTest|CheckoutPaymentTest|CustomerPagesRenderTest|FavoriteIsolationTest` 51/51; `pint`/suite penuh tidak dijalankan
+- [ ] Phase 38 - **Belum diverifikasi di browser** - drawer, panel filter, akordeon pembayaran terang/gelap
+
 ### Penutup
 - [x] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock, keranjang)
 - [ ] Commit perubahan setelah diminta

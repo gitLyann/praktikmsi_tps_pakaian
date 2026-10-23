@@ -3,18 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
+use App\Services\PaymentService;
 use App\Services\TransactionCustomerResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly TransactionCustomerResolver $customerResolver)
-    {
+    public function __construct(
+        private readonly TransactionCustomerResolver $customerResolver,
+        private readonly PaymentService $paymentService,
+    ) {
     }
 
     /**
@@ -122,7 +127,9 @@ class CartController extends Controller
             return ($item->product->price ?? 0) * $item->quantity;
         });
 
-        return view('toko.cart', compact('items', 'total'));
+        $paymentGroups = $this->paymentService->groups();
+
+        return view('toko.cart', compact('items', 'total', 'paymentGroups'));
     }
 
     public function add(Request $request, Product $product)
@@ -224,9 +231,31 @@ class CartController extends Controller
             return back()->with('error', 'Keranjang kosong.');
         }
 
-        $paymentMethod = $request->input('payment_method', 'online');
+        $data = $request->validate([
+            'payment_method' => 'required|string|max:30',
+            'phone' => 'nullable|string|max:20',
+        ]);
 
-        $transaction = DB::transaction(function () use ($items, $user, $paymentMethod) {
+        // Server memvalidasi bahwa kode metode ada dan aktif.
+        $method = PaymentMethod::query()->active()->where('code', $data['payment_method'])->first();
+
+        if (! $method) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Metode pembayaran tidak valid atau tidak aktif.',
+            ]);
+        }
+
+        // Validasi format nomor HP hanya bila metode e-money dipilih.
+        $phone = $data['phone'] ?? null;
+        if ($method->group_code === PaymentService::GRUP_EMONEY) {
+            if (! $phone || ! preg_match('/^08[0-9]{8,11}$/', preg_replace('/\s+/', '', $phone))) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Nomor HP harus diawali 08 dan panjang 10-13 digit.',
+                ]);
+            }
+        }
+
+        $transaction = DB::transaction(function () use ($items, $user, $method, $phone) {
             $total = 0;
 
             foreach ($items as $item) {
@@ -247,7 +276,7 @@ class CartController extends Controller
                 'employee_id' => null,
                 'date' => now(),
                 'total' => $total,
-                'payment_method' => $paymentMethod,
+                'payment_method' => $method->code,
                 'status' => 'completed',
             ]);
 
@@ -268,6 +297,8 @@ class CartController extends Controller
                     'subtotal' => $product->price * $item->quantity,
                 ]);
             }
+
+            $this->paymentService->createFor($transaction, $method->code, $phone);
 
             $user->carts()->delete();
 

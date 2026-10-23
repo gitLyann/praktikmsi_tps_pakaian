@@ -1045,6 +1045,15 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 - Logo dipasang inline di navbar landing (44px), sidebar dashboard admin/staff (34px), sidebar toko (36px), serta kartu login & register (40px) - menggantikan kotak huruf "L" lama; konsisten di latar terang dan gelap.
 - Verifikasi: `--filter=ThemeToggleRenderTest` 4/4 (logo inline + token), `--filter=CustomerPagesRenderTest|StaffDashboardTabTest|DssPageRenderTest|LandingRecommendationTest|DssSidebarNavigationTest|SupplierMasterTest` total 47/47 lulus; `vendor/bin/pint` bersih.
 
+## 2026-10-23 - Phase 38: Perbaikan UI Pelanggan (drawer, filter server, keranjang, pembayaran simulasi)
+- **A. Sidebar drawer**: `toko-shell.blade.php` + `la-mamora-shop.css` mengubah sidebar jadi drawer fixed (280px, tombol X, overlay, Esc, klik item, lock scroll) berlaku di semua ukuran layar, menu Profil membuka modal akun.
+- **B. Filter katalog server-side**: `TokoController::index` menambah `resolveCatalogFilters()` (q, kategori[], jenis[], ukuran[], warna[], min/max, urut `terbaru|termurah|termahal|terlaris` via `withSum`); view memakai panel lipat + chip filter aktif + Reset, opsi dinamis dari DB. Seeder `CategorySeeder` idempoten (Atasan, Celana, Outer, Bahan kain, Aksesori).
+- **C. Perbaikan keranjang**: tombol "+ Keranjang" kini hanya membuka modal konfirmasi (bukan submit langsung), item tersimpan hanya setelah POST ber-CSRF; tambah `CartAddFlowTest` (GET ditolak 405, tamu redirect login, item hanya setelah POST).
+- **D. Pembayaran simulasi**: migrasi `payment_methods` + `transaction_payments`, model `PaymentMethod`/`TransactionPayment`, `PaymentService`, seeder metode (Kartu, ATM/VA, E-Money, Direct Debit, Gerai, Tunai). Modal katalog/detail & checkout memakai akordeon metode; server menolak kode tidak aktif, menyimpan kode singkat, membuat VA (prefix per bank) / kode gerai + `expires_at` 24 jam, dan hanya `phone_last4`.
+- Keamanan: nomor kartu/CVV/nomor rekening tidak punya atribut `name`, tidak dikirim, tidak disimpan, tidak di-log; simulasi murni tanpa payment gateway.
+- Riwayat: nilai `payment_method` lama (E-Wallet, M-Banking, Transfer Bank, Cash) tetap tampil via fallback `PaymentMethod::labelFor()`; kartu "Menunggu Pembayaran" tampil di Riwayat Pesanan.
+- Verifikasi: `--filter=CartIsolationTest|CheckoutIsolationTest|CatalogFilterTest|CartAddFlowTest|CheckoutPaymentTest|CustomerPagesRenderTest|FavoriteIsolationTest` total 51/51 lulus. `pint`/suite penuh tidak dijalankan.
+
 ---
 
 ## Bahan Screenshot Laporan DSS (data demo siap, 2026-10-22)

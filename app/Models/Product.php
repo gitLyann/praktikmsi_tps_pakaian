@@ -60,6 +60,12 @@ class Product extends Model
         return $this->hasMany(Cart::class);
     }
 
+    // Relasi ke baris detail transaksi (dipakai menghitung jumlah terjual)
+    public function transactionDetails()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
+
     // Path gambar relatif terhadap folder public, atau null bila produk belum punya foto
     public function getImageUrlAttribute(): ?string
     {

@@ -112,26 +112,27 @@
     @if($product->stock > 0)
         <div class="modal-b" id="buyModal" role="dialog" aria-modal="true" aria-labelledby="buyTitle">
             <div class="modal-box">
-                <h2 id="buyTitle">Konfirmasi Pembelian</h2>
+                <div class="modal-head">
+                    <h2 id="buyTitle">Konfirmasi Pembelian</h2>
+                    <button type="button" class="x" id="buyCancel" aria-label="Tutup">✕</button>
+                </div>
                 <div class="rowline"><span>Produk</span><b id="mName">-</b></div>
                 <div class="rowline"><span>Harga Satuan</span><b id="mPrice">-</b></div>
                 <label for="mQty">Jumlah</label>
                 <input type="number" id="mQty" min="1" value="1">
-                <label for="mPay">Metode Pembayaran</label>
-                <select id="mPay">
-                    <option value="E-Wallet">E-Wallet</option>
-                    <option value="M-Banking">M-Banking</option>
-                    <option value="Transfer Bank">Transfer Bank</option>
-                    <option value="Cash">Cash</option>
-                </select>
-                <div class="rowline" style="margin-top:14px;border-bottom:0"><span>Total Bayar</span><b id="mTotal">-</b></div>
-                <form action="" method="POST" id="buyForm" style="display:none">
+
+                <label class="pay-label">Metode Pembayaran</label>
+                @include('toko._payment-accordion', ['paymentGroups' => $paymentGroups, 'prefix' => 'detail-'])
+
+                <div class="rowline pay-total"><span>Total Bayar</span><b id="mTotal">-</b></div>
+                <form action="" method="POST" id="buyForm">
                     @csrf
                     <input type="hidden" name="quantity" id="mQtyHidden" value="1">
-                    <input type="hidden" name="payment_method" id="mPayHidden" value="E-Wallet">
+                    <input type="hidden" name="payment_method" id="mPayHidden" value="">
+                    <input type="hidden" name="phone" id="mPhoneHidden" value="">
                 </form>
                 <div class="modal-act">
-                    <button type="button" class="btn ghost" id="buyCancel">Batal</button>
+                    <button type="button" class="btn ghost" id="buyBtnCancel">Batal</button>
                     <button type="button" class="btn" id="buyConfirm">Konfirmasi Pembelian</button>
                 </div>
             </div>
@@ -149,11 +150,48 @@
             let unit = Number(detailBuy.dataset.price) || 0;
             let stock = Number(detailBuy.dataset.stock) || 0;
 
+            // Akordeon: satu kategori terbuka setiap saat.
+            const acc = buyModal.querySelector('[data-pay-acc]');
+            const groups = Array.from(acc.querySelectorAll('[data-pay-group]'));
+            groups.forEach((group) => {
+                const toggle = group.querySelector('[data-pay-toggle]');
+                const body = document.getElementById(toggle.dataset.payToggle);
+                toggle.addEventListener('click', () => {
+                    const willOpen = body.hasAttribute('hidden');
+                    groups.forEach((other) => {
+                        const otherToggle = other.querySelector('[data-pay-toggle]');
+                        const otherBody = document.getElementById(otherToggle.dataset.payToggle);
+                        other.classList.remove('open');
+                        otherBody.setAttribute('hidden', '');
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                    });
+                    if (willOpen) {
+                        group.classList.add('open');
+                        body.removeAttribute('hidden');
+                        toggle.setAttribute('aria-expanded', 'true');
+                        const firstRadio = body.querySelector('input[type="radio"]');
+                        if (firstRadio && !group.querySelector('input[type="radio"]:checked')) firstRadio.checked = true;
+                    }
+                });
+            });
+
+            const phoneField = buyModal.querySelector('[data-pay-phone]');
+            const phoneGroup = phoneField ? phoneField.closest('.pay-group') : null;
+
+            function selectedMethod() {
+                return buyModal.querySelector('input[name="detail-payment_method"]:checked');
+            }
+
             function updateTotal() {
                 const qty = Math.max(1, Math.min(+$('#mQty').value || 1, stock || 1));
                 $('#mTotal').textContent = rupiah(unit * qty);
                 $('#mQtyHidden').value = qty;
-                $('#mPayHidden').value = $('#mPay').value;
+
+                const method = selectedMethod();
+                $('#mPayHidden').value = method ? method.value : '';
+                const needsPhone = method && method.dataset.needsPhone === '1';
+                if (phoneGroup) phoneGroup.hidden = !needsPhone;
+                $('#mPhoneHidden').value = needsPhone && phoneField ? phoneField.value.trim() : '';
             }
 
             detailBuy.addEventListener('click', () => {
@@ -161,18 +199,33 @@
                 $('#mPrice').textContent = rupiah(unit);
                 $('#mQty').value = 1;
                 $('#mQty').max = stock;
-                $('#mPay').value = 'E-Wallet';
-                updateTotal();
 
                 buyForm.action = @json(route('toko.buy', ['product_id' => $product->id]));
                 buyModal.classList.add('show');
+                updateTotal();
             });
 
             $('#mQty').addEventListener('input', updateTotal);
-            $('#mPay').addEventListener('change', updateTotal);
+            buyModal.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="radio"][name="detail-payment_method"]')) updateTotal();
+            });
+            buyModal.addEventListener('input', (e) => {
+                if (e.target.matches('[data-pay-phone]')) updateTotal();
+            });
             $('#buyCancel').addEventListener('click', () => buyModal.classList.remove('show'));
+            $('#buyBtnCancel').addEventListener('click', () => buyModal.classList.remove('show'));
             buyModal.addEventListener('click', (e) => { if (e.target.id === 'buyModal') buyModal.classList.remove('show'); });
-            $('#buyConfirm').addEventListener('click', () => { updateTotal(); buyForm.submit(); });
+            $('#buyConfirm').addEventListener('click', (e) => {
+                const method = selectedMethod();
+                if (!method) { alert('Pilih metode pembayaran terlebih dahulu.'); return; }
+                if (method.dataset.needsPhone === '1' && !$('#mPhoneHidden').value) {
+                    alert('Masukkan nomor HP untuk metode e-money.');
+                    return;
+                }
+                e.currentTarget.disabled = true;
+                updateTotal();
+                buyForm.submit();
+            });
         })();
     </script>
 @endpush

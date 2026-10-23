@@ -15,22 +15,31 @@
 
 <div class="app">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="shopSidebar">
-        <div class="brand">@include('layouts.lamamora-logo', ['height' => 36])<span>La Mamora.</span></div>
+    <!-- SIDEBAR (drawer) -->
+    <aside class="sidebar" id="shopSidebar" aria-label="Navigasi pelanggan">
+        <div class="brand-row">
+            <div class="brand">@include('layouts.lamamora-logo', ['height' => 36])<span>La Mamora.</span></div>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Tutup menu navigasi">✕</button>
+        </div>
         <nav class="nav" aria-label="Navigasi utama">
-            <a href="{{ route('toko.index') }}" @class(['active' => ($activeNav ?? '') === 'index'])>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                <span>Overview</span>
+            <a href="{{ route('landing') }}" @class(['active' => ($activeNav ?? '') === 'beranda'])>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                <span>Beranda</span>
             </a>
+            @if($isPelanggan)
+                <a href="{{ route('toko.favorit') }}" @class(['active' => ($activeNav ?? '') === 'favorit'])>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    <span>Favorit</span>
+                </a>
+            @endif
             <a href="{{ route('toko.index') }}" @class(['active' => ($activeNav ?? '') === 'katalog'])>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                <span>Katalog Produk</span>
+                <span>Katalog</span>
             </a>
             @if($isPelanggan)
                 <a href="{{ route('toko.cart') }}" @class(['active' => ($activeNav ?? '') === 'keranjang'])>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                    <span>Keranjang Belanja</span>
+                    <span>Keranjang</span>
                     @if(($cartCount ?? 0) > 0)
                         <span class="cart-badge">{{ $cartCount }}</span>
                     @endif
@@ -38,24 +47,27 @@
             @elseif(! Auth::check())
                 <a href="{{ route('login') }}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                    <span>Keranjang Belanja</span>
+                    <span>Keranjang</span>
                 </a>
             @endif
             <a href="{{ route('toko.pesanan') }}" @class(['active' => ($activeNav ?? '') === 'pesanan'])>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 16h3a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect width="13" height="8" x="3" y="4" rx="2"/><circle cx="15" cy="20" r="1"/><circle cx="7" cy="20" r="1"/></svg>
-                <span>Pesanan Saya</span>
-            </a>
-            <a href="{{ route('toko.favorit') }}" @class(['active' => ($activeNav ?? '') === 'favorit'])>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                <span>Produk Favorit</span>
+                <span>Riwayat Pesanan</span>
             </a>
         </nav>
         <div class="spacer"></div>
         <nav class="nav bottom">
-            <a href="#" data-info="bantuan">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9.09 9 3 3a22 22 0 0 0 2 3"/><path d="M12 17h.01"/></svg>
-                <span>Bantuan</span>
+            <a href="#" data-profile-open>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                <span>Profil</span>
             </a>
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button type="submit" class="nav-logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+                    <span>Keluar</span>
+                </button>
+            </form>
         </nav>
     </aside>
 
@@ -193,26 +205,51 @@
     const $ = (s) => document.querySelector(s);
     const $all = (s) => Array.from(document.querySelectorAll(s));
 
-    /* ================= DRAWER NAVIGASI (LAYAR KECIL) ================= */
-    // Sidebar disembunyikan di layar <= 900px, jadi muncul sebagai drawer
-    // yang dibuka lewat tombol menu di topbar.
+    /* ================= DRAWER NAVIGASI =================
+       Sidebar berupa drawer di semua ukuran layar. Dibuka lewat tombol
+       hamburger, ditutup lewat tombol X, klik overlay, tombol Esc, atau
+       setelah memilih item menu. Gulir halaman dikunci selama terbuka. */
     const sidebarToggle = $('#sidebarToggle');
     const sidebarOverlay = $('#sidebarOverlay');
+    const sidebarClose = $('#sidebarClose');
+    const shopSidebar = $('#shopSidebar');
 
     function setSidebar(open) {
         document.body.classList.toggle('sidebar-open', open);
-        if (sidebarToggle) sidebarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (sidebarToggle) {
+            sidebarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        if (open && sidebarClose) {
+            sidebarClose.focus();
+        }
+    }
+
+    function isSidebarOpen() {
+        return document.body.classList.contains('sidebar-open');
     }
 
     if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            setSidebar(!document.body.classList.contains('sidebar-open'));
-        });
+        sidebarToggle.addEventListener('click', () => setSidebar(!isSidebarOpen()));
     }
 
     if (sidebarOverlay) {
         sidebarOverlay.addEventListener('click', () => setSidebar(false));
     }
+
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', () => setSidebar(false));
+    }
+
+    // Klik item menu di dalam drawer menutup drawer.
+    if (shopSidebar) {
+        shopSidebar.addEventListener('click', (e) => {
+            if (e.target.closest('a, button.nav-logout')) setSidebar(false);
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isSidebarOpen()) setSidebar(false);
+    });
 
     /* ================= MODAL INFO SIDEBAR ================= */
     // Overview, Katalog, Keranjang, Pesanan Saya, dan Produk Favorit punya route nyata.
@@ -256,6 +293,13 @@
     }
 
     profileBtn.addEventListener('click', openProfile);
+    $all('[data-profile-open]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            setSidebar(false);
+            openProfile();
+        });
+    });
     $('#profileClose').addEventListener('click', closeProfile);
     profileModal.addEventListener('click', (e) => { if (e.target.id === 'profileModal') closeProfile(); });
     document.addEventListener('keydown', (e) => {

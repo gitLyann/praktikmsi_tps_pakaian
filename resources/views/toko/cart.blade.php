@@ -96,16 +96,15 @@
                 <span class="count">{{ $items->sum('quantity') }} item</span>
             </div>
             <div class="item-body">
-                <form action="{{ route('toko.cart.checkout') }}" method="POST" class="actions">
+                <form action="{{ route('toko.cart.checkout') }}" method="POST" class="actions" id="checkoutForm">
                     @csrf
-                    <label class="sub" for="payment_method">Metode Pembayaran</label>
-                    <select id="payment_method" name="payment_method" class="cart-qty">
-                        <option value="online">Online</option>
-                        <option value="cash">Tunai</option>
-                        <option value="transfer">Transfer Bank</option>
-                        <option value="ewallet">E-Wallet</option>
-                    </select>
-                    <button class="btn orange" type="submit">Checkout Sekarang</button>
+                    <label class="pay-label">Metode Pembayaran</label>
+                    @include('toko._payment-accordion', ['paymentGroups' => $paymentGroups, 'prefix' => 'cart-'])
+                    <input type="hidden" name="payment_method" id="cartPayHidden" value="">
+                    <input type="hidden" name="phone" id="cartPhoneHidden" value="">
+                    @error('payment_method')<div class="flash err"><span>{{ $message }}</span></div>@enderror
+                    @error('phone')<div class="flash err"><span>{{ $message }}</span></div>@enderror
+                    <button class="btn orange" type="submit" id="checkoutBtn">Checkout Sekarang</button>
                 </form>
                 <form action="{{ route('toko.cart.clear') }}" method="POST">
                     @csrf
@@ -115,3 +114,78 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+    <script>
+        (function () {
+            const form = document.getElementById('checkoutForm');
+            if (!form) return;
+
+            const acc = form.querySelector('[data-pay-acc]');
+            const groups = Array.from(acc.querySelectorAll('[data-pay-group]'));
+
+            // Akordeon: satu kategori terbuka setiap saat.
+            groups.forEach((group) => {
+                const toggle = group.querySelector('[data-pay-toggle]');
+                const body = document.getElementById(toggle.dataset.payToggle);
+                toggle.addEventListener('click', () => {
+                    const willOpen = body.hasAttribute('hidden');
+                    groups.forEach((other) => {
+                        const otherToggle = other.querySelector('[data-pay-toggle]');
+                        const otherBody = document.getElementById(otherToggle.dataset.payToggle);
+                        other.classList.remove('open');
+                        otherBody.setAttribute('hidden', '');
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                    });
+                    if (willOpen) {
+                        group.classList.add('open');
+                        body.removeAttribute('hidden');
+                        toggle.setAttribute('aria-expanded', 'true');
+                        const firstRadio = body.querySelector('input[type="radio"]');
+                        if (firstRadio && !group.querySelector('input[type="radio"]:checked')) firstRadio.checked = true;
+                    }
+                });
+            });
+
+            const hiddenMethod = document.getElementById('cartPayHidden');
+            const hiddenPhone = document.getElementById('cartPhoneHidden');
+            const phoneField = form.querySelector('[data-pay-phone]');
+
+            function selectedMethod() {
+                return form.querySelector('input[name="cart-payment_method"]:checked');
+            }
+
+            function sync() {
+                const method = selectedMethod();
+                hiddenMethod.value = method ? method.value : '';
+                const needsPhone = method && method.dataset.needsPhone === '1';
+                const group = phoneField ? phoneField.closest('.pay-group') : null;
+                if (group) group.hidden = !needsPhone;
+                hiddenPhone.value = needsPhone && phoneField ? phoneField.value.trim() : '';
+            }
+
+            form.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="radio"][name="cart-payment_method"]')) sync();
+            });
+            form.addEventListener('input', (e) => {
+                if (e.target.matches('[data-pay-phone]')) sync();
+            });
+            form.addEventListener('submit', (e) => {
+                sync();
+                if (!hiddenMethod.value) {
+                    e.preventDefault();
+                    alert('Pilih metode pembayaran terlebih dahulu.');
+                    return;
+                }
+                if (selectedMethod().dataset.needsPhone === '1' && !hiddenPhone.value) {
+                    e.preventDefault();
+                    alert('Masukkan nomor HP untuk metode e-money.');
+                    return;
+                }
+                document.getElementById('checkoutBtn').disabled = true;
+            });
+
+            sync();
+        })();
+    </script>
+@endpush

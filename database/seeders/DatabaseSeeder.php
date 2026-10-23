@@ -30,5 +30,11 @@ class DatabaseSeeder extends Seeder
 
         // Skor penilaian pemasok demo supaya ranking VIKOR punya data.
         $this->call(DssScoreSeeder::class);
+
+        // Daftar metode pembayaran (simulasi) untuk modal pembelian.
+        $this->call(PaymentMethodSeeder::class);
+
+        // Kategori dasar katalog (idempoten, tidak menghapus data lama).
+        $this->call(CategorySeeder::class);
     }
 }

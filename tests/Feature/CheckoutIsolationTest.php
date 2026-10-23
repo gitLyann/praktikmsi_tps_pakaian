@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
@@ -24,6 +25,17 @@ class CheckoutIsolationTest extends TestCase
     private function pelanggan(string $nama = 'Pelanggan'): User
     {
         return User::factory()->create(['role' => 'pelanggan', 'name' => $nama]);
+    }
+
+    private function metodeTunai(): PaymentMethod
+    {
+        return PaymentMethod::create([
+            'group_code' => 'tunai',
+            'code' => 'cod',
+            'name' => 'Bayar di Tempat (Tunai)',
+            'is_active' => true,
+            'sort_order' => 50,
+        ]);
     }
 
     private function produk(string $nama = 'Kaos Polos', int $stok = 10): Product
@@ -56,12 +68,13 @@ class CheckoutIsolationTest extends TestCase
         $pelangganA = $this->pelanggan('A');
         $pelangganB = $this->pelanggan('B');
         $produk = $this->produk('Kaos Checkout', 10);
+        $this->metodeTunai();
 
         $this->actingAs($pelangganA)->post(route('toko.cart.add', $produk->id), ['quantity' => 2]);
         $this->actingAs($pelangganB)->post(route('toko.cart.add', $produk->id), ['quantity' => 3]);
 
         $this->actingAs($pelangganA)
-            ->post(route('toko.cart.checkout'), ['payment_method' => 'online'])
+            ->post(route('toko.cart.checkout'), ['payment_method' => 'cod'])
             ->assertRedirect(route('toko.pesanan'));
 
         // Hanya transaksi milik A yang dibuat.
@@ -86,10 +99,11 @@ class CheckoutIsolationTest extends TestCase
     {
         $pelanggan = $this->pelanggan();
         $produk = $this->produk('Kaos Detail', 10);
+        $this->metodeTunai();
 
         $this->actingAs($pelanggan)->post(route('toko.cart.add', $produk->id), ['quantity' => 3]);
         $this->actingAs($pelanggan)
-            ->post(route('toko.cart.checkout'), ['payment_method' => 'online'])
+            ->post(route('toko.cart.checkout'), ['payment_method' => 'cod'])
             ->assertRedirect(route('toko.pesanan'));
 
         $transaksi = Transaction::whereIn('customer_id', $this->customerIdsFor($pelanggan))->firstOrFail();
@@ -115,12 +129,13 @@ class CheckoutIsolationTest extends TestCase
     {
         $pelanggan = $this->pelanggan();
         $produk = $this->produk('Kaos Habis', 5);
+        $this->metodeTunai();
 
         $this->actingAs($pelanggan)->post(route('toko.cart.add', $produk->id), ['quantity' => 5]);
         $produk->update(['stock' => 1]);
 
         $this->actingAs($pelanggan)
-            ->post(route('toko.cart.checkout'))
+            ->post(route('toko.cart.checkout'), ['payment_method' => 'cod'])
             ->assertStatus(409);
 
         $this->assertDatabaseCount('transactions', 0);

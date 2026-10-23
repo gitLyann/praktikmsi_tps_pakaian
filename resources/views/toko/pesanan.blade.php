@@ -15,7 +15,6 @@
             'cancelled' => 'Dibatalkan',
         ];
     @endphp
-
     <a href="{{ route('toko.index') }}" class="back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         Kembali ke Katalog
@@ -46,17 +45,38 @@
                 <div class="item-head">
                     <b>#{{ str_pad($trx->id, 5, '0', STR_PAD_LEFT) }}</b>
                     <span class="badge {{ $trx->status }}"><i></i>{{ $labelStatus[$trx->status] ?? ucfirst($trx->status) }}</span>
+                    @if($trx->payment && $trx->payment->status === 'pending')
+                        <span class="badge pending"><i></i>Menunggu Pembayaran</span>
+                    @endif
                     <span class="no">{{ $trx->date?->format('d M Y · H:i') ?? '-' }}</span>
                 </div>
                 <div class="item-body">
                     <div class="meta">
                         <small>Metode Pembayaran</small>
-                        <b>{{ $trx->payment_method ?: '-' }}</b>
+                        <b>{{ $trx->payment_method_label }}</b>
                     </div>
                     <div class="total">
                         <small>Total Bayar</small>
                         <b>Rp {{ number_format($trx->total, 0, ',', '.') }}</b>
                     </div>
+                    @if($trx->payment && $trx->payment->reference_code)
+                        <div class="meta">
+                            <small>{{ $trx->payment->status === 'pending' ? 'Kode Pembayaran' : 'Referensi' }}</small>
+                            <b class="mono">{{ $trx->payment->reference_code }}</b>
+                        </div>
+                    @endif
+                    @if($trx->payment && $trx->payment->phone_last4)
+                        <div class="meta">
+                            <small>Nomor HP</small>
+                            <b>••••{{ $trx->payment->phone_last4 }}</b>
+                        </div>
+                    @endif
+                    @if($trx->payment && $trx->payment->status === 'pending' && $trx->payment->expires_at)
+                        <div class="meta">
+                            <small>Batas Bayar</small>
+                            <b>{{ $trx->payment->expires_at->format('d M Y · H:i') }}</b>
+                        </div>
+                    @endif
                 </div>
             </article>
         @empty

@@ -40,4 +40,16 @@ class Transaction extends Model
     {
         return $this->hasMany(TransactionDetail::class);
     }
+
+    // Detail pembayaran (simulasi): VA, kode gerai, dll.
+    public function payment()
+    {
+        return $this->hasOne(TransactionPayment::class);
+    }
+
+    // Label metode pembayaran yang aman ditampilkan (mendukung nilai lama)
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        return PaymentMethod::labelFor($this->payment_method);
+    }
 }
