@@ -60,7 +60,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');
         Route::post('/staff/restock', [StaffController::class, 'storeRestock'])->name('staff.restock.store');
         Route::post('/staff/products', [StaffController::class, 'storeProduct'])->name('staff.products.store');
-
         // Update master produk oleh Staff (ubah deskripsi, foto, harga, kategori, dll.)
         Route::put('/staff/products/{product}', [StaffController::class, 'updateProduct'])->name('staff.products.update');
     });
