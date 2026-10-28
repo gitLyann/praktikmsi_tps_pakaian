@@ -8,7 +8,7 @@
 @endphp
 
 <div class="sidebar-header">
-    <a href="#" class="sidebar-brand d-flex align-items-center gap-2">
+    <a href="{{ Auth::user()->role === 'admin' ? route('admin.dashboard') : route('staff.dashboard') }}" class="sidebar-brand d-flex align-items-center gap-2">
         @include('layouts.lamamora-logo', ['height' => 34])
         <span>La Mamora.</span>
     </a>
@@ -18,14 +18,14 @@
     </div>
 </div>
 
-<nav class="sidebar-nav flex-grow-1" aria-label="Main navigation">
+<nav class="sidebar-nav flex-grow: 1" aria-label="Main navigation">
     <div class="nav-section">
         <div class="nav-section-label">Utama</div>
         @if($isStaff)
-            {{-- Halaman dashboard staff memakai tab Bootstrap, klik menu = pindah tab tanpa reload.
+            {{-- Halaman dashboard staff memakai navigasi section in-page custom.
                  URL tetap ditulis penuh supaya link tetap berfungsi saat halaman ini
                  bukan dashboard (mis. halaman DSS). --}}
-            <a href="{{ $staffDashboardUrl }}#dashboard" data-bs-target="#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
@@ -44,15 +44,15 @@
     @if($isStaff)
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
-            <a href="{{ $staffDashboardUrl }}#monitoring-stok" data-bs-target="#monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok</span>
             </a>
-            <a href="{{ $staffDashboardUrl }}#pengajuan-restock" data-bs-target="#pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
                 <i class="bi bi-plus-square"></i>
                 <span>Pengajuan Restock</span>
             </a>
-            <a href="{{ $staffDashboardUrl }}#riwayat-stok" data-bs-target="#riwayat-stok" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#riwayat-stok" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
                 <i class="bi bi-clock-history"></i>
                 <span>Riwayat Stok</span>
             </a>
@@ -85,12 +85,12 @@
         <div class="nav-section">
             <div class="nav-section-label">DSS</div>
             @if(Auth::user()->role === 'admin')
-                <a href="{{ route('admin.dss') }}" class="nav-link {{ $activeRoute === 'dss' ? 'active' : '' }}">
+                <a href="{{ route('admin.dss') }}" class="nav-link {{ request()->routeIs('admin.dss*') ? 'active' : '' }}">
                     <i class="bi bi-trophy"></i>
                     <span>Analisis DSS</span>
                 </a>
             @endif
-            <a href="{{ route('staff.dss') }}" class="nav-link {{ $activeRoute === 'dss' ? 'active' : '' }}">
+            <a href="{{ route('staff.dss') }}" class="nav-link {{ request()->routeIs('staff.dss*') ? 'active' : '' }}">
                 <i class="bi bi-clipboard-data"></i>
                 <span>Penilaian Pemasok</span>
             </a>

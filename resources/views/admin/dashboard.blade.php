@@ -7,7 +7,7 @@
 
 @section('content')
     <!-- Notifikasi Sukses -->
-    @if(session('success'))
+    @if(session('success'))     
         <x-ui.toast type="success" class="mb-3">{{ session('success') }}</x-ui.toast>
     @endif
 

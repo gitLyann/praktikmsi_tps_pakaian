@@ -825,12 +825,21 @@
 
             const sections = Array.from(staffDashboard.querySelectorAll('.dashboard-section'));
 
-            // Hanya link sidebar yang hash-nya menunjuk ke section nyata yang
-            // di-intercept. Link Profil/Pengaturan (modal Bootstrap) memakai
-            // data-bs-target ke modal, jadi harus dibiarkan normal.
-            const navLinks = Array.from(document.querySelectorAll('.sidebar-nav .nav-link[data-bs-target]'))
+            // Hanya link sidebar yang hash-nya menunjuk ke section nyata di dashboard staff yang di-intercept.
+            // Link dengan data-bs-toggle modal (Profil/Pengaturan modal) dibiarkan normal.
+            const navLinks = Array.from(document.querySelectorAll('.sidebar-nav .nav-link'))
                 .filter(link => {
-                    const hash = (link.getAttribute('href') || '').split('#')[1] || '';
+                    if (link.hasAttribute('data-bs-toggle') && link.getAttribute('data-bs-toggle') !== 'tab') {
+                        // keep modal links alone
+                    }
+                    if (link.hasAttribute('data-bs-toggle') && link.getAttribute('data-bs-toggle') === 'modal') {
+                        return false;
+                    }
+                    const href = link.getAttribute('href') || '';
+                    if (!href.includes('#')) {
+                        return false;
+                    }
+                    const hash = href.split('#')[1] || '';
                     return Boolean(hash) && sections.some(section => section.id === hash);
                 });
 

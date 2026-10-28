@@ -170,7 +170,7 @@
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="lm-score" style="min-width: 64px;">{{ number_format($weight['weight'], 4) }}</span>
-                                                <div class="lm-score-bar flex-grow-1">
+                                                <div class="lm-score-bar flex-grow: 1">
                                                     <span style="width: {{ min(100, $weight['weight'] * 100) }}%"></span>
                                                 </div>
                                             </div>
@@ -623,7 +623,7 @@
                         <div class="lm-form-grid mb-3">
                             <div>
                                 <label class="form-label" for="supplierName">Nama Pemasok</label>
-                                <input type="text" class="form-control" id="supplierName" name="name" required>
+                                <input type="text" class="form-control" id="supplierName" name="name" placeholder="Konveksi La Mamora"required>
                             </div>
                             <div>
                                 <label class="form-label" for="supplierCode">Kode</label>
@@ -631,15 +631,15 @@
                             </div>
                             <div>
                                 <label class="form-label" for="supplierContact">Narahubung</label>
-                                <input type="text" class="form-control" id="supplierContact" name="contact_name">
+                                <input type="text" class="form-control" id="supplierContact" name="contact_name" placeholder="Rudi Goalang" required>
                             </div>
                             <div>
                                 <label class="form-label" for="supplierPhone">Telepon</label>
-                                <input type="text" class="form-control" id="supplierPhone" name="phone">
+                                <input type="text" class="form-control" id="supplierPhone" name="phone" placeholder="0812-3456-7890" required>
                             </div>
                             <div>
                                 <label class="form-label" for="supplierEmail">Email</label>
-                                <input type="email" class="form-control" id="supplierEmail" name="email">
+                                <input type="email" class="form-control" id="supplierEmail" name="email" placeholder="lamamora@gmail.com" required>
                             </div>
                             <div>
                                 <label class="form-label" for="supplierCity">Kota</label>
