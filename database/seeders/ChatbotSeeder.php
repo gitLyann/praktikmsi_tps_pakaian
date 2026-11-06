@@ -45,9 +45,9 @@ class ChatbotSeeder extends Seeder
         ];
 
         foreach ($faqs as $faq) {
-            Chatbot::create($faq);
+            Chatbot::query()->updateOrCreate(['queries' => $faq['queries']], ['replies' => $faq['replies']]);
         }
 
-        $this->command->info('ChatbotSeeder: ' . count($faqs) . ' FAQ data seeded successfully.');
+        $this->command?->info('ChatbotSeeder: ' . count($faqs) . ' FAQ (idempoten).');
     }
 }

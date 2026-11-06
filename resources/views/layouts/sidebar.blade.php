@@ -25,7 +25,7 @@
             {{-- Halaman dashboard staff memakai navigasi section in-page custom.
                  URL tetap ditulis penuh supaya link tetap berfungsi saat halaman ini
                  bukan dashboard (mis. halaman DSS). --}}
-            <a href="{{ $staffDashboardUrl }}#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#dashboard" data-tab="dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
@@ -44,15 +44,15 @@
     @if($isStaff)
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
-            <a href="{{ $staffDashboardUrl }}#monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#monitoring-stok" data-tab="monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok</span>
             </a>
-            <a href="{{ $staffDashboardUrl }}#pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#pengajuan-restock" data-tab="pengajuan-restock" class="nav-link {{ $activeRoute === 'pengajuan' ? 'active' : '' }}">
                 <i class="bi bi-plus-square"></i>
                 <span>Pengajuan Restock</span>
             </a>
-            <a href="{{ $staffDashboardUrl }}#riwayat-stok" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
+            <a href="{{ route('staff.riwayat-stok') }}" class="nav-link {{ $activeRoute === 'riwayat' ? 'active' : '' }}">
                 <i class="bi bi-clock-history"></i>
                 <span>Riwayat Stok</span>
             </a>
@@ -60,6 +60,13 @@
     @endif
 
     @if(Auth::user()->role === 'admin')
+        <div class="nav-section">
+            <div class="nav-section-label">ES</div>
+            <a href="{{ route('admin.es') }}" class="nav-link {{ request()->routeIs('admin.es*') ? 'active' : '' }}">
+                <i class="bi bi-speedometer"></i>
+                <span>Dashboard Eksekutif</span>
+            </a>
+        </div>
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
             <a href="{{ route('admin.dashboard') }}#stok-realtime" class="nav-link {{ $activeRoute === 'stok' ? 'active' : '' }}">
@@ -114,13 +121,13 @@
             <span>Profil Saya</span>
         </a>
         @if($isStaff && $onStaffDashboard)
-            {{-- Di dashboard staff, Pengaturan sudah menjadi section in-page --}}
-            <a href="{{ $staffDashboardUrl }}#pengaturan" data-bs-target="#pengaturan" class="nav-link {{ $activeRoute === 'pengaturan' ? 'active' : '' }}">
+            {{-- Di dashboard staff, Pengaturan adalah section in-page --}}
+            <a href="{{ $staffDashboardUrl }}#pengaturan" data-tab="pengaturan" class="nav-link {{ $activeRoute === 'pengaturan' ? 'active' : '' }}">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan</span>
             </a>
         @else
-            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <a href="#" class="nav-link" data-open-settings>
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan</span>
             </a>
@@ -150,33 +157,4 @@
     </div>
 </div>
 
-@if(! $isStaff || ! $onStaffDashboard)
-    {{-- Modal Pengaturan. Untuk role staff modal ini hanya dirender di luar
-         dashboard staff, karena di sana section #pengaturan sudah menyediakan
-         tombol logout (jumlah form logout harus tetap satu di halaman itu). --}}
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-secondary text-white">
-                    <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-gear me-2"></i>Pengaturan</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">
-                        Mengakhiri sesi aktif pada perangkat ini. Anda akan diarahkan kembali
-                        ke halaman login dan perlu masuk ulang untuk membuka dashboard.
-                    </p>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-danger w-100">
-                            <i class="bi bi-box-arrow-right me-2"></i>Logout Akun
-                        </button>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-@endif
+{{-- settings-modal dirender global oleh layout (app.blade.php) --}}

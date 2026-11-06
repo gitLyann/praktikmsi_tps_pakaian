@@ -31,7 +31,6 @@ class DssSidebarNavigationTest extends TestCase
             'dashboard',
             'monitoring-stok',
             'pengajuan-restock',
-            'riwayat-stok',
         ] as $section) {
             $this->assertStringContainsString(
                 'href="'.route('staff.dashboard').'#'.$section.'"',
@@ -39,9 +38,11 @@ class DssSidebarNavigationTest extends TestCase
                 "Link sidebar staff #{$section} harus memakai URL penuh."
             );
         }
+        $this->assertStringContainsString('href="'.route('staff.riwayat-stok').'"', $html);
 
         // Pengaturan dan logout harus tetap bisa diakses dari halaman DSS.
-        $this->assertStringContainsString('data-bs-target="#settingsModal"', $html);
+        $this->assertStringContainsString('data-open-settings', $html);
+        $this->assertStringContainsString('id="settingsModal"', $html);
         $this->assertStringContainsString('data-bs-target="#profileModal"', $html);
         $this->assertStringContainsString('action="'.route('logout').'"', $html);
         $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
@@ -68,8 +69,10 @@ class DssSidebarNavigationTest extends TestCase
             );
         }
 
+        $this->assertStringContainsString('href="'.route('admin.es').'"', $html);
         $this->assertStringContainsString('href="'.route('staff.dss').'"', $html);
-        $this->assertStringContainsString('data-bs-target="#settingsModal"', $html);
+        $this->assertStringContainsString('data-open-settings', $html);
+        $this->assertStringContainsString('id="settingsModal"', $html);
         $this->assertStringContainsString('action="'.route('logout').'"', $html);
         $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
     }
@@ -103,8 +106,8 @@ class DssSidebarNavigationTest extends TestCase
 
         // Di dashboard staff, Pengaturan memakai section in-page supaya hanya
         // ada satu form logout di halaman itu.
-        $this->assertStringContainsString('data-bs-target="#pengaturan"', $html);
-        $this->assertStringNotContainsString('data-bs-toggle="modal" data-bs-target="#settingsModal"', $html);
+        $this->assertStringContainsString('data-tab="pengaturan"', $html);
+        $this->assertStringNotContainsString('data-open-settings', $html);
         $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
     }
 }

@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         // Data dasar Decision Support System (pemasok, kriteria AHP, matriks perbandingan).
         $this->call(DssSeeder::class);
 
-        // Riwayat transaksi 30 hari terakhir sebagai data demo DSS (rekomendasi restock & produk).
+        // Riwayat transaksi demo (90 hari, variasi status/kategori/metode) - idempoten.
         $this->call(DssDemoTransactionSeeder::class);
 
         // Skor penilaian pemasok demo supaya ranking VIKOR punya data.
@@ -36,5 +36,10 @@ class DatabaseSeeder extends Seeder
 
         // Kategori dasar katalog (idempoten, tidak menghapus data lama).
         $this->call(CategorySeeder::class);
+
+        // KMS (chatbot, idempoten) dan demo ES/OAS.
+        $this->call(ChatbotSeeder::class);
+        $this->call(EsDemoRestockSeeder::class);
+        $this->call(EsKpiTargetSeeder::class);
     }
 }

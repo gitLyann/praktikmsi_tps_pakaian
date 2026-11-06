@@ -53,11 +53,11 @@ class StaffDashboardTabTest extends TestCase
         $html = $response->getContent();
 
         foreach ([
-            'data-bs-target="#dashboard"',
-            'data-bs-target="#monitoring-stok"',
-            'data-bs-target="#pengajuan-restock"',
-            'data-bs-target="#riwayat-stok"',
-            'data-bs-target="#pengaturan"',
+            'href="'.route('staff.dashboard').'#dashboard"',
+            'href="'.route('staff.dashboard').'#monitoring-stok"',
+            'href="'.route('staff.dashboard').'#pengajuan-restock"',
+            'href="'.route('staff.riwayat-stok').'"',
+            'data-tab="pengaturan"',
             'id="dashboard"',
             'id="monitoring-stok"',
             'id="pengajuan-restock"',
@@ -225,7 +225,8 @@ class StaffDashboardTabTest extends TestCase
 
         $html = $this->actingAs($admin)->get('/admin/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('data-bs-target="#settingsModal"', $html);
+        $this->assertStringContainsString('data-open-settings', $html);
+        $this->assertStringContainsString('id="settingsModal"', $html);
         $this->assertStringContainsString('href="'.route('admin.dashboard').'#persetujuan-restock"', $html);
         // Menu admin sudah diubah namanya menjadi "Riwayat Stok"
         $this->assertStringContainsString('href="'.route('admin.dashboard').'#riwayat-stok"', $html);

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\Admin\EsController;
 use App\Http\Controllers\DssAnalysisController;
 use App\Http\Controllers\DssScoreController;
 use App\Http\Controllers\DssSupplierController;
@@ -58,6 +59,7 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard Kasir & Form Restock
     Route::middleware(['role:staff,admin'])->group(function () {
         Route::get('/staff/dashboard', [StaffController::class, 'index'])->name('staff.dashboard');
+        Route::get('/staff/riwayat-stok', [StaffController::class, 'riwayatStok'])->name('staff.riwayat-stok');
         Route::post('/staff/restock', [StaffController::class, 'storeRestock'])->name('staff.restock.store');
         Route::post('/staff/products', [StaffController::class, 'storeProduct'])->name('staff.products.store');
         // Update master produk oleh Staff (ubah deskripsi, foto, harga, kategori, dll.)
@@ -98,6 +100,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/dss/pemasok/{supplier}/aktif', [DssSupplierController::class, 'toggle'])->name('admin.dss.suppliers.toggle');
         Route::post('/admin/dss/pemasok/{supplier}/penawaran', [DssSupplierController::class, 'storeOffer'])->name('admin.dss.suppliers.offers.store');
         Route::delete('/admin/dss/pemasok/{supplier}/penawaran/{offer}', [DssSupplierController::class, 'destroyOffer'])->name('admin.dss.suppliers.offers.destroy');
+        
+        // Executive System (ES) - dashboard & data JSON
+        Route::get('/admin/es', [EsController::class, 'index'])->name('admin.es');
+        Route::get('/admin/es/data/summary', [EsController::class, 'summary'])->name('admin.es.data.summary');
+        Route::get('/admin/es/data/charts/{name}', [EsController::class, 'chart'])->name('admin.es.data.chart')->where('name','[a-z0-9\-]+');
+        Route::get('/admin/es/data/alerts', [EsController::class, 'alerts'])->name('admin.es.data.alerts');
+        Route::get('/admin/es/data/integration', [EsController::class, 'integration'])->name('admin.es.data.integration');
+        Route::get('/admin/es/data/target', [EsController::class, 'target'])->name('admin.es.data.target');
+        Route::post('/admin/es/target', [EsController::class, 'storeTarget'])->name('admin.es.target.store');
     });
 
     // Master Supplier - data pemasok untuk admin & staff.

@@ -387,3 +387,10 @@
 ### Penutup
 - [x] Update section "Bahan Screenshot Laporan DSS" di `changelog.md` bila ada halaman baru (Master Supplier, form restock, keranjang)
 - [ ] Commit perubahan setelah diminta
+
+### Phase 40-44 (ES - Executive System, admin, integrasi TPS/OAS/KMS/MIS/DSS)
+- [x] **FASE A** Migration/model/factory/seeder: es_kpi_targets (YYYY-MM unique, revenue_target, created_by), EsKpiTarget*, target bulan ini/lalu (idempoten). DssDemoTransactionSeeder 90 hari variasi kategori/metode legacy+baru/status (idempoten, no delete); ChatbotSeeder idempoten; EsDemoRestockSeeder (status+selisih approval).
+- [x] **FASE B** config/es.php (ambang turun 20%, stok kritis, pending 2 hari, maks 366). EsService (completed-only omzet/KPI, tren harian<=90/bulanan PHP, kategori/top5/metode tergrup/status, stok vs ROP reuse RestockRecommendationService, ranking Q dss_runs VIKOR payload, alerts, integrasi+avg approval jam). EsFilterRequest. Admin JSON /admin/es/data/* {labels,datasets,meta}, driver-safe (no DATE_FORMAT/strftime).
+- [x] **FASE C** /admin/es + sidebar ES; filter 7/30/90/bulan/custom (fetch JSON); 6 KPI (omzet panah/persen); 7 Chart.js 4.4.4 (omzet line, kategori bar, top5 horizontal, pembayaran pie, status donut, stok vs ROP bar, Q supplier bar) token tema+dark (lm:themechange)+loading/empty+error+responsif.
+- [x] **FASE D** Alerts (turun>ambang, stok kritis, pending>batas hari, supplier rank berubah info). Target progres bulan + POST /admin/es/target upsert (>0). Panel Integrasi 5 kartu TPS/OAS/KMS/MIS/DSS + strip alur.
+- [x] **FASE E** --filter=EsDashboardTest 5/5 (35), --filter=DssDemoTransactionSeederTest 3/3 (12), --filter=DssSidebarNavigationTest 4/4 (46). Bahan screenshot laporan ES di changelog.md. pint/suite penuh tidak dijalankan. Tidak commit.

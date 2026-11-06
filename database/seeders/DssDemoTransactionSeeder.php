@@ -11,37 +11,23 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeder transaksi demo untuk 30 hari terakhir.
+ * Seeder transaksi demo 90 hari untuk DSS/MIS/ES.
  *
- * Tuannya: mengisi tabel `transactions` + `transaction_details` dengan riwayat
- * pembelian yang realistis supaya:
- * - Rekomendasi restock DSS punya data demand (reorder point bisa dihitung).
- * - Rekomendasi produk pelanggan punya data popularitas 90 hari.
- * - Dashboard MIS (analisis penjualan) punya transaksi pada periode berjalan.
- *
- * Jalankan dengan:
- *   php artisan db:seed --class=DssDemoTransactionSeeder
- *
- * Catatan:
- * - Stok produk **tidak** diubah, karena kolom stok berisi posisi stok terkini.
- * - `transactions.customer_id` diarahkan ke `users.id` di MySQL (migrasi
- *   2026_09_17_155756) tetapi tetap menunjuk `customers.id` di SQLite, jadi
- *   seeder mendeteksi target foreign key lebih dulu.
- * - Idempoten: bila periode 30 hari terakhir sudah berisi transaksi yang cukup
- *   banyak, seeder dilewati supaya data demo tidak digandakan.
+ * Idempoten: hanya membuat transaksi bila periode 90 hari terakhir belum punya
+ * cukup transaksi demo. Tidak menghapus/mengubah data lama; stok produk tidak diubah.
  */
 class DssDemoTransactionSeeder extends Seeder
 {
     /** Rentang riwayat yang dibuat (hari). */
-    private const DAYS = 30;
+    private const DAYS = 90;
 
     /** Jumlah transaksi per hari. */
-    private const MIN_TRANSACTIONS_PER_DAY = 2;
+    private const MIN_TRANSACTIONS_PER_DAY = 1;
 
-    private const MAX_TRANSACTIONS_PER_DAY = 4;
+    private const MAX_TRANSACTIONS_PER_DAY = 3;
 
-    /** Bila transaksi selesai di periode ini sudah mencapai angka ini, seeder dilewati. */
-    private const EXISTING_TRANSACTION_THRESHOLD = 30;
+    /** Bila transaksi di periode ini sudah mencapai angka ini, seeder dilewati. */
+    private const EXISTING_TRANSACTION_THRESHOLD = 60;
 
     /** Pelanggan demo yang dipakai untuk transaksi. */
     private const CUSTOMERS = [
@@ -51,7 +37,13 @@ class DssDemoTransactionSeeder extends Seeder
         ['name' => 'Andi Wijaya', 'email' => 'andi.demo@lamamora.test'],
     ];
 
-    private const PAYMENT_METHODS = ['Transfer BCA', 'E-Wallet', 'COD'];
+    /** Variasi metode: legacy + kode baru (harus bisa dikelompokkan oleh ES). */
+    private const PAYMENT_METHODS = [
+        'Transfer Bank', 'M-Banking', 'E-Wallet', 'Cash',
+        'emoney_gopay', 'emoney_ovo', 'atm_bca', 'card', 'cod',
+    ];
+
+    private const STATUSES = ['completed', 'completed', 'completed', 'pending', 'processing', 'cancelled'];
 
     /** Two produk pertama dianggap paling laris supaya ada demand tinggi. */
     private const POPULAR_PRODUCT_COUNT = 2;
@@ -67,13 +59,12 @@ class DssDemoTransactionSeeder extends Seeder
         }
 
         $existing = Transaction::query()
-            ->where('status', 'completed')
             ->where('date', '>=', now()->subDays(self::DAYS)->startOfDay())
             ->count();
 
         if ($existing >= self::EXISTING_TRANSACTION_THRESHOLD) {
             $this->command?->info(
-                'Sudah ada '.$existing.' transaksi selesai dalam '.self::DAYS.' hari terakhir, seeder dilewati.'
+                'Sudah ada '.$existing.' transaksi dalam '.self::DAYS.' hari terakhir, seeder dilewati.'
             );
 
             return;
@@ -119,6 +110,7 @@ class DssDemoTransactionSeeder extends Seeder
      */
     private function createTransaction(Collection $products, array $popularIds, array $customerIds, \DateTimeInterface $date): void
     {
+        $status = self::STATUSES[array_rand(self::STATUSES)];
         // created_at/updated_at tidak termasuk fillable, jadi ditulis tanpa proteksi mass assignment.
         $transaction = Transaction::unguarded(fn (): Transaction => Transaction::create([
             'customer_id' => $customerIds[array_rand($customerIds)],
@@ -126,7 +118,7 @@ class DssDemoTransactionSeeder extends Seeder
             'date' => $date,
             'total' => 0,
             'payment_method' => self::PAYMENT_METHODS[array_rand(self::PAYMENT_METHODS)],
-            'status' => 'completed',
+            'status' => $status,
             'created_at' => $date,
             'updated_at' => $date,
         ]));

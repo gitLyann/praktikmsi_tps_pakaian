@@ -11,6 +11,7 @@ use App\Support\HandlesProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class StaffController extends Controller
 {
@@ -226,6 +227,38 @@ class StaffController extends Controller
         return redirect()
             ->to(route('staff.dashboard') . '#pengajuan-restock')
             ->with('success', 'Pengajuan restock barang berhasil dikirim ke Manager!');
+    }
+
+    /**
+     * Riwayat Stok (halaman terpisah). Staff boleh melihat/mencari/memfilter;
+     * aksi ubah/hapus data restock tidak tersedia untuk staff (admin-only).
+     * Asumsi: Riwayat Stok di admin adalah audit trail read-only (RestockRequest);
+     * mutasi restock yang ada adalah approval status (admin). Staff ditolak 403
+     * bila mencoba endpoint mutasi admin.
+     */
+    public function riwayatStok(Request $request): View
+    {
+        $search = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', 'all');
+
+        $query = RestockRequest::with(['product', 'employee'])->latest();
+
+        if (in_array($status, ['pending', 'approved', 'rejected'], true)) {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function ($builder) use ($like) {
+                $builder->whereRaw('LOWER(catatan) LIKE ?', [$like])
+                    ->orWhereHas('product', fn ($q) => $q->whereRaw('LOWER(name) LIKE ?', [$like]))
+                    ->orWhereHas('employee', fn ($q) => $q->whereRaw('LOWER(name) LIKE ?', [$like]));
+            });
+        }
+
+        $auditTrail = $query->limit(200)->get();
+
+        return view('staff.riwayat-stok', compact('auditTrail', 'search', 'status'));
     }
 
     /**

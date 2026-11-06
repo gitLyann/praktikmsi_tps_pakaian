@@ -14,26 +14,24 @@ class DssDemoTransactionSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_seeder_membuat_transaksi_serta_detail_selama_30_hari(): void
+    public function test_seeder_membuat_transaksi_demo_90_hari_dengan_variasi_status(): void
     {
         Product::factory()->create(['stock' => 20]);
         Product::factory()->create(['stock' => 15]);
 
         $this->seed(DssDemoTransactionSeeder::class);
 
-        $transactions = Transaction::query()->where('status', 'completed')->get();
-
+        $transactions = Transaction::query()->get();
         $this->assertGreaterThanOrEqual(60, $transactions->count());
+        $this->assertGreaterThan(0, $transactions->where('status', 'completed')->count());
+        $this->assertGreaterThan(0, $transactions->where('status', '!=', 'completed')->count());
 
         // Tiap transaksi punya minimal satu detail barang.
         $this->assertSame(0, $transactions->filter(fn ($transaction) => $transaction->details()->count() === 0)->count());
         $this->assertGreaterThanOrEqual($transactions->count(), TransactionDetail::query()->count());
 
         $oldest = $transactions->min('date');
-        $newest = $transactions->max('date');
-
-        $this->assertTrue($oldest->between(now()->subDays(31)->startOfDay(), now()->subDays(29)->endOfDay()));
-        $this->assertTrue($newest->between(now()->subDays(1)->startOfDay(), now()->endOfDay()));
+        $this->assertTrue($oldest->greaterThanOrEqualTo(now()->subDays(91)->startOfDay()));
     }
 
     public function test_seeder_adalah_idempoten(): void

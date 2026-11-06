@@ -131,7 +131,7 @@
                         <i class="bi bi-list"></i>
                     </button>
                     <div class="min-w-0">
-                        <div class="lm-topbar-eyebrow">{{ $topbarEyebrow ?? 'Sistem OAS &amp; MIS' }}</div>
+                        <div class="lm-topbar-eyebrow">{{ $topbarEyebrow ?? 'Sistem OAS & MIS' }}</div>
                         <div class="lm-topbar-title" id="lmTopbarTitle">{{ $topbarTitle ?? ($title ?? 'Dashboard') }}</div>
                     </div>
                 </div>
@@ -157,6 +157,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {{-- Global Pengaturan modal (staff/admin). Staff dashboard punya section #pengaturan in-page. --}}
+    @includeWhen(Auth::check() && in_array(Auth::user()->role ?? null, ['staff','admin'], true) && ! (request()->routeIs('staff.dashboard')), 'partials.settings-modal')
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
