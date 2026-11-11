@@ -241,4 +241,41 @@ class StaffDashboardTabTest extends TestCase
         $this->assertStringNotContainsString('data-bs-toggle="tab"', $toko);
         $this->assertStringNotContainsString('sidebar-footer', $toko);
     }
+
+    public function test_semua_section_dashboard_staff_berada_di_dalam_wrapper(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff']);
+
+        $html = $this->actingAs($staff)->get('/staff/dashboard')->assertOk()->getContent();
+
+        // Regresi div tak seimbang: section yang berada di luar wrapper #staffDashboard
+        // tidak dikenali router tab, sehingga klik "Pengaturan" (untuk logout) jatuh
+        // kembali ke tab Dashboard.
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($html);
+        libxml_clear_errors();
+        $xpath = new \DOMXPath($dom);
+
+        $this->assertSame(
+            5,
+            $xpath->query('//div[@id="staffDashboard"]/div[contains(concat(" ", normalize-space(@class), " "), " dashboard-section ")]')->length,
+            'Lima section harus menjadi anak langsung wrapper #staffDashboard.'
+        );
+        $this->assertSame(
+            0,
+            $xpath->query('//div[contains(concat(" ", normalize-space(@class), " "), " dashboard-section ")][not(ancestor::div[@id="staffDashboard"])]')->length,
+            'Tidak boleh ada section yang berada di luar wrapper #staffDashboard.'
+        );
+        $this->assertSame(
+            1,
+            $xpath->query('//div[@id="staffDashboard"]//div[@id="pengaturan"]')->length,
+            'Section #pengaturan (tempat tombol logout) harus berada di dalam wrapper.'
+        );
+        $this->assertSame(
+            1,
+            $xpath->query('//div[@id="pengajuan-restock"]//form[@id="formTambahProduk"]')->length,
+            'Form Tambah Master Produk harus berada di dalam section Pengajuan Restock.'
+        );
+    }
 }

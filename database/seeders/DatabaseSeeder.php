@@ -37,8 +37,9 @@ class DatabaseSeeder extends Seeder
         // Kategori dasar katalog (idempoten, tidak menghapus data lama).
         $this->call(CategorySeeder::class);
 
-        // KMS (chatbot, idempoten) dan demo ES/OAS.
+        // KMS (chatbot + log percakapan demo, idempoten) dan demo ES/OAS.
         $this->call(ChatbotSeeder::class);
+        $this->call(ChatbotLogSeeder::class);
         $this->call(EsDemoRestockSeeder::class);
         $this->call(EsKpiTargetSeeder::class);
     }

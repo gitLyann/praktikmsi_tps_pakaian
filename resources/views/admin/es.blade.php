@@ -73,17 +73,19 @@
   const charts = {};
   function token(name, fallback){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; }
   function colors(){ return [token('--lm-chart-1','#2563eb'),token('--lm-chart-2','#16a34a'),token('--lm-chart-3','#f59e0b'),token('--lm-chart-4','#ef4444'),token('--lm-chart-5','#8b5cf6')]; }
+  function applyChartTheme(){ if(typeof Chart==='undefined') return; Chart.defaults.color=token('--lm-muted','#64748b'); Chart.defaults.borderColor=token('--lm-border','#e2e8f0'); }
   function qs(){ const p=new URLSearchParams(range); return p.toString(); }
   async function get(path){ const r=await fetch(base+'/'+path+'?'+qs(),{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}}); if(!r.ok){ let m='Gagal memuat data'; try{m=(await r.json()).message||m;}catch(e){} throw new Error(m);} return r.json(); }
   function setState(name,msg,show){ const el=document.querySelector('[data-state="'+name+'"]'); if(el){el.textContent=msg||''; el.style.display=show===false?'none':'block'; if(msg==='' ) el.style.display='none';} }
   function renderChart(id,name,type,data,opts){
     const ctx=document.getElementById(id); if(!ctx||typeof Chart==='undefined') return;
+    applyChartTheme();
     const c=colors(); const empty=!data.labels||data.labels.length===0;
     if(empty){ setState(name, data.meta?.message||'Tidak ada data pada periode ini', true); if(charts[id]){charts[id].destroy(); delete charts[id];} return; }
     setState(name,'',false);
     if(charts[id]) charts[id].destroy();
     const isPie=type==='pie'||type==='doughnut';
-    const ds=(data.datasets||[]).map((d,i)=>Object.assign({borderWidth:1,backgroundColor:isPie?c:c[i%c.length],borderColor:isPie?c:c[i%c.length]}, d, type==='line'?{fill:false,tension:.25}:{}));
+    const ds=(data.datasets||[]).map((d,i)=>{const bg=isPie?(data.labels||[]).map((_,idx)=>c[idx%c.length]):c[i%c.length];return Object.assign({borderWidth:1,backgroundColor:bg,borderColor:bg}, d, type==='line'?{fill:false,tension:.25}:{});});
     charts[id]=new Chart(ctx,{type,data:{labels:data.labels,datasets:ds},options:Object.assign({responsive:true,maintainAspectRatio:true,plugins:{legend:{display:isPie||ds.length>1}}}, (type==='bar'&&opts?.horizontal)?{indexAxis:'y'}:{})});
   }
   function fmtMoney(v){ return 'Rp '+Number(v||0).toLocaleString('id-ID'); }
@@ -108,7 +110,7 @@
     document.getElementById('esIntegration').innerHTML=(d.systems||[]).map(s=>'<div class="col-12 col-md-6 col-xl-4"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between"><strong>'+s.name+'</strong><a class="small" href="'+s.link+'">Buka</a></div><div class="text-muted small mb-2">'+s.desc+'</div>'+(s.metrics||[]).map(m=>'<div class="small"><span class="text-muted">'+m.label+':</span> <strong>'+renderMetric(m)+'</strong></div>').join('')+'</div></div>').join('');
   }catch(e){ document.getElementById('esIntegration').innerHTML='<div class="text-danger small">Gagal memuat integrasi.</div>'; } }
   function renderMetric(m){ if(m.format==='currency') return fmtMoney(m.value); if(m.format==='hours') return (m.value==null?'-':m.value+' jam'); if(m.format==='list') return (m.value||[]).join('; '); if(m.format==='map') return Object.entries(m.value||{}).map(([k,v])=>k+': '+v).join(', ')||'-'; return m.value; }
-  async function loadTarget(){ try{ const p=(new Date().toISOString().slice(0,7)); const r=await fetch(base+'/target?period='+p,{headers:{'Accept':'application/json'}}); const d=await r.json(); const card=document.getElementById('esTargetCard');
+  async function loadTarget(){ try{ const n=new Date(); const p=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); const r=await fetch(base+'/target?period='+p,{headers:{'Accept':'application/json'}}); const d=await r.json(); const card=document.getElementById('esTargetCard');
     card.innerHTML='<div class="small text-muted mb-1">Periode '+d.period+'</div><div class="progress mb-2" style="height:10px"><div class="progress-bar bg-success" style="width:'+Math.min(100,d.percent_raw||0)+'%"></div></div><div class="small"><strong>'+Math.round(d.percent_raw||0)+'%</strong> — '+fmtMoney(d.actual)+' / '+fmtMoney(d.target)+' (sisa '+fmtMoney(d.remaining)+')</div>'+
       '<form class="mt-3 d-flex gap-2 flex-wrap" id="esTargetForm"><input type="hidden" name="period" value="'+d.period+'"><input type="number" step="0.01" min="1" name="revenue_target" class="form-control form-control-sm" style="max-width:180px" value="'+(d.target||'')+'" placeholder="Target omzet" required><button class="btn btn-sm btn-primary">Simpan Target</button></form>';
     document.getElementById('esTargetForm').onsubmit=async (e)=>{ e.preventDefault(); const fd=new FormData(e.target); const res=await fetch(root.dataset.esTargetUrl,{method:'POST',headers:{'Accept':'application/json','X-CSRF-TOKEN':csrf},body:fd}); if(res.ok) loadTarget(); else alert('Gagal menyimpan target.'); };

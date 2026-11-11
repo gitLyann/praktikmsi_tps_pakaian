@@ -1091,3 +1091,28 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 - Tabel: es_kpi_targets + TPS (	ransactions,	ransaction_details,products,categories,payment_methods), OAS (estock_requests,employees,products), KMS (chatbots), DSS (dss_runs,dss_supplier_scores,suppliers).
 - File: pp/Http/Controllers/Admin/EsController.php, pp/Services/EsService.php, pp/Http/Requests/EsFilterRequest.php, pp/Models/EsKpiTarget.php, config/es.php, esources/views/admin/es.blade.php, seeders/factory ES.
 - Screenshot: dashboard+filter, 6 KPI+alerts, 7 grafik (terang/gelap), target progres/form, panel integrasi+alur, contoh respons JSON endpoint.
+
+## 2026-11-11 - Phase 45: Backfill - Halaman Riwayat Stok & Pengaturan Staff
+- Route GET /staff/riwayat-stok + `StaffController::riwayatStok`: tabel audit stok (partial `riwayat-stok-admin`) dengan filter pencarian; staff & admin boleh, pelanggan 403.
+- Modal Pengaturan (`partials/settings-modal`) kini tampil di semua halaman staff/admin via `layouts/app.blade.php`; include duplikat di `sidebar.blade.php` dihapus.
+- Branding halaman staff/admin seragam "Sistem OAS & MIS".
+- RBAC: riwayat stok read-only; mutasi persetujuan tetap admin-only (staff 403 di `admin.restock.update`).
+- Verifikasi: `--filter=StaffRiwayatStokTest` 6/6 (27). Manual: cek filter pencarian, modal pengaturan tiap halaman staff, toggle tema.
+
+## 2026-11-11 - Phase 46: Perbaikan audit ES + KMS chatbot_logs + refactor x-ui
+- Bug fix `es.blade.php`: warna pie/doughnut per-slice (`c[idx%c.length]`); periode target pakai bulan lokal (bukan UTC); `Chart.defaults` color/borderColor dari token `--lm-muted`/`--lm-border` (adaptif dark mode).
+- Bug fix `EsService`: KPI Stok Kritis = ambang `es.critical_stock_threshold` (konsisten alerts+MIS, sebelumnya `needs_restock` DSS); `supplierRankChangeAlert` filter `type=vikor`; label 'Transfer BCA' tergrup ke Transfer Bank; empty-state chart stok ("Semua stok di atas reorder point...").
+- Memoisasi per-request `EsService` (kpiSummary/topProducts/stockVsReorder/latestSupplierRun) - `analyze()` kini 1x per load (sebelumnya 4x).
+- KMS: migration `chatbot_logs` (user_id FK, message, reply, matched) + model `ChatbotLog` + `ChatbotController::message` mencatat percakapan; metrik integrasi KMS = percakapan periode, % terjawab otomatis, basis FAQ; `ChatbotLogSeeder` 120 log/90 hari idempoten.
+- Refactor `es.blade.php` ke `x-ui` dicoba lalu dipulihkan ke markup Bootstrap asli (font stat-card besar dinilai jelek; markup identik dgn HEAD); `Chart.defaults` token tema tetap dipertahankan; komponen stat-card tetap backward-compatible.
+- Contoh JSON nyata (DB asli 2026-11-11, preset 30): summary `{"revenue":{"value":9767000,"change_percent":-41.94,"direction":"down"},"transactions":{"value":34},"top_product":{"name":"Jeans Cutbray","sold":33},...}`; payment `{"labels":["Transfer Bank","Tunai/COD","E-Wallet","Online","Kartu"],"datasets":[{"label":"Transaksi","data":[12,11,9,1,1]}]}`; alerts `{"items":[{"level":"danger","title":"Penjualan turun",...}],"count":1}`; integration KMS 42 percakapan/81% terjawab; stock meta.message; supplier 5 skor Q (run_id 3); target `{"period":"2026-11","target":50000000,"actual":0,"percent":0,"has_target":true}`.
+- Verifikasi: `--filter=EsDashboardTest` 5/5 (42), `--filter=ChatbotTest` 3/3 (10), `--filter=StaffRiwayatStokTest` 6/6, `--filter=DssSidebarNavigationTest` 4/4. `php artisan migrate` (chatbot_logs) + seed 120 log di DB asli. pint/suite penuh tidak dijalankan. Tidak commit.
+
+## 2026-11-11 - Phase 47: Bugfix - Menu Pengaturan Staff Jatuh ke Tab Dashboard
+- Bug (laporan user): klik Pengaturan di sidebar dashboard staff selalu mengarah ke tab Dashboard utama (dari tab Dashboard/Monitoring Stok/Pengajuan Restock), tombol logout tak pernah terlihat.
+- Akar masalah: satu </div> ekstra di staff/dashboard.blade.php (setelah card Daftar Pengajuan Menunggu) menutup section #pengajuan-restock prematur, sehingga wrapper #staffDashboard tertutup terlalu dini dan section #riwayat-stok+#pengaturan berada DI LUAR wrapper.
+- Efek: router tab hanya mengenali 3 section (querySelector dalam wrapper); hash #pengaturan tak dikenal -> fallback default (Dashboard). Efek samping: card Tambah Master Produk Baru ikut tampil di semua tab.
+- Fix: hapus </div> ekstra; 5 section kembali menjadi anak langsung #staffDashboard.
+- Verifikasi browser nyata (Playwright + Chrome headless atas instance rtisan serve + sqlite temp): klik Pengaturan dari 3 tab -> section Pengaturan; direct load #pengaturan benar; klik Logout Akun -> sukses logout ke / + pesan 'Anda telah logout'; 0 error console; form Tambah Master hanya tampil di tab Pengajuan Restock.
+- Regresi: StaffDashboardTabTest::test_semua_section_dashboard_staff_berada_di_dalam_wrapper (DOM XPath: 5 section anak wrapper; tanpa section di luar wrapper; #pengaturan dalam wrapper; form Tambah Master dalam #pengajuan-restock); dipastikan gagal saat bug direproduksi ulang.
+- Tests: --filter=EsDashboardTest|ChatbotTest|StaffDashboardTabTest|StaffRiwayatStokTest|DssSidebarNavigationTest 24/24 (227). pint --dirty dijalankan. Tidak commit.

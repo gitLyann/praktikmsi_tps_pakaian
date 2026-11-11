@@ -365,7 +365,6 @@
                         </div>
                     </div>
                 </div>
-                </div>
             </div>
 
             {{-- Tambah Master Produk Baru: form inline, berada di bawah Form & Tabel Pengajuan Restock --}}

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Chatbot;
+use App\Models\ChatbotLog;
 use App\Models\DssRun;
 use App\Models\EsKpiTarget;
 use App\Models\PaymentMethod;
@@ -15,14 +16,27 @@ use Illuminate\Support\Facades\DB;
 
 class EsService
 {
+    /** @var array<string,mixed> */
+    private array $cache = [];
+
     public function __construct(
         private readonly RestockRecommendationService $restockRecommendationService,
     ) {}
 
     /**
-     * @param array{from:Carbon,to:Carbon,previousFrom:Carbon,previousTo:Carbon,days:int,label:string} $range
+     * @param  array{from:Carbon,to:Carbon,previousFrom:Carbon,previousTo:Carbon,days:int,label:string}  $range
      */
     public function kpiSummary(array $range): array
+    {
+        $key = $range['from']->toDateString().':'.$range['to']->toDateString();
+
+        return $this->cache['kpi:'.$key] ??= $this->buildKpiSummary($range);
+    }
+
+    /**
+     * @param  array{from:Carbon,to:Carbon,previousFrom:Carbon,previousTo:Carbon,days:int,label:string}  $range
+     */
+    private function buildKpiSummary(array $range): array
     {
         $current = $this->completedRevenueAndCount($range['from'], $range['to']);
         $previous = $this->completedRevenueAndCount($range['previousFrom'], $range['previousTo']);
@@ -30,11 +44,12 @@ class EsService
             ? round((($current['revenue'] - $previous['revenue']) / $previous['revenue']) * 100, 2)
             : ($current['revenue'] > 0 ? 100.0 : 0.0);
 
-        $stockVs = $this->stockVsReorder();
-        $critical = $stockVs['items']->where('needs_restock', true)->count();
+        $criticalThreshold = (int) config('es.critical_stock_threshold', 5);
+        $critical = Product::query()->where('stock', '<=', $criticalThreshold)->count();
         $pending = RestockRequest::query()->where('status', 'pending')->count();
-        $top = $this->topProducts($range, 1)['datasets'][0]['data'][0] ?? null;
-        $topLabel = $this->topProducts($range, 1)['labels'][0] ?? '-';
+        $topChart = $this->topProducts($range, 1);
+        $top = $topChart['datasets'][0]['data'][0] ?? 0;
+        $topLabel = $topChart['labels'][0] ?? '-';
         $bestSupplier = $this->bestSupplierFromLatestRun();
 
         return [
@@ -58,7 +73,8 @@ class EsService
         }
 
         if ($daily) {
-            $labels = []; $data = [];
+            $labels = [];
+            $data = [];
             $cursor = $range['from']->copy()->startOfDay();
             $end = $range['to']->copy()->startOfDay();
             while ($cursor->lte($end)) {
@@ -67,6 +83,7 @@ class EsService
                 $data[] = round($byDay[$key] ?? 0, 2);
                 $cursor->addDay();
             }
+
             return $this->chart($labels, [['label' => 'Omzet', 'data' => $data]], ['mode' => 'daily']);
         }
 
@@ -79,6 +96,7 @@ class EsService
         ksort($months);
         $months = array_slice($months, -12, 12, true);
         $labels = array_map(fn ($m) => Carbon::createFromFormat('Y-m', $m)->translatedFormat('M Y'), array_keys($months));
+
         return $this->chart(array_values($labels), [['label' => 'Omzet', 'data' => array_map(fn ($v) => round($v, 2), array_values($months))]], ['mode' => 'monthly']);
     }
 
@@ -93,12 +111,20 @@ class EsService
             ->groupBy('products.category_id', 'categories.name')
             ->selectRaw('COALESCE(categories.name, ?) as label, SUM(transaction_details.subtotal) as total', ['Tanpa Kategori'])
             ->orderByDesc('total')->get();
+
         return $this->chart($rows->pluck('label')->all(), [['label' => 'Penjualan', 'data' => $rows->map(fn ($r) => round((float) $r->total, 2))->all()]]);
     }
 
     public function topProducts(array $range, ?int $limit = null): array
     {
         $limit = $limit ?? (int) config('es.top_products_limit', 5);
+        $key = 'top:'.$range['from']->toDateString().':'.$range['to']->toDateString().':'.$limit;
+
+        return $this->cache[$key] ??= $this->buildTopProducts($range, $limit);
+    }
+
+    private function buildTopProducts(array $range, int $limit): array
+    {
         $rows = DB::table('transaction_details')
             ->join('transactions', 'transactions.id', '=', 'transaction_details.transaction_id')
             ->join('products', 'products.id', '=', 'transaction_details.product_id')
@@ -107,6 +133,7 @@ class EsService
             ->groupBy('transaction_details.product_id', 'products.name')
             ->selectRaw('products.name as label, SUM(transaction_details.quantity) as qty')
             ->orderByDesc('qty')->limit($limit)->get();
+
         return $this->chart($rows->pluck('label')->all(), [['label' => 'Qty Terjual', 'data' => $rows->pluck('qty')->map(fn ($v) => (int) $v)->all()]]);
     }
 
@@ -132,6 +159,7 @@ class EsService
         $labels = array_keys($grouped);
         $data = array_map(fn ($l) => $grouped[$l]['count'], $labels);
         $revenue = array_map(fn ($l) => round($grouped[$l]['revenue'], 2), $labels);
+
         return $this->chart($labels, [['label' => 'Transaksi', 'data' => $data]], ['revenue' => $revenue]);
     }
 
@@ -142,10 +170,16 @@ class EsService
             ->groupBy('status')
             ->selectRaw('status as label, COUNT(*) as total')
             ->orderBy('status')->get();
+
         return $this->chart($rows->pluck('label')->all(), [['label' => 'Jumlah', 'data' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all()]]);
     }
 
     public function stockVsReorder(): array
+    {
+        return $this->cache['stock_vs'] ??= $this->buildStockVsReorder();
+    }
+
+    private function buildStockVsReorder(): array
     {
         $analysis = $this->restockRecommendationService->analyze();
         $items = $analysis['items']->map(fn (array $item) => [
@@ -155,12 +189,17 @@ class EsService
             'needs_restock' => $item['needs_restock'],
         ])->values();
         $need = $items->where('needs_restock', true)->values()->take(15);
+        $meta = ['total_products' => $items->count()];
+        if ($need->isEmpty()) {
+            $meta['message'] = 'Semua stok di atas reorder point — tidak ada produk perlu restock.';
+        }
+
         return [
             'items' => $items,
             'chart' => $this->chart($need->pluck('product')->all(), [
                 ['label' => 'Stok', 'data' => $need->pluck('stock')->all()],
                 ['label' => 'Reorder Point', 'data' => $need->pluck('reorder_point')->all()],
-            ], ['total_products' => $items->count()]),
+            ], $meta),
         ];
     }
 
@@ -171,6 +210,7 @@ class EsService
         if (! $scores) {
             return $this->chart([], [['label' => 'Skor Q', 'data' => []]], ['empty' => true, 'message' => 'Belum ada analisis DSS.']);
         }
+
         return $this->chart(array_column($scores, 'label'), [['label' => 'Skor Q (VIKOR)', 'data' => array_column($scores, 'q')]], ['run_id' => $run?->id, 'created_at' => $run?->created_at?->toDateTimeString(), 'rank' => array_column($scores, 'rank')]);
     }
 
@@ -198,6 +238,7 @@ class EsService
         if ($rankChange) {
             $alerts[] = $rankChange;
         }
+
         return ['items' => $alerts, 'count' => count($alerts)];
     }
 
@@ -207,8 +248,12 @@ class EsService
         $pending = RestockRequest::query()->where('status', 'pending')->count();
         $avgApproval = $this->averageApprovalHours();
         $chatCount = Chatbot::query()->count();
+        $conversations = ChatbotLog::query()->whereBetween('created_at', [$range['from'], $range['to']])->count();
+        $answered = ChatbotLog::query()->whereBetween('created_at', [$range['from'], $range['to']])->where('matched', true)->count();
+        $matchRate = $conversations > 0 ? round($answered / $conversations * 100, 1) : null;
         $topics = Chatbot::query()->latest()->limit(5)->get()->map(function ($c) {
             $q = (string) $c->queries;
+
             return mb_strlen($q) > 60 ? mb_substr($q, 0, 57).'...' : $q;
         })->values()->all();
         $statusCounts = DB::table('transactions')->whereBetween('date', [$range['from'], $range['to']])->groupBy('status')->selectRaw('status, COUNT(*) as total')->pluck('total', 'status')->all();
@@ -222,7 +267,7 @@ class EsService
             'systems' => [
                 ['key' => 'tps', 'name' => 'TPS', 'desc' => 'Transaction Processing', 'metrics' => [['label' => 'Transaksi (completed)', 'value' => $tps['count']], ['label' => 'Omzet', 'value' => $tps['revenue'], 'format' => 'currency']], 'link' => route('admin.dashboard').'#analisis-mis'],
                 ['key' => 'oas', 'name' => 'OAS', 'desc' => 'Office Automation', 'metrics' => [['label' => 'Restock pending', 'value' => $pending], ['label' => 'Rata-rata approval', 'value' => $avgApproval, 'format' => 'hours']], 'link' => route('admin.dashboard').'#persetujuan-restock'],
-                ['key' => 'kms', 'name' => 'KMS', 'desc' => 'Knowledge Management', 'metrics' => [['label' => 'Data percakapan/FAQ', 'value' => $chatCount], ['label' => 'Topik terbanyak', 'value' => $topics ?: ['-'], 'format' => 'list']], 'link' => route('admin.dashboard')],
+                ['key' => 'kms', 'name' => 'KMS', 'desc' => 'Knowledge Management', 'metrics' => [['label' => 'Percakapan (periode)', 'value' => $conversations], ['label' => 'Terjawab otomatis', 'value' => $matchRate === null ? '-' : $matchRate.'%'], ['label' => 'Basis FAQ', 'value' => $chatCount], ['label' => 'Topik FAQ terbaru', 'value' => $topics ?: ['-'], 'format' => 'list']], 'link' => route('admin.dashboard')],
                 ['key' => 'mis', 'name' => 'MIS', 'desc' => 'Management Information', 'metrics' => [['label' => 'Status transaksi', 'value' => $statusCounts, 'format' => 'map'], ['label' => 'Produk aktif', 'value' => $activeProducts]], 'link' => route('admin.dashboard').'#analisis-mis'],
                 ['key' => 'dss', 'name' => 'DSS', 'desc' => 'Decision Support', 'metrics' => [['label' => 'Supplier terbaik', 'value' => $best['name'] ?? '-'], ['label' => 'Produk perlu restock', 'value' => $needRestock], ['label' => 'Analisis terakhir', 'value' => $latestRun?->created_at?->format('d/m/Y H:i') ?? '-']], 'link' => route('admin.dss')],
             ],
@@ -237,6 +282,7 @@ class EsService
         $actual = $this->completedRevenueAndCount($from, min($to, now()->endOfDay()))['revenue'];
         $goal = (float) ($target->revenue_target ?? 0);
         $percent = $goal > 0 ? round(($actual / $goal) * 100, 2) : 0.0;
+
         return [
             'period' => $period,
             'target' => $goal,
@@ -255,6 +301,7 @@ class EsService
             ->whereBetween('date', [$from, $to])
             ->selectRaw('COALESCE(SUM(total),0) as revenue, COUNT(*) as cnt')
             ->first();
+
         return ['revenue' => round((float) ($row->revenue ?? 0), 2), 'count' => (int) ($row->cnt ?? 0)];
     }
 
@@ -294,19 +341,27 @@ class EsService
         if ($c === 'card' || str_contains($c, 'kartu')) {
             return 'Kartu';
         }
+        if (str_contains($c, 'transfer')) {
+            return 'Transfer Bank';
+        }
 
         $label = PaymentMethod::labelFor($code);
         $map = [
             'M-Banking' => 'M-Banking', 'Transfer Bank' => 'Transfer Bank', 'Online' => 'Online',
             'Bayar di Tempat (Tunai)' => 'Tunai/COD', 'Cash' => 'Tunai/COD',
         ];
+
         return $map[$label] ?? $label;
     }
 
     private function latestSupplierRun(): ?DssRun
     {
-        return DssRun::query()->where('type', 'vikor')->where('status', 'completed')->latest()->first()
-            ?? DssRun::query()->latest()->first();
+        if (! array_key_exists('latest_run', $this->cache)) {
+            $this->cache['latest_run'] = DssRun::query()->where('type', 'vikor')->where('status', 'completed')->latest()->first()
+                ?? DssRun::query()->latest()->first();
+        }
+
+        return $this->cache['latest_run'];
     }
 
     /** @return array<int,array{label:string,q:float,rank:int}> */
@@ -329,6 +384,7 @@ class EsService
             ];
         }
         usort($out, fn ($a, $b) => $a['rank'] <=> $b['rank']);
+
         return $out;
     }
 
@@ -337,12 +393,13 @@ class EsService
         $run = $this->latestSupplierRun();
         $scores = $this->extractVikorScores($run);
         $best = $scores[0] ?? null;
+
         return $best ? ['name' => $best['label'], 'q' => $best['q'], 'run_id' => $run?->id] : null;
     }
 
     private function supplierRankChangeAlert(): ?array
     {
-        $runs = DssRun::query()->where('status', 'completed')->latest()->limit(2)->get();
+        $runs = DssRun::query()->where('type', 'vikor')->where('status', 'completed')->latest()->limit(2)->get();
         if ($runs->count() < 2) {
             return null;
         }
@@ -351,6 +408,7 @@ class EsService
         if ($a && $b && $a !== $b) {
             return ['level' => 'info', 'title' => 'Peringkat supplier berubah', 'message' => "Supplier terbaik berubah dari {$b} ke {$a} (dua analisis DSS terakhir).", 'source' => 'DSS'];
         }
+
         return null;
     }
 
@@ -364,6 +422,7 @@ class EsService
             return null;
         }
         $hours = $rows->avg(fn ($r) => $r->created_at->diffInMinutes($r->updated_at) / 60);
+
         return round((float) $hours, 2);
     }
 

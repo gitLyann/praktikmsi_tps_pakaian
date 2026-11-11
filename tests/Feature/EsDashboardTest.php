@@ -4,17 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Chatbot;
-use App\Models\DssCriterion;
-use App\Models\DssRun;
 use App\Models\EsKpiTarget;
 use App\Models\Product;
 use App\Models\RestockRequest;
-use App\Models\Supplier;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use App\Models\User;
-use App\Services\AhpService;
-use App\Services\VikorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +26,7 @@ class EsDashboardTest extends TestCase
             return (int) (DB::table('customers')->where('user_id', $user->id)->value('id')
                 ?? DB::table('customers')->insertGetId(['user_id' => $user->id, 'name' => $user->name, 'created_at' => now(), 'updated_at' => now()]));
         }
+
         return (int) $user->id;
     }
 
@@ -45,6 +41,7 @@ class EsDashboardTest extends TestCase
             'transaction_id' => $tx->id, 'product_id' => $product->id, 'quantity' => 1,
             'subtotal' => $total, 'created_at' => $date, 'updated_at' => $date,
         ]));
+
         return $tx;
     }
 
@@ -53,9 +50,9 @@ class EsDashboardTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)->get(route('admin.es'))->assertOk()->assertSee('Dashboard Eksekutif');
         $res = $this->actingAs($admin)->getJson(route('admin.es.data.summary', ['preset' => '30']));
-        $res->assertOk()->assertJsonStructure(['revenue' => ['value','change_percent','direction'], 'transactions', 'period']);
+        $res->assertOk()->assertJsonStructure(['revenue' => ['value', 'change_percent', 'direction'], 'transactions', 'period']);
         $chart = $this->actingAs($admin)->getJson(route('admin.es.data.chart', ['name' => 'revenue-trend', 'preset' => '30']));
-        $chart->assertOk()->assertJsonStructure(['labels','datasets','meta']);
+        $chart->assertOk()->assertJsonStructure(['labels', 'datasets', 'meta']);
     }
 
     public function test_staff_and_pelanggan_forbidden_tamu_redirected(): void
@@ -87,16 +84,22 @@ class EsDashboardTest extends TestCase
         $d = now()->subDays(2);
         $this->makeCompletedTransaction($cust, $p, 100000, 'E-Wallet', $d->copy());
         $this->makeCompletedTransaction($cust, $p, 50000, 'emoney_gopay', $d->copy());
+        $this->makeCompletedTransaction($cust, $p, 75000, 'Transfer BCA', $d->copy());
+        $this->makeCompletedTransaction($cust, $p, 125000, 'Transfer Bank', $d->copy());
         $this->makeCompletedTransaction($cust, $p, 999000, 'Cash', $d->copy(), 'pending'); // must be excluded
 
         $sum = $this->actingAs($admin)->getJson(route('admin.es.data.summary', ['preset' => '30']))->assertOk()->json();
-        $this->assertEquals(150000.0, $sum['revenue']['value']);
-        $this->assertEquals(2, $sum['transactions']['value']);
+        $this->assertEquals(350000.0, $sum['revenue']['value']);
+        $this->assertEquals(4, $sum['transactions']['value']);
+        $this->assertEquals(0, $sum['critical_stock']['value']); // stok 10 > ambang 5
 
         $pm = $this->actingAs($admin)->getJson(route('admin.es.data.chart', ['name' => 'payment-methods', 'preset' => '30']))->assertOk()->json();
         $idx = array_search('E-Wallet', $pm['labels'], true);
         $this->assertNotFalse($idx);
         $this->assertEquals(2, $pm['datasets'][0]['data'][$idx]); // legacy + new grouped
+        $idxTransfer = array_search('Transfer Bank', $pm['labels'], true);
+        $this->assertNotFalse($idxTransfer);
+        $this->assertEquals(2, $pm['datasets'][0]['data'][$idxTransfer]); // 'Transfer BCA' + 'Transfer Bank' tergrup
     }
 
     public function test_alerts_target_and_avg_approval(): void
@@ -119,6 +122,9 @@ class EsDashboardTest extends TestCase
         $levels = array_column($alerts['items'], 'source');
         $this->assertContains('OAS', $levels);
 
+        $sum = $this->actingAs($admin)->getJson(route('admin.es.data.summary', ['preset' => '30']))->assertOk()->json();
+        $this->assertEquals(1, $sum['critical_stock']['value']); // stok 1 <= ambang 5
+
         $this->actingAs($admin)->postJson(route('admin.es.target.store'), ['period' => now()->format('Y-m'), 'revenue_target' => 5000000])
             ->assertOk()->assertJsonPath('ok', true);
         $t = EsKpiTarget::where('period', now()->format('Y-m'))->first();
@@ -126,9 +132,16 @@ class EsDashboardTest extends TestCase
         $this->actingAs($admin)->postJson(route('admin.es.target.store'), ['period' => now()->format('Y-m'), 'revenue_target' => 7000000])->assertOk();
         $this->assertEquals(7000000.0, (float) $t->fresh()->revenue_target);
 
+        // KMS: percakapan chatbot nyata tercatat dan muncul di panel integrasi.
+        Chatbot::create(['queries' => 'jam buka', 'replies' => 'Buka 09:00-21:00 WIB.']);
+        $this->actingAs($admin)->postJson(route('chatbot.message'), ['message' => 'jam buka'])->assertOk();
+
         $integ = $this->actingAs($admin)->getJson(route('admin.es.data.integration', ['preset' => '30']))->assertOk()->json();
         $oas = collect($integ['systems'])->firstWhere('key', 'oas');
         $avg = collect($oas['metrics'])->firstWhere('format', 'hours')['value'];
         $this->assertEquals(4.0, $avg);
+        $kms = collect($integ['systems'])->firstWhere('key', 'kms');
+        $conversations = collect($kms['metrics'])->firstWhere('label', 'Percakapan (periode)');
+        $this->assertEquals(1, $conversations['value']);
     }
 }

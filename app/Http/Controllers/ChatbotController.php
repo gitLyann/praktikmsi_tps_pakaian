@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Chatbot;
+use App\Models\ChatbotLog;
+use Illuminate\Http\Request;
 
 class ChatbotController extends Controller
 {
@@ -17,16 +18,22 @@ class ChatbotController extends Controller
 
         $chatbot = Chatbot::where('queries', 'LIKE', "%{$userMessage}%")->first();
 
-        if ($chatbot) {
-            return response()->json([
-                'reply' => $chatbot->replies,
-                'matched' => true,
-            ]);
-        }
+        $reply = $chatbot
+            ? $chatbot->replies
+            : 'Maaf, sistem tidak mengerti jawaban yang harus diberikan. Silakan hubungi Customer Service kami.';
+        $matched = $chatbot !== null;
+
+        // KMS: catat percakapan nyata sebagai bahan metrik Dashboard Eksekutif (ES).
+        ChatbotLog::create([
+            'user_id' => $request->user()?->id,
+            'message' => $userMessage,
+            'reply' => $reply,
+            'matched' => $matched,
+        ]);
 
         return response()->json([
-            'reply' => 'Maaf, sistem tidak mengerti jawaban yang harus diberikan. Silakan hubungi Customer Service kami.',
-            'matched' => false,
+            'reply' => $reply,
+            'matched' => $matched,
         ]);
     }
 }

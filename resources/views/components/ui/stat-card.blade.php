@@ -16,7 +16,13 @@
             @endif
             <span class="ui-stat-label">{{ $label }}</span>
         </div>
-        <div class="ui-stat-value">{{ $value }}</div>
+        <div class="ui-stat-value">
+            @if($slot->isEmpty())
+                {{ $value }}
+            @else
+                {{ $slot }}
+            @endif
+        </div>
         @if($note)
             <div class="ui-stat-note">{{ $note }}</div>
         @endif

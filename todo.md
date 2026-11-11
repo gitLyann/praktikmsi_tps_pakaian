@@ -394,3 +394,22 @@
 - [x] **FASE C** /admin/es + sidebar ES; filter 7/30/90/bulan/custom (fetch JSON); 6 KPI (omzet panah/persen); 7 Chart.js 4.4.4 (omzet line, kategori bar, top5 horizontal, pembayaran pie, status donut, stok vs ROP bar, Q supplier bar) token tema+dark (lm:themechange)+loading/empty+error+responsif.
 - [x] **FASE D** Alerts (turun>ambang, stok kritis, pending>batas hari, supplier rank berubah info). Target progres bulan + POST /admin/es/target upsert (>0). Panel Integrasi 5 kartu TPS/OAS/KMS/MIS/DSS + strip alur.
 - [x] **FASE E** --filter=EsDashboardTest 5/5 (35), --filter=DssDemoTransactionSeederTest 3/3 (12), --filter=DssSidebarNavigationTest 4/4 (46). Bahan screenshot laporan ES di changelog.md. pint/suite penuh tidak dijalankan. Tidak commit.
+
+### Phase 45 (Backfill - Riwayat Stok & Pengaturan Staff)
+- [x] GET /staff/riwayat-stok + partial audit stok + filter pencarian; modal Pengaturan global semua halaman staff/admin (hapus duplikat sidebar); branding "Sistem OAS & MIS"
+- [x] RBAC: staff read-only (403 `admin.restock.update`), pelanggan 403, tamu redirect; `--filter=StaffRiwayatStokTest` 6/6 (27)
+- [ ] Manual: verifikasi browser filter pencarian + modal pengaturan tiap halaman staff + toggle tema
+
+### Phase 46 (Perbaikan audit ES + KMS chatbot_logs + x-ui)
+- [x] 7 bug fix: warna pie per-slice, bulan lokal target, KPI stok kritis = ambang (konsisten alerts/MIS), filter vikor, grup Transfer BCA, empty-state stok, import mati EsDashboardTest
+- [x] Memoisasi per-request EsService (`analyze()` 1x per load, sebelumnya 4x)
+- [x] chatbot_logs (migration + model + catat di ChatbotController::message) + metrik KMS integration + ChatbotLogSeeder 120 log idempoten + `--filter=ChatbotTest` 3/3
+- [x] Refactor x-ui es.blade.php dicoba lalu dipulihkan ke markup semula (font stat-card dinilai jelek); Chart.defaults token tema (dark mode) tetap dipertahankan
+- [x] Contoh respons JSON nyata 6 endpoint di changelog.md; `php artisan migrate` (chatbot_logs) + seed 120 log di DB asli
+- [ ] Manual: verifikasi browser /admin/es (terang/gelap, filter, kartu target, panel KMS); klik "Jalankan & Simpan Analisis" DSS untuk chart supplier
+
+### Phase 47 (Bugfix - Pengaturan Staff)
+- [x] Hapus </div> ekstra di section Pengajuan Restock staff/dashboard.blade.php (section #riwayat-stok+#pengaturan sempat berada di luar wrapper #staffDashboard -> klik Pengaturan fallback ke tab Dashboard)
+- [x] Verifikasi browser nyata (Playwright+Chrome headless): klik Pengaturan dari 3 tab, direct #pengaturan, logout sukses, form Tambah Master tidak lagi bocor ke semua tab
+- [x] Test regresi 	est_semua_section_dashboard_staff_berada_di_dalam_wrapper (dipastikan gagal saat bug direproduksi); 24/24 hijau; pint --dirty
+- [ ] Manual: user re-test klik Pengaturan di dashboard staff (hard refresh Ctrl+F5 agar Blade terkompilasi ulang)
