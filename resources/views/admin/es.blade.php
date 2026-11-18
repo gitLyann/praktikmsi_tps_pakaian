@@ -6,7 +6,7 @@
 ])
 
 @section('content')
-<div id="esDashboard" data-es-base="{{ url('/admin/es/data') }}" data-es-target-url="{{ route('admin.es.target.store') }}">
+<div id="esDashboard" data-es-base="{{ url('/admin/es/data') }}" data-es-target-url="{{ route('admin.es.target.store') }}" data-eis-url="{{ route('admin.eis') }}" data-eis-summary-url="{{ route('admin.eis.data', 'summary') }}" data-eis-exception-url="{{ route('admin.eis.data', 'exceptions') }}" data-eis-detail-template="{{ route('admin.eis.detail', ['employee' => '__ID__']) }}">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h3 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard Eksekutif</h3>
@@ -55,6 +55,8 @@
     <div class="row g-3 mb-3">
         <div class="col-12"><div class="card shadow-sm border-0"><div class="card-header bg-white fw-semibold">Stok vs Reorder Point (OAS)</div><div class="card-body"><div class="es-chart-state small text-muted" data-state="stock-vs-reorder">Memuat...</div><canvas id="chStock" height="90"></canvas></div></div></div>
     </div>
+
+    <div class="card shadow-sm border-0 mb-3"><div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center"><span>EIS Kinerja Staf</span><a href="{{ route('admin.eis') }}" class="small">Buka EIS</a></div><div class="card-body" id="esEisPanel"><div class="small text-muted">Memuat...</div></div></div>
 
     <div class="card shadow-sm border-0 mb-3"><div class="card-header bg-white fw-semibold">Integrasi Sistem</div><div class="card-body">
         <div class="d-flex flex-wrap gap-2 mb-3 align-items-center" id="esFlow"></div>
@@ -116,7 +118,21 @@
       '<form class="mt-3 d-flex gap-2 flex-wrap" id="esTargetForm"><input type="hidden" name="period" value="'+esc(d.period)+'"><input type="number" step="0.01" min="1" name="revenue_target" class="form-control form-control-sm" style="max-width:180px" value="'+esc(d.target||'')+'" placeholder="Target omzet" required><button class="btn btn-sm btn-primary">Simpan Target</button></form>';
     document.getElementById('esTargetForm').onsubmit=async (e)=>{ e.preventDefault(); const fd=new FormData(e.target); const res=await fetch(root.dataset.esTargetUrl,{method:'POST',headers:{'Accept':'application/json','X-CSRF-TOKEN':csrf},body:fd}); if(res.ok) loadTarget(); else alert('Gagal menyimpan target.'); };
   }catch(e){ document.getElementById('esTargetCard').innerHTML='<div class="text-danger small">Gagal memuat target.</div>'; } }
-  function reload(){ loadSummary(); loadCharts(); loadAlerts(); loadIntegration(); loadTarget(); }
+  async function loadEis(){ try{
+    const period = new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+    const [summary, exceptions] = await Promise.all([
+      fetch(root.dataset.eisSummaryUrl+'?period='+period,{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()),
+      fetch(root.dataset.eisExceptionUrl+'?period='+period,{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json())
+    ]);
+    const best = summary.best_staff;
+    const rows = (exceptions.rows||[]).filter(row=>!row.resolved_at).slice(0,5);
+    let html = '<div class="small mb-2">Staf terbaik: <strong>'+esc(best?.name||'-')+'</strong>'+(best?.score!=null?' (Q='+Number(best.score).toFixed(4)+')':'')+'</div>';
+    html += rows.length ? '<div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Staf</th><th>Jenis</th><th>Pesan</th></tr></thead><tbody>'+rows.map(row=>'<tr><td>'+esc(row.employee?.name||'-')+'</td><td>'+esc(row.type)+'</td><td>'+esc(row.message)+'</td></tr>').join('')+'</tbody></table></div>' : '<div class="small text-success">Tidak ada exception terbuka.</div>';
+    html += '<div class="mt-2"><a class="small" href="'+esc(root.dataset.eisUrl)+'">Lihat detail kinerja →</a></div>';
+    if (best?.employee_id) html += '<a class="small ms-3" href="'+esc(root.dataset.eisDetailTemplate.replace('__ID__', best.employee_id))+'">Detail staf terbaik →</a>';
+    document.getElementById('esEisPanel').innerHTML = html;
+  }catch(e){ document.getElementById('esEisPanel').innerHTML = '<div class="small text-danger">Gagal memuat ringkasan EIS.</div>'; } }
+  function reload(){ loadSummary(); loadCharts(); loadAlerts(); loadIntegration(); loadTarget(); loadEis(); }
   document.querySelectorAll('#esFilter [data-preset]').forEach(btn=>btn.addEventListener('click',()=>{ range={preset:btn.dataset.preset}; document.querySelectorAll('#esFilter [data-preset]').forEach(b=>b.classList.toggle('btn-primary',b===btn)); document.querySelectorAll('#esFilter [data-preset]').forEach(b=>b.classList.toggle('btn-outline-primary',b!==btn)); document.getElementById('esFrom').value=''; document.getElementById('esTo').value=''; reload(); }));
   document.getElementById('esApplyCustom').addEventListener('click',()=>{ const f=document.getElementById('esFrom').value,t=document.getElementById('esTo').value; if(f&&t){ range={from:f,to:t}; document.querySelectorAll('#esFilter [data-preset]').forEach(b=>{b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary');}); reload(); }});
   document.addEventListener('lm:themechange', ()=>{ loadCharts(); });

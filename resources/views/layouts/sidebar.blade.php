@@ -29,6 +29,10 @@
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
+            <a href="{{ route('staff.eis.index') }}" class="nav-link {{ request()->routeIs('staff.eis*') ? 'active' : '' }}">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Kinerja Saya</span>
+            </a>
         @else
             <a href="{{ route($dashboardRoute) }}#dashboard" class="nav-link {{ $activeRoute === 'dashboard' ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i>
@@ -65,6 +69,10 @@
             <a href="{{ route('admin.es') }}" class="nav-link {{ request()->routeIs('admin.es*') ? 'active' : '' }}">
                 <i class="bi bi-speedometer"></i>
                 <span>Dashboard Eksekutif</span>
+            </a>
+            <a href="{{ route('admin.eis') }}" class="nav-link {{ request()->routeIs('admin.eis*') ? 'active' : '' }}">
+                <i class="bi bi-person-badge"></i>
+                <span>EIS Kinerja Staf</span>
             </a>
         </div>
         <div class="nav-section">

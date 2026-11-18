@@ -48,7 +48,7 @@ class EsDashboardTest extends TestCase
     public function test_admin_can_access_es_dashboard_and_json(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin)->get(route('admin.es'))->assertOk()->assertSee('Dashboard Eksekutif');
+        $this->actingAs($admin)->get(route('admin.es'))->assertOk()->assertSee('Dashboard Eksekutif')->assertSee('EIS Kinerja Staf');
         $res = $this->actingAs($admin)->getJson(route('admin.es.data.summary', ['preset' => '30']));
         $res->assertOk()->assertJsonStructure(['revenue' => ['value', 'change_percent', 'direction'], 'transactions', 'period']);
         $chart = $this->actingAs($admin)->getJson(route('admin.es.data.chart', ['name' => 'revenue-trend', 'preset' => '30']));

@@ -413,3 +413,41 @@
 - [x] Verifikasi browser nyata (Playwright+Chrome headless): klik Pengaturan dari 3 tab, direct #pengaturan, logout sukses, form Tambah Master tidak lagi bocor ke semua tab
 - [x] Test regresi 	est_semua_section_dashboard_staff_berada_di_dalam_wrapper (dipastikan gagal saat bug direproduksi); 24/24 hijau; pint --dirty
 - [ ] Manual: user re-test klik Pengaturan di dashboard staff (hard refresh Ctrl+F5 agar Blade terkompilasi ulang)
+
+### Phase 48 (EIS A - Skema Kinerja Staf & Data Demo)
+- [x] 5 migrasi EIS: eis_criteria, staff_targets, staff_activity_logs, staff_performance_snapshots, eis_exceptions (FK employees, unique, aman SQLite/MySQL tanpa DATE_FORMAT)
+- [x] Temuan employee_id dicatat: MySQL transactions.employee_id -> users.id lewat 2026_09_17_155756 (no-op SQLite); restock_requests.employee_id -> employees.id; mapping driver-aware di EisActivityLogger
+- [x] Model+factory EIS + relasi Employee (targets/activityLogs/performanceSnapshots/exceptions)
+- [x] config/eis.php: 5 kriteria + bobot, threshold merah/kuning, rejection/inactive/response, VIKOR v, maks 24 periode
+- [x] EisDemoSeeder idempoten (4 staf, transaksi completed 90 hari, restock, evaluasi, target & snapshot 3 bulan) + didaftarkan di DatabaseSeeder
+- [ ] Manual: jalankan `php artisan migrate` di DB lokal/MySQL saat siap (hanya menambah tabel baru, tanpa migrate:fresh/refresh)
+
+### Phase 49 (EIS B - Logging, AHP/VIKOR, Command & Scheduler)
+- [x] EisActivityLogger firstOrCreate + try/catch; observer dipisah per model agar created/updated tidak tabrakan
+- [x] EisService: metrics completed-only, capaian target/status/exception, VIKOR sekali untuk semua staf, tren Carbon/PHP, overview/detail/myPerformance, saveWeights AHP CR<0,1
+- [x] Command eis:backfill & eis:snapshot {period?}; schedule harian 23:30 via bootstrap/app.php
+- [x] Aksi admin: simpan target & bobot, resolve exception; hitung ulang snapshot setelah perubahan
+- [x] Verifikasi observer/backfill idempoten/snapshot metrics+VIKOR lewat --filter=Eis
+
+### Phase 50 (EIS C - Endpoint & RBAC)
+- [x] 8 rute EIS: admin (index/data/detail/target/bobot/resolve) + staf (index/data) dengan middleware role
+- [x] Scope data staf selalu ke Auth::user()->employee; tanpa employee -> 403; admin tidak bisa membuka route staf
+- [x] Form Request EisFilterRequest, EisTargetRequest, EisWeightsRequest (matrix persegi + CR divalidasi service)
+- [x] EisAccessTest: admin 200/JSON; staf hanya data sendiri; pelanggan 403; tamu redirect/401
+
+### Phase 51 (EIS D - UI Admin)
+- [x] /admin/eis: filter periode, 4 stat-card, 2 Chart.js, ranking VIKOR, exception, matriks bobot AHP + CR
+- [x] /admin/eis/staf/{id}: KPI, tren, form target, tabel transaksi/aktivitas/exception
+- [x] Sidebar admin menu EIS Kinerja Staf; x-ui card/stat-card/table/empty-state; tanpa perubahan tema
+
+### Phase 52 (EIS E - UI Staf & Kartu ES)
+- [x] /staff/eis/kinerja-saya: KPI/tren/aktivitas/riwayat pribadi + catatan perbaikan, tanpa data staf lain
+- [x] Sidebar staff menu Kinerja Saya
+- [x] /admin/es kartu EIS Kinerja Staf (staf terbaik + exception) dengan link ke EIS; EsDashboardTest diperbarui
+
+### Phase 53 (EIS F - Verifikasi & Dokumentasi)
+- [x] changelog Phase 48-53 + Bahan Screenshot Laporan EIS (maks 15 baris per phase)
+- [x] --filter=Eis 12/12 (72 assertions); --filter=EsDashboardTest 5/5 (43 assertions)
+- [x] route:list --path=eis 8 route names stabil; tidak ada migrate:fresh/refresh/db:wipe; tidak ada commit
+- [ ] Manual: verifikasi visual browser terang/gelap, Chart.js, sidebar, dan respons mobile di /admin/eis, /admin/eis/staf/{id}, /staff/eis/kinerja-saya, /admin/es
+- [ ] Commit perubahan setelah diminta

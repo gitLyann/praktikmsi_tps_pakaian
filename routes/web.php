@@ -3,12 +3,14 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\Admin\EisController as AdminEisController;
 use App\Http\Controllers\Admin\EsController;
 use App\Http\Controllers\DssAnalysisController;
 use App\Http\Controllers\DssScoreController;
 use App\Http\Controllers\DssSupplierController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\Staff\EisController as StaffEisController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SupplierMasterController;
 use App\Http\Controllers\TokoController;
@@ -66,6 +68,12 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/staff/products/{product}', [StaffController::class, 'updateProduct'])->name('staff.products.update');
     });
 
+    // EIS - staf hanya dapat melihat kinerjanya sendiri.
+    Route::middleware(['role:staff'])->group(function () {
+        Route::get('/staff/eis/kinerja-saya', [StaffEisController::class, 'index'])->name('staff.eis.index');
+        Route::get('/staff/eis/data/{name}', [StaffEisController::class, 'data'])->name('staff.eis.data')->where('name', '[a-z-]+');
+    });
+
     // Dashboard Admin/Manager & Approval OAS
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/admin/dashboard', [ManagerController::class, 'index'])->name('admin.dashboard');
@@ -109,6 +117,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/es/data/integration', [EsController::class, 'integration'])->name('admin.es.data.integration');
         Route::get('/admin/es/data/target', [EsController::class, 'target'])->name('admin.es.data.target');
         Route::post('/admin/es/target', [EsController::class, 'storeTarget'])->name('admin.es.target.store');
+
+        // EIS - Kinerja Staf (admin/manager melihat seluruh staf).
+        Route::get('/admin/eis', [AdminEisController::class, 'index'])->name('admin.eis');
+        Route::get('/admin/eis/data/{name}', [AdminEisController::class, 'data'])->name('admin.eis.data')->where('name', '[a-z-]+');
+        Route::get('/admin/eis/staf/{employee}', [AdminEisController::class, 'detail'])->name('admin.eis.detail');
+        Route::post('/admin/eis/target', [AdminEisController::class, 'storeTarget'])->name('admin.eis.target.store');
+        Route::post('/admin/eis/bobot', [AdminEisController::class, 'saveWeights'])->name('admin.eis.weights.store');
+        Route::post('/admin/eis/exception/{exception}/resolve', [AdminEisController::class, 'resolveException'])->name('admin.eis.exception.resolve');
     });
 
     // Master Supplier - data pemasok untuk admin & staff.

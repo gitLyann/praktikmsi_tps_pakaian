@@ -44,5 +44,8 @@ class DatabaseSeeder extends Seeder
         $this->call(ChatbotLogSeeder::class);
         $this->call(EsDemoRestockSeeder::class);
         $this->call(EsKpiTargetSeeder::class);
+
+        // EIS - kriteria, target, aktivitas demo, dan snapshot 3 periode terakhir (idempoten).
+        $this->call(EisDemoSeeder::class);
     }
 }

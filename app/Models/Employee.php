@@ -29,4 +29,24 @@ class Employee extends Model
     {
         return $this->hasMany(RestockRequest::class);
     }
+
+    public function targets(): HasMany
+    {
+        return $this->hasMany(StaffTarget::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(StaffActivityLog::class);
+    }
+
+    public function performanceSnapshots(): HasMany
+    {
+        return $this->hasMany(StaffPerformanceSnapshot::class);
+    }
+
+    public function exceptions(): HasMany
+    {
+        return $this->hasMany(EisException::class);
+    }
 }

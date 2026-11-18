@@ -1116,3 +1116,51 @@ Permintaan: fondasi data DSS untuk AHP (pembobotan kriteria), VIKOR (peringkat p
 - Verifikasi browser nyata (Playwright + Chrome headless atas instance rtisan serve + sqlite temp): klik Pengaturan dari 3 tab -> section Pengaturan; direct load #pengaturan benar; klik Logout Akun -> sukses logout ke / + pesan 'Anda telah logout'; 0 error console; form Tambah Master hanya tampil di tab Pengajuan Restock.
 - Regresi: StaffDashboardTabTest::test_semua_section_dashboard_staff_berada_di_dalam_wrapper (DOM XPath: 5 section anak wrapper; tanpa section di luar wrapper; #pengaturan dalam wrapper; form Tambah Master dalam #pengajuan-restock); dipastikan gagal saat bug direproduksi ulang.
 - Tests: --filter=EsDashboardTest|ChatbotTest|StaffDashboardTabTest|StaffRiwayatStokTest|DssSidebarNavigationTest 24/24 (227). pint --dirty dijalankan. Tidak commit.
+
+## 2026-11-18 - Phase 48: EIS A - Skema Kinerja Staf & Data Demo
+- 5 tabel baru: eis_criteria, staff_targets (unique employee+period), staff_activity_logs (unique aktivitas+referensi), staff_performance_snapshots (unique employee+period), eis_exceptions (unique employee+period+type). FK employee -> employees.id; aman SQLite/MySQL tanpa DATE_FORMAT.
+- Temuan employee_id: migrasi awal transactions.employee_id -> employees.id, lalu 2026_09_17_155756 raw MySQL me-repoint ke users.id (no-op SQLite). EIS memakai EisActivityLogger driver-aware (MySQL via employees.user_id, SQLite via employees.id); restock_requests.employee_id tetap employees.id.
+- Model+factory: EisCriterion, StaffTarget, StaffActivityLog, StaffPerformanceSnapshot, EisException. Employee punya targets/activityLogs/performanceSnapshots/exceptions; relasi Employee::user sudah ada.
+- config/eis.php: 5 kriteria (sales 0,35; trx 0,20; approval 0,20; evaluasi 0,10; respons 0,15 cost), ambang merah <70 / kuning <90, rejection >50%, inaktif 7 hari, respons >24 jam, VIKOR v=0,5, maks 24 periode.
+- EisDemoSeeder idempoten: 4 staf + customer + produk, transaksi completed 90 hari (marker EIS Demo), restock (marker Demo EIS), evaluasi supplier, target 3 bulan, snapshot 3 bulan; didaftarkan di DatabaseSeeder tanpa menghapus data lama.
+- Tidak ada migrate:fresh/refresh/db:wipe; verifikasi test menyusul di Phase 53. Tidak commit.
+
+## 2026-11-18 - Phase 49: EIS B - Logging, AHP/VIKOR, Command & Scheduler
+- EisActivityLogger: firstOrCreate idempoten + mapping driver-aware. Observer dipisah per model (EisActivityObserver/Transaction, EisRestockObserver, EisSupplierScoreObserver) agar method created/updated tidak tabrakan; logging dibungkus try/catch sehingga gagal log tidak menggagalkan transaksi.
+- EisService: metrik completed-only, capaian target, status green/yellow/red, exception (target/rejection/inactive/slow response), ranking VIKOR dihitung sekali untuk semua staf, tren harian via Carbon/PHP, activity mix, overview/detail/myPerformance, saveWeights AHP dengan CR < 0,1.
+- Command eis:backfill (idempoten dari data lama) dan eis:snapshot {period?}; dijadwalkan harian 23:30 lewat withSchedule di bootstrap/app.php.
+- Admin dapat menyimpan target & bobot; resolve exception menandai resolved_at; perubahan bobot/target memicu hitung ulang snapshot periode berjalan.
+- Verifikasi: --filter=Eis untuk observer/backfill/snapshot hijau; pint dan suite penuh tidak dijalankan. Tidak commit.
+
+## 2026-11-18 - Phase 50: EIS C - Endpoint & RBAC
+- Rute admin: GET /admin/eis, /admin/eis/data/{name} (summary/ranking/trend/activity-mix/exceptions/criteria), /admin/eis/staf/{employee}, POST target/bobot/resolve exception; middleware role:admin.
+- Rute staf: GET /staff/eis/kinerja-saya dan /staff/eis/data/{name}; middleware role:staff. Service/controller selalu di-scope ke Auth::user()->employee; tanpa employee -> 403.
+- Form Request: EisFilterRequest (period Y-m; batas 24 bulan dienforce service), EisTargetRequest (employee/period/target), EisWeightsRequest (matrix persegi positif; CR divalidasi service).
+- EisAccessTest: admin 200 + JSON structure; staf hanya menerima dataset/trend miliknya; pelanggan 403, admin di route staf 403, tamu redirect login / 401 JSON.
+- Verifikasi: --filter=Eis 12/12 (72 assertions). Tidak commit.
+
+## 2026-11-18 - Phase 51: EIS D - UI Admin
+- admin/eis.blade.php: filter 24 periode, 4 stat-card, tren penjualan per staf + doughnut aktivitas (Chart.js 4.4.4 token tema), tabel ranking VIKOR, tabel exception dengan aksi selesai, matriks bobot AHP + CR.
+- admin/eis-detail.blade.php: KPI staf, tren personal, form target per employee+period, tabel transaksi/aktivitas/exception.
+- Sidebar admin: menu EIS Kinerja Staf di grup ES, active via routeIs('admin.eis*'). Tidak ada perubahan warna/tema; komponen x-ui card/stat-card/table/empty-state dipakai.
+- Empty state bila snapshot belum ada; halaman membangun snapshot sekali saat periode belum punya data.
+- Verifikasi render lewat EisAccessTest; pint/full suite tidak dijalankan. Tidak commit.
+
+## 2026-11-18 - Phase 52: EIS E - UI Staf & Kartu ES
+- staff/eis-kinerja-saya.blade.php: KPI pribadi (omzet, transaksi, capaian target, peringkat), tren & aktivitas pribadi, riwayat transaksi/restock/penilaian, catatan perbaikan; tanpa data staf lain.
+- Sidebar staff: menu Kinerja Saya menuju route staff.eis.index; tetap memakai layout dan design system yang ada.
+- /admin/es kini punya kartu EIS Kinerja Staf: staf terbaik + 5 exception terbuka + tautan ke EIS/detail staf, di-fetch dari endpoint EIS; grafik ES lama tidak diubah.
+- EsDashboardTest diperbarui dengan assertSee('EIS Kinerja Staf'); --filter=EsDashboardTest 5/5 (43 assertions). Tidak commit.
+
+## 2026-11-18 - Phase 53: EIS F - Verifikasi & Bahan Screenshot
+- --filter=Eis 12/12 (72 assertions): observer, backfill idempoten, snapshot metrics/VIKOR, akses admin/staf/pelanggan/tamu.
+- --filter=EsDashboardTest 5/5 (43 assertions): regresi ES + kartu EIS.
+- route:list --path=eis: 8 route names stabil (admin.eis*, staff.eis*). Tidak ada migrate:fresh/refresh/db:wipe, tidak ada perubahan .env, tidak ada commit.
+- pint dan suite penuh sengaja tidak dijalankan sesuai instruksi.
+
+### Bahan Screenshot Laporan EIS
+- /admin/eis: KPI, tren penjualan per staf, komposisi aktivitas, ranking VIKOR, exception, matriks bobot AHP + CR.
+- /admin/eis/staf/{id}: target staf, tren personal, tabel transaksi/aktivitas/exception.
+- /staff/eis/kinerja-saya: tampilan KPI dan riwayat milik staf (pastikan nama staf lain tidak muncul).
+- /admin/es: kartu EIS Kinerja Staf di bawah grafik existing.
+- Sidebar admin (EIS Kinerja Staf) dan sidebar staff (Kinerja Saya); contoh JSON /admin/eis/data/summary dan /staff/eis/data/trend.
