@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -30,12 +31,10 @@ class User extends Authenticatable
         ];
     }
 
-    protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'role', // Tambahkan baris ini jika belum ada
-    ];
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
+    }
 
     // Relasi ke produk yang difavoritkan pengguna ini
     public function favorites()

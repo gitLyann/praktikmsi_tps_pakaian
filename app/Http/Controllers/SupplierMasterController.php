@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Master Supplier.
@@ -63,12 +64,23 @@ class SupplierMasterController extends Controller
         // Saran kategori bahan/produk dari master kategori produk.
         $categories = Category::orderBy('name')->pluck('name');
 
+        $totalSupplier = $suppliers->count();
+        $supplierAktif = $suppliers->filter(fn ($item) => $item->is_active)->count();
+        $supplierNonaktif = $totalSupplier - $supplierAktif;
+        $totalProdukDipasok = $suppliers->sum('product_suppliers_count');
+        $formAction = $editing ? route('supplier.master.update', $editing) : route('supplier.master.store');
+
         return view('supplier.master', compact(
             'suppliers',
             'search',
             'status',
             'editing',
-            'categories'
+            'categories',
+            'totalSupplier',
+            'supplierAktif',
+            'supplierNonaktif',
+            'totalProdukDipasok',
+            'formAction'
         ));
     }
 
@@ -131,9 +143,12 @@ class SupplierMasterController extends Controller
                     .implode(', ', $usage).'. Nonaktifkan saja agar tidak lagi dipilih.');
         }
 
-        $supplier->productSuppliers()->delete();
         $nama = $supplier->name;
-        $supplier->delete();
+
+        DB::transaction(function () use ($supplier) {
+            $supplier->productSuppliers()->delete();
+            $supplier->delete();
+        });
 
         return redirect()
             ->route('supplier.master')

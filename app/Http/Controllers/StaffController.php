@@ -10,12 +10,14 @@ use App\Models\Supplier;
 use App\Support\HandlesProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class StaffController extends Controller
 {
     use HandlesProductImage;
+
     // Menampilkan halaman dashboard staff beserta data produk dan riwayat restock
     public function index()
     {
@@ -66,7 +68,7 @@ class StaffController extends Controller
                 'produk' => $product->name,
                 'jumlah' => null,
                 'status' => 'terdaftar',
-                'keterangan' => 'Master Data Terdaftar (' . $product->stock . ' Pcs)',
+                'keterangan' => 'Master Data Terdaftar ('.$product->stock.' Pcs)',
             ]))
             // Record tanpa timestamp sama sekali diletakkan di akhir daftar
             ->sortByDesc(fn ($row) => $row['tanggal']?->getTimestamp() ?? 0)
@@ -119,32 +121,36 @@ class StaffController extends Controller
         // Foto produk disimpan ke public/images/produk supaya bisa langsung diakses tanpa storage:link
         $data['image'] = $this->storeProductImage($request->file('image'));
 
-        // Kategori boleh dipilih dari datalist atau diketik bebas,
-        // sehingga otomatis dibuatkan apabila belum ada di database
-        $category = Category::firstOrCreate(['name' => trim($data['category'])]);
+        $product = DB::transaction(function () use ($data) {
+            // Kategori boleh dipilih dari datalist atau diketik bebas,
+            // sehingga otomatis dibuatkan apabila belum ada di database
+            $category = Category::firstOrCreate(['name' => trim($data['category'])]);
 
-        $product = Product::create([
-            'category_id' => $category->id,
-            'name' => $data['name'],
-            'type' => $data['type'] ?? null,
-            'size' => $data['size'] ?? null,
-            'color' => $data['color'] ?? null,
-            'image' => $data['image'] ?? null,
-            'description' => $data['description'] ?? null,
-            'price' => $data['price'],
-            'stock' => 0,
-        ]);
+            $product = Product::create([
+                'category_id' => $category->id,
+                'name' => $data['name'],
+                'type' => $data['type'] ?? null,
+                'size' => $data['size'] ?? null,
+                'color' => $data['color'] ?? null,
+                'image' => $data['image'] ?? null,
+                'description' => $data['description'] ?? null,
+                'price' => $data['price'],
+                'stock' => 0,
+            ]);
 
-        // Relasi pemasok (harga beli, lead time, minimal order) disimpan di
-        // tabel product_suppliers dan dipakai analisis DSS.
-        $this->syncSupplierOffer($product, $data);
+            // Relasi pemasok (harga beli, lead time, minimal order) disimpan di
+            // tabel product_suppliers dan dipakai analisis DSS.
+            $this->syncSupplierOffer($product, $data);
+
+            return $product;
+        });
 
         // Form Tambah Master Produk Baru berada di section Pengajuan Restock, jadi kembalikan ke sana
         // dengan ?produk=<id> agar produk baru otomatis terpilih di dropdown "Pilih Produk".
         return redirect()
-            ->to(route('staff.dashboard') . '?produk=' . $product->id . '#pengajuan-restock')
-            ->with('success', 'Produk baru berhasil ditambahkan: ' . $product->name
-            . '. Stok awal 0, silakan ajukan restock untuk mengisi stok fisik.');
+            ->to(route('staff.dashboard').'?produk='.$product->id.'#pengajuan-restock')
+            ->with('success', 'Produk baru berhasil ditambahkan: '.$product->name
+            .'. Stok awal 0, silakan ajukan restock untuk mengisi stok fisik.');
     }
 
     // Memperbarui master produk yang sudah ada (Monitoring Stok - Staff)
@@ -184,8 +190,8 @@ class StaffController extends Controller
         ]);
 
         return redirect()
-            ->to(route('staff.dashboard') . '#monitoring-stok')
-            ->with('success', 'Produk berhasil diperbarui: ' . $product->name . '.');
+            ->to(route('staff.dashboard').'#monitoring-stok')
+            ->with('success', 'Produk berhasil diperbarui: '.$product->name.'.');
     }
 
     // Memproses pengajuan restock dari formulir web (OAS Function - Staff)
@@ -204,28 +210,32 @@ class StaffController extends Controller
             'supplier_min_order_qty' => 'nullable|integer|min:1',
         ]);
 
-        // Mencari employee_id dari user yang sedang login
-        // Jika belum ada relasi employee, kita set default ID 1 untuk simulasi
-        $employeeId = Auth::user()->employee->id ?? 1;
+        $employee = Auth::user()?->employee;
+
+        if ($employee === null) {
+            return back()->with('error', 'Akun Anda belum memiliki data karyawan.');
+        }
 
         $product = Product::findOrFail($data['product_id']);
 
-        // Simpan ofertas pemasok (harga beli, lead time, minimal order) supaya
-        // rekomendasi restock DSS memakai data yang sama.
-        $this->syncSupplierOffer($product, $data);
+        DB::transaction(function () use ($product, $data, $employee) {
+            // Simpan ofertas pemasok (harga beli, lead time, minimal order) supaya
+            // rekomendasi restock DSS memakai data yang sama.
+            $this->syncSupplierOffer($product, $data);
 
-        RestockRequest::create([
-            'product_id' => $request->product_id,
-            'employee_id' => $employeeId,
-            'jumlah_restock' => $request->input('jumlah_restock'),
-            'status' => 'pending',
-            'supplier_id' => $data['supplier_id'] ?? null,
-        ]);
+            RestockRequest::create([
+                'product_id' => $data['product_id'],
+                'employee_id' => $employee->id,
+                'jumlah_restock' => $data['jumlah_restock'],
+                'status' => 'pending',
+                'supplier_id' => $data['supplier_id'] ?? null,
+            ]);
+        });
 
         // redirect()->back() mengembalikan URL tanpa fragment hash, sehingga staff selalu mendarat
         // di tab Dashboard. Arahkan eksplisit agar halaman tetap fokus di tab Pengajuan Restock.
         return redirect()
-            ->to(route('staff.dashboard') . '#pengajuan-restock')
+            ->to(route('staff.dashboard').'#pengajuan-restock')
             ->with('success', 'Pengajuan restock barang berhasil dikirim ke Manager!');
     }
 

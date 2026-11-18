@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Kelola data pemasok (DSS).
@@ -74,8 +75,10 @@ class DssSupplierController extends Controller
                 ->with('error', $message.' Nonaktifkan saja agar tidak lagi dipilih analisis.');
         }
 
-        $supplier->productSuppliers()->delete();
-        $supplier->delete();
+        DB::transaction(function () use ($supplier) {
+            $supplier->productSuppliers()->delete();
+            $supplier->delete();
+        });
 
         if ($request->expectsJson()) {
             return response()->json(['deleted' => true]);

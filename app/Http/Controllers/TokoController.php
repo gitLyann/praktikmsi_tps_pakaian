@@ -19,8 +19,7 @@ class TokoController extends Controller
     public function __construct(
         private readonly TransactionCustomerResolver $customerResolver,
         private readonly PaymentService $paymentService,
-    ) {
-    }
+    ) {}
 
     // Menampilkan daftar produk dari database ke katalog pembeli.
     // Filter & urutan dibaca dari query string supaya bisa di-share dan
@@ -34,10 +33,10 @@ class TokoController extends Controller
         if ($filters['q'] !== '') {
             $q = $filters['q'];
             $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', '%' . $q . '%')
-                    ->orWhere('type', 'like', '%' . $q . '%')
-                    ->orWhere('color', 'like', '%' . $q . '%')
-                    ->orWhereHas('category', fn ($cat) => $cat->where('name', 'like', '%' . $q . '%'));
+                $sub->where('name', 'like', '%'.$q.'%')
+                    ->orWhere('type', 'like', '%'.$q.'%')
+                    ->orWhere('color', 'like', '%'.$q.'%')
+                    ->orWhereHas('category', fn ($cat) => $cat->where('name', 'like', '%'.$q.'%'));
             });
         }
 
@@ -100,7 +99,55 @@ class TokoController extends Controller
 
         $paymentGroups = $this->paymentService->groups();
 
-        return view('toko.index', compact('products', 'filters', 'filterOptions', 'favoritIds', 'paymentGroups'));
+        $chipLabels = [
+            'kategori' => 'Kategori',
+            'jenis' => 'Jenis',
+            'ukuran' => 'Ukuran',
+            'warna' => 'Warna',
+        ];
+
+        $activeCount = count($filters['kategori']) + count($filters['jenis'])
+            + count($filters['ukuran']) + count($filters['warna'])
+            + ($filters['q'] !== '' ? 1 : 0)
+            + ($filters['min'] !== null ? 1 : 0)
+            + ($filters['max'] !== null ? 1 : 0)
+            + ($filters['urut'] !== 'terbaru' ? 1 : 0);
+
+        $removeFilterUrl = static function (string $key, ?string $value = null) use ($filters): string {
+            $params = array_filter([
+                'q' => $filters['q'],
+                'kategori' => $filters['kategori'],
+                'jenis' => $filters['jenis'],
+                'ukuran' => $filters['ukuran'],
+                'warna' => $filters['warna'],
+                'min' => $filters['min'],
+                'max' => $filters['max'],
+                'urut' => $filters['urut'] === 'terbaru' ? null : $filters['urut'],
+            ], static fn ($v) => $v !== null && $v !== '' && $v !== []);
+
+            if ($value !== null && isset($params[$key]) && is_array($params[$key])) {
+                $params[$key] = array_values(array_diff($params[$key], [$value]));
+
+                if ($params[$key] === []) {
+                    unset($params[$key]);
+                }
+            } else {
+                unset($params[$key]);
+            }
+
+            return route('toko.index', $params);
+        };
+
+        return view('toko.index', compact(
+            'products',
+            'filters',
+            'filterOptions',
+            'favoritIds',
+            'paymentGroups',
+            'chipLabels',
+            'activeCount',
+            'removeFilterUrl'
+        ));
     }
 
     /**
@@ -261,7 +308,7 @@ class TokoController extends Controller
 
         // Validasi stok produk cukup untuk jumlah yang diminta
         if ($product->stock < $quantity) {
-            return back()->with('error', 'Stok produk tidak mencukupi untuk jumlah yang diminta. Stok tersisa: ' . $product->stock . '.');
+            return back()->with('error', 'Stok produk tidak mencukupi untuk jumlah yang diminta. Stok tersisa: '.$product->stock.'.');
         }
 
         $total = $product->price * $quantity;
@@ -269,9 +316,13 @@ class TokoController extends Controller
         // Stok, transaksi, dan detail disimpan atomik supaya tidak ada
         // transaksi tanpa detail (atau stok berkurang tanpa transaksi).
         DB::transaction(function () use ($product, $quantity, $method, $phone, $total) {
-            // Kurangi stok produk
-            $product->stock -= $quantity;
-            $product->save();
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+
+            if ($product->stock < $quantity) {
+                abort(409, 'Stok tidak mencukupi saat pembelian.');
+            }
+
+            $product->decrement('stock', $quantity);
 
             // Simpan record transaksi ke database
             $transaction = Transaction::create([
@@ -294,13 +345,13 @@ class TokoController extends Controller
             $this->paymentService->createFor($transaction, $method->code, $phone);
         });
 
-        return redirect()->route('toko.pesanan')->with('success', 'Selamat! Pembelian berhasil. Total bayar: Rp ' . number_format($total, 0, ',', '.'));
+        return redirect()->route('toko.pesanan')->with('success', 'Selamat! Pembelian berhasil. Total bayar: Rp '.number_format($total, 0, ',', '.'));
     }
 
     // Helper kecil untuk mengecek apakah produk sudah ada di favorit pengguna
     private function apakahFavorit(Product $product): bool
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return false;
         }
 

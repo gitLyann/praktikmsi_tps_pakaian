@@ -6,12 +6,6 @@
 ])
 
 @section('content')
-    @php
-        $ahp = $analysis['ahp'];
-        $vikor = $analysis['vikor'];
-        $restock = $analysis['restock'];
-    @endphp
-
     <div id="adminDss" data-dss>
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
@@ -228,23 +222,19 @@
                                                     <span class="fw-normal small text-muted d-block">{{ $row['name'] }}</span>
                                                 </th>
                                                 @foreach($matrix['criteria'] as $columnIndex => $column)
-                                                    @php
-                                                        $key = $row['id'].'-'.$column['id'];
-                                                        $value = $matrix['values'][$key] ?? null;
-                                                    @endphp
                                                     @if($rowIndex === $columnIndex)
                                                         <td class="lm-score">1</td>
                                                     @elseif($columnIndex > $rowIndex)
                                                         <td>
                                                             <input type="number" step="1" min="1" max="9"
                                                                 class="form-control form-control-sm text-center"
-                                                                name="values[{{ $key }}]"
-                                                                value="{{ $value !== null ? $value : '' }}"
+                                                                name="values[{{ $matrix['cells'][$rowIndex][$columnIndex]['key'] }}]"
+                                                                value="{{ $matrix['cells'][$rowIndex][$columnIndex]['value'] !== null ? $matrix['cells'][$rowIndex][$columnIndex]['value'] : '' }}"
                                                                 placeholder="-">
                                                         </td>
                                                     @else
                                                         <td class="lm-score text-muted">
-                                                            {{ $value !== null ? number_format(1 / max((float) $value, 0.0001), 4) : '-' }}
+                                                            {{ $matrix['cells'][$rowIndex][$columnIndex]['value'] !== null ? number_format(1 / max((float) $matrix['cells'][$rowIndex][$columnIndex]['value'], 0.0001), 4) : '-' }}
                                                         </td>
                                                     @endif
                                                 @endforeach
@@ -938,38 +928,8 @@
 @endsection
 
 @push('scripts')
-    <script>
-        (function () {
-            const root = document.getElementById('adminDss');
-            if (!root) return;
-
-            const sections = Array.from(root.querySelectorAll('[data-dss-section]'));
-            const tabs = Array.from(root.querySelectorAll('[data-dss-tab]'));
-            const defaultSection = 'dss-ringkasan';
-
-            const activateSection = (id, { updateHash = true } = {}) => {
-                if (!sections.some((section) => section.dataset.dssSection === id)) return;
-                sections.forEach((section) => { section.classList.toggle('d-none', section.dataset.dssSection !== id); });
-                tabs.forEach((tab) => { tab.classList.toggle('active', tab.dataset.dssTab === id); });
-                if (updateHash && window.location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
-                window.scrollTo(0, 0);
-            };
-
-            tabs.forEach((tab) => {
-                tab.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    activateSection(tab.dataset.dssTab);
-                });
-            });
-
-            const sectionFromHash = () => {
-                const id = window.location.hash.slice(1);
-                if (!id) { activateSection(defaultSection, { updateHash: false }); return; }
-                if (sections.some((section) => section.dataset.dssSection === id)) activateSection(id, { updateHash: false });
-            };
-
-            sectionFromHash();
-            window.addEventListener('hashchange', sectionFromHash);
-        })();
-    </script>
+    @include('partials.dss-tabs-script', [
+        'rootId' => 'adminDss',
+        'defaultSection' => 'dss-ringkasan',
+    ])
 @endpush

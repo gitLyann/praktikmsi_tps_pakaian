@@ -165,14 +165,14 @@ class DssDemoTransactionSeeder extends Seeder
             $user = User::query()->where('email', $data['email'])->first();
 
             if ($user === null) {
-                $user = User::create([
+                $user = User::forceCreate([
                     'name' => $data['name'],
                     'email' => $data['email'],
                     'password' => 'password',
                     'role' => 'pelanggan',
                 ]);
             } elseif ($user->role !== 'pelanggan') {
-                $user->update(['role' => 'pelanggan']);
+                $user->forceFill(['role' => 'pelanggan'])->save();
             }
 
             $customers->push($user);

@@ -17,10 +17,12 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (User::query()->where('email', 'test@example.com')->doesntExist()) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         // Data dasar Decision Support System (pemasok, kriteria AHP, matriks perbandingan).
         $this->call(DssSeeder::class);

@@ -375,7 +375,7 @@
                                         </button>
 
                                         <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline"
-                                            onsubmit="return confirm('Hapus produk &quot;{{ $product->name }}&quot;? Tindakan ini tidak dapat dibatalkan.');">
+                                            data-confirm="Hapus produk &quot;{{ $product->name }}&quot;? Tindakan ini tidak dapat dibatalkan.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus produk">
@@ -986,6 +986,14 @@
             lihatOverlay.addEventListener('click', (e) => { if (e.target === lihatOverlay) closeLihatOverlay(); });
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && !lihatOverlay.hidden) closeLihatOverlay();
+            });
+
+            document.querySelectorAll('form[data-confirm]').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    if (!window.confirm(form.dataset.confirm)) {
+                        event.preventDefault();
+                    }
+                });
             });
         })();
     </script>

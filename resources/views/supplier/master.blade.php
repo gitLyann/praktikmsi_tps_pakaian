@@ -6,14 +6,6 @@
 ])
 
 @section('content')
-    @php
-        $totalSupplier = $suppliers->count();
-        $supplierAktif = $suppliers->filter(fn ($item) => $item->is_active)->count();
-        $supplierNonaktif = $totalSupplier - $supplierAktif;
-        $totalProdukDipasok = $suppliers->sum('product_suppliers_count');
-        $formAction = $editing ? route('supplier.master.update', $editing) : route('supplier.master.store');
-    @endphp
-
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
         <div>
             <h3 class="mb-1">Master Supplier</h3>
@@ -284,7 +276,7 @@
                                         </a>
                                         @if(Auth::user()->role === 'admin')
                                             <form method="POST" action="{{ route('supplier.master.destroy', $supplier->id) }}" class="d-inline"
-                                                onsubmit="return confirm('Hapus pemasok {{ $supplier->name }}?')">
+                                                data-confirm="Hapus pemasok {{ $supplier->name }}?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -302,3 +294,17 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+@once
+<script>
+    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (!window.confirm(form.dataset.confirm)) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+@endonce
+@endpush

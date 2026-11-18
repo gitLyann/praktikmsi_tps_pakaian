@@ -344,7 +344,7 @@ class VikorService
         $criteriaIds = $criteria->pluck('id')->all();
 
         $lookup = [];
-        foreach ($scores as $score) {
+        foreach ($scores->sortBy('dss_run_id') as $score) {
             $lookup[$score->supplier_id][$score->dss_criterion_id] = (float) $score->score;
         }
 
@@ -366,6 +366,7 @@ class VikorService
      * @param  array<int, float>  $weights  Bobot kriteria (hasil AHP, berkunci id kriteria).
      * @param  Collection<int, DssSupplierScore>|null  $scores
      * @param  float|null  $v  Parameter kompromi 0..1.
+     * @param  int|null  $runId  Batasi skor ke satu run penilaian.
      * @return array{v: float, criteria_ids: array, normalized: array, scores: array, ranking: array, threshold: float, best_id: mixed, best_classification: string, compromise_set: array, has_advantage: bool, is_stable: bool}
      */
     public function analyze(
@@ -373,12 +374,14 @@ class VikorService
         Collection $criteria,
         array $weights,
         ?Collection $scores = null,
-        ?float $v = null
+        ?float $v = null,
+        ?int $runId = null
     ): array {
         $criteriaIds = $criteria->pluck('id')->all();
 
         if ($scores === null) {
             $scores = DssSupplierScore::query()
+                ->when($runId !== null, fn ($query) => $query->where('dss_run_id', $runId))
                 ->whereIn('supplier_id', $suppliers->pluck('id'))
                 ->whereIn('dss_criterion_id', $criteriaIds)
                 ->get();

@@ -17,7 +17,16 @@ class EsDemoRestockSeeder extends Seeder
 {
     public function run(): void
     {
-        if (RestockRequest::query()->count() >= 8) {
+        $rows = [
+            ['status' => 'pending', 'days_ago' => 4, 'approved_after_hours' => null],   // >2 hari, trigger alert
+            ['status' => 'pending', 'days_ago' => 1, 'approved_after_hours' => null],
+            ['status' => 'approved', 'days_ago' => 10, 'approved_after_hours' => 6],
+            ['status' => 'approved', 'days_ago' => 7, 'approved_after_hours' => 30],
+            ['status' => 'rejected', 'days_ago' => 5, 'approved_after_hours' => 12],
+            ['status' => 'approved', 'days_ago' => 20, 'approved_after_hours' => 48],
+        ];
+
+        if (RestockRequest::query()->where('catatan', 'Demo ES/OAS')->count() >= count($rows)) {
             $this->command?->info('Restock request demo sudah cukup, seeder dilewati.');
 
             return;
@@ -33,15 +42,6 @@ class EsDemoRestockSeeder extends Seeder
             ? (int) (Employee::query()->where('user_id', $staff->id)->value('id')
                 ?? Employee::query()->insertGetId(['user_id' => $staff->id, 'name' => $staff->name, 'position' => 'Kasir', 'created_at' => now(), 'updated_at' => now()]))
             : (int) (Employee::query()->value('id') ?? 1);
-
-        $rows = [
-            ['status' => 'pending', 'days_ago' => 4, 'approved_after_hours' => null],   // >2 hari, trigger alert
-            ['status' => 'pending', 'days_ago' => 1, 'approved_after_hours' => null],
-            ['status' => 'approved', 'days_ago' => 10, 'approved_after_hours' => 6],
-            ['status' => 'approved', 'days_ago' => 7, 'approved_after_hours' => 30],
-            ['status' => 'rejected', 'days_ago' => 5, 'approved_after_hours' => 12],
-            ['status' => 'approved', 'days_ago' => 20, 'approved_after_hours' => 48],
-        ];
 
         foreach ($rows as $i => $row) {
             $product = $products[$i % $products->count()];

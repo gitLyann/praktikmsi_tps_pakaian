@@ -35,6 +35,9 @@ class DssAnalysisController extends Controller
             return response()->json($analysis);
         }
 
+        $ahp = $analysis['ahp'];
+        $vikor = $analysis['vikor'];
+        $restock = $analysis['restock'];
         $latestRun = $this->analysis->latestCompletedRun();
 
         return view('admin.dss', [
@@ -42,7 +45,9 @@ class DssAnalysisController extends Controller
             'sidebar' => true,
             'activeRoute' => 'dss',
             'dashboardRoute' => 'admin.dashboard',
-            'analysis' => $analysis,
+            'ahp' => $ahp,
+            'vikor' => $vikor,
+            'restock' => $restock,
             'criteria' => $this->analysis->criteriaWithWeights(),
             'suppliers' => $this->analysis->suppliersWithScores(),
             'runs' => DssRun::query()->latest()->limit(10)->get(),

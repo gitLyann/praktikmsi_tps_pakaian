@@ -6,11 +6,6 @@
 ])
 
 @section('content')
-    @php
-        $restock = $restock ?? ['items' => [], 'products' => 0, 'need_restock' => 0, 'total_qty' => 0, 'total_cost' => 0, 'days' => 30];
-        $vikor = $vikor ?? ['scores' => [], 'v' => 0.5, 'threshold' => 0.25, 'best_classification' => '-', 'has_advantage' => false, 'is_stable' => false];
-    @endphp
-
     <div id="staffDss" data-dss>
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
@@ -380,30 +375,8 @@
 @endsection
 
 @push('scripts')
-    <script>
-        (function () {
-            const root = document.getElementById('staffDss');
-            if (!root) return;
-
-            const sections = Array.from(root.querySelectorAll('[data-dss-section]'));
-            const tabs = Array.from(root.querySelectorAll('[data-dss-tab]'));
-            const defaultSection = 'dss-restock';
-
-            const activateSection = (id, { updateHash = true } = {}) => {
-                if (!sections.some((section) => section.dataset.dssSection === id)) return;
-                sections.forEach((section) => { section.classList.toggle('d-none', section.dataset.dssSection !== id); });
-                tabs.forEach((tab) => { tab.classList.toggle('active', tab.dataset.dssTab === id); });
-                if (updateHash && window.location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
-                window.scrollTo(0, 0);
-            };
-            tabs.forEach((tab) => { tab.addEventListener('click', (event) => { event.preventDefault(); activateSection(tab.dataset.dssTab); }); });
-            const sectionFromHash = () => {
-                const id = window.location.hash.slice(1);
-                if (!id) { activateSection(defaultSection, { updateHash: false }); return; }
-                if (sections.some((section) => section.dataset.dssSection === id)) activateSection(id, { updateHash: false });
-            };
-            sectionFromHash();
-            window.addEventListener('hashchange', sectionFromHash);
-        })();
-    </script>
+    @include('partials.dss-tabs-script', [
+        'rootId' => 'staffDss',
+        'defaultSection' => 'dss-restock',
+    ])
 @endpush

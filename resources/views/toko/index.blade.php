@@ -5,47 +5,6 @@
     'subheading' => 'Temukan pakaian sesuai kebutuhan dan kebutuhanmu.',
 ])
 
-@php
-    // Label & jumlah filter aktif untuk chip ringkasan.
-    $chipLabels = [
-        'kategori' => 'Kategori',
-        'jenis' => 'Jenis',
-        'ukuran' => 'Ukuran',
-        'warna' => 'Warna',
-    ];
-    $activeCount = count($filters['kategori']) + count($filters['jenis'])
-        + count($filters['ukuran']) + count($filters['warna'])
-        + ($filters['q'] !== '' ? 1 : 0)
-        + ($filters['min'] !== null ? 1 : 0)
-        + ($filters['max'] !== null ? 1 : 0)
-        + ($filters['urut'] !== 'terbaru' ? 1 : 0);
-
-    // Bangun URL saat satu nilai filter dilepas dari chip.
-    $removeFilterUrl = function (string $key, ?string $value = null) use ($filters) {
-        $params = array_filter([
-            'q' => $filters['q'],
-            'kategori' => $filters['kategori'],
-            'jenis' => $filters['jenis'],
-            'ukuran' => $filters['ukuran'],
-            'warna' => $filters['warna'],
-            'min' => $filters['min'],
-            'max' => $filters['max'],
-            'urut' => $filters['urut'] === 'terbaru' ? null : $filters['urut'],
-        ], fn ($v) => $v !== null && $v !== '' && $v !== []);
-
-        if ($value !== null && isset($params[$key]) && is_array($params[$key])) {
-            $params[$key] = array_values(array_diff($params[$key], [$value]));
-            if ($params[$key] === []) {
-                unset($params[$key]);
-            }
-        } else {
-            unset($params[$key]);
-        }
-
-        return route('toko.index', $params);
-    };
-@endphp
-
 @section('content')
     @php
         // Emoji fallback per kategori, dipakai hanya bila produk tidak punya foto
@@ -227,6 +186,7 @@
                                     data-return="{{ url()->current() }}"
                                     @disabled($product->stock <= 0)>+ Keranjang</button>
                             <button class="buy" type="button" data-buy-open="{{ $product->id }}"
+                                    data-buy-url="{{ route('toko.buy', ['product_id' => $product->id]) }}"
                                     data-name="{{ $product->name }}"
                                     data-price="{{ (int) $product->price }}"
                                     data-stock="{{ (int) $product->stock }}"
@@ -298,7 +258,6 @@
     <script>
         (function () {
             const rupiah = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
-            const BUY_URL = @json(route('toko.buy', ['product_id' => 0]));
             const IS_PELANGGAN = @json($isPelanggan);
             const IS_GUEST = @json(! Auth::check());
 
@@ -419,7 +378,7 @@
                     $('#mQty').value = 1;
                     $('#mQty').max = buyStock;
 
-                    buyForm.action = BUY_URL + btn.dataset.buyOpen;
+                    buyForm.action = btn.dataset.buyUrl;
                     buyModal.classList.add('show');
                     syncPay();
                 });

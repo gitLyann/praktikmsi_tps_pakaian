@@ -34,6 +34,24 @@ class UserFactory extends Factory
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
+     * @return User
+     */
+    public function newModel(array $attributes = [])
+    {
+        $role = $attributes['role'] ?? null;
+        unset($attributes['role']);
+
+        $model = parent::newModel($attributes);
+
+        if (is_string($role)) {
+            $model->forceFill(['role' => $role]);
+        }
+
+        return $model;
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

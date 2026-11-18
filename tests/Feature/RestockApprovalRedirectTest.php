@@ -59,6 +59,21 @@ class RestockApprovalRedirectTest extends TestCase
         $this->assertSame(2, Product::find($request->product_id)->stock);
     }
 
+    public function test_approval_web_tidak_menambah_stok_dua_kali(): void
+    {
+        [$admin, $request] = $this->skenarioPengajuan();
+
+        $this->actingAs($admin)->put(route('admin.restock.update', $request->id), [
+            'status' => 'approved',
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->put(route('admin.restock.update', $request->id), [
+            'status' => 'approved',
+        ])->assertStatus(409);
+
+        $this->assertSame(12, Product::find($request->product_id)->stock);
+    }
+
     public function test_pesan_sukses_mentebutkan_produk_dan_status(): void
     {
         [$admin, $request] = $this->skenarioPengajuan();

@@ -12,6 +12,7 @@ use App\Models\RestockRequest;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Orkestrasi analisis DSS: AHP -> VIKOR -> Rekomendasi Restock.
@@ -43,14 +44,23 @@ class DssAnalysisService
      *
      * @return array{ahp: array, vikor: array, restock: array}
      */
-    public function analyze(): array
+    public function analyze(?int $runId = null): array
     {
         $criteria = $this->criteria();
         $ahp = $this->ahpService->analyze($criteria);
         $weights = $ahp['criteria_weights'];
 
+        $runId ??= $this->activeScoringRun()?->id;
+
         $suppliers = Supplier::query()->orderBy('name')->get();
-        $vikor = $this->vikorService->analyze($suppliers, $criteria, $weights);
+
+        $scores = DssSupplierScore::query()
+            ->when($runId !== null, fn ($query) => $query->where('dss_run_id', $runId))
+            ->whereIn('supplier_id', $suppliers->pluck('id'))
+            ->whereIn('dss_criterion_id', $criteria->pluck('id'))
+            ->get();
+
+        $vikor = $this->vikorService->analyze($suppliers, $criteria, $weights, $scores);
 
         $restock = $this->restockService->analyze(
             null,
@@ -78,21 +88,25 @@ class DssAnalysisService
     {
         $ahp = $analysis['ahp'];
 
-        $run = DssRun::create([
-            'name' => 'Analisis DSS - '.now()->format('d/m/Y H:i'),
-            'type' => 'vikor',
-            'status' => 'completed',
-            'created_by' => $user->id,
-            'criteria_count' => $ahp['criteria_count'],
-            'lambda_max' => $ahp['lambda_max'],
-            'ci' => $ahp['ci'],
-            'cr' => $ahp['cr'],
-            'ri' => $ahp['ri'],
-            'is_consistent' => $ahp['is_consistent'],
-            'payload' => $analysis,
-        ]);
+        $run = DB::transaction(function () use ($user, $ahp, $analysis) {
+            $run = DssRun::create([
+                'name' => 'Analisis DSS - '.now()->format('d/m/Y H:i'),
+                'type' => 'vikor',
+                'status' => 'completed',
+                'created_by' => $user->id,
+                'criteria_count' => $ahp['criteria_count'],
+                'lambda_max' => $ahp['lambda_max'],
+                'ci' => $ahp['ci'],
+                'cr' => $ahp['cr'],
+                'ri' => $ahp['ri'],
+                'is_consistent' => $ahp['is_consistent'],
+                'payload' => $analysis,
+            ]);
 
-        $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
+            $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
+
+            return $run;
+        });
 
         return $run;
     }
@@ -138,7 +152,7 @@ class DssAnalysisService
      * Yang dikembalikan hanya segitiga atas (kriteria lebih penting ditulis
      * di atas diagonal) karena sisi bawahnya adalah resiprok.
      *
-     * @return array{criteria: array<int, array<string, mixed>>, values: array<string, float>}
+     * @return array{criteria: array<int, array<string, mixed>>, values: array<string, float>, cells: array<int, array<int, array{key: string, value: float|null}>>}
      */
     public function comparisonMatrix(): array
     {
@@ -169,7 +183,19 @@ class DssAnalysisService
             }
         }
 
-        return ['criteria' => $list, 'values' => $values];
+        $cells = [];
+        foreach ($list as $rowIndex => $row) {
+            foreach ($list as $columnIndex => $column) {
+                $key = $row['id'].'-'.$column['id'];
+
+                $cells[$rowIndex][$columnIndex] = [
+                    'key' => $key,
+                    'value' => $values[$key] ?? null,
+                ];
+            }
+        }
+
+        return ['criteria' => $list, 'values' => $values, 'cells' => $cells];
     }
 
     /**
@@ -180,43 +206,47 @@ class DssAnalysisService
      * secara matematis.
      *
      * @param  array<int, array{criterion_a_id: int, criterion_b_id: int, value: float}>  $comparisons
-     * @return array<string, mixed>  Hasil AHP terbaru beserta jumlah perbandingan tersimpan.
+     * @return array<string, mixed> Hasil AHP terbaru beserta jumlah perbandingan tersimpan.
      */
     public function saveComparisons(array $comparisons): array
     {
         $criteria = $this->criteria();
         $ids = $criteria->pluck('id')->all();
 
-        $saved = 0;
+        $saved = DB::transaction(function () use ($comparisons, $ids) {
+            $saved = 0;
 
-        foreach ($comparisons as $comparison) {
-            $a = (int) $comparison['criterion_a_id'];
-            $b = (int) $comparison['criterion_b_id'];
-            $value = (float) $comparison['value'];
+            foreach ($comparisons as $comparison) {
+                $a = (int) $comparison['criterion_a_id'];
+                $b = (int) $comparison['criterion_b_id'];
+                $value = (float) $comparison['value'];
 
-            if ($a === $b || ! in_array($a, $ids, true) || ! in_array($b, $ids, true)) {
-                continue;
+                if ($a === $b || ! in_array($a, $ids, true) || ! in_array($b, $ids, true)) {
+                    continue;
+                }
+
+                if ($value <= 0) {
+                    continue;
+                }
+
+                [$first, $second] = $a < $b ? [$a, $b] : [$b, $a];
+                $storedValue = $a < $b ? $value : 1 / $value;
+
+                DssCriterionComparison::updateOrCreate(
+                    ['criterion_a_id' => $first, 'criterion_b_id' => $second],
+                    ['value' => round($storedValue, 4)]
+                );
+
+                DssCriterionComparison::updateOrCreate(
+                    ['criterion_a_id' => $second, 'criterion_b_id' => $first],
+                    ['value' => round(1 / $storedValue, 4)]
+                );
+
+                $saved++;
             }
 
-            if ($value <= 0) {
-                continue;
-            }
-
-            [$first, $second] = $a < $b ? [$a, $b] : [$b, $a];
-            $storedValue = $a < $b ? $value : 1 / $value;
-
-            DssCriterionComparison::updateOrCreate(
-                ['criterion_a_id' => $first, 'criterion_b_id' => $second],
-                ['value' => round($storedValue, 4)]
-            );
-
-            DssCriterionComparison::updateOrCreate(
-                ['criterion_a_id' => $second, 'criterion_b_id' => $first],
-                ['value' => round(1 / $storedValue, 4)]
-            );
-
-            $saved++;
-        }
+            return $saved;
+        });
 
         $ahp = $this->ahpService->analyze($criteria);
 
@@ -241,42 +271,44 @@ class DssAnalysisService
             return null;
         }
 
-        $run = $this->latestCompletedRun() ?? $this->storeRun($actor, $analysis);
+        return DB::transaction(function () use ($actor, $analysis, $productId, $item, $quantity) {
+            $run = $this->latestCompletedRun() ?? $this->storeRun($actor, $analysis);
 
-        $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
+            $this->restockService->persist($run, $this->restockAnalysis($analysis['vikor']));
 
-        $recommendation = DssRestockRecommendation::query()
-            ->where('dss_run_id', $run->id)
-            ->where('product_id', $productId)
-            ->first();
+            $recommendation = DssRestockRecommendation::query()
+                ->where('dss_run_id', $run->id)
+                ->where('product_id', $productId)
+                ->first();
 
-        $catatan = 'Diajukan dari rekomendasi DSS (reorder point: '.$item['reorder_point']
-            .', safety stock: '.$item['safety_stock'].', rata-rata penjualan: '
-            .$item['avg_daily_sales'].'/hari).';
+            $catatan = 'Diajukan dari rekomendasi DSS (reorder point: '.$item['reorder_point']
+                .', safety stock: '.$item['safety_stock'].', rata-rata penjualan: '
+                .$item['avg_daily_sales'].'/hari).';
 
-        if ($recommendation !== null) {
-            $restockRequest = $this->restockService->toRestockRequest(
-                $recommendation,
-                $this->employeeIdFor($actor),
-                $catatan
-            );
-        } else {
-            $restockRequest = RestockRequest::create([
-                'product_id' => $productId,
-                'employee_id' => $this->employeeIdFor($actor),
-                'jumlah_restock' => max(1, (int) $item['recommended_qty']),
-                'status' => 'pending',
-                'catatan' => $catatan,
-                'supplier_id' => $item['supplier_id'],
-                'dss_run_id' => $run->id,
-            ]);
-        }
+            if ($recommendation !== null) {
+                $restockRequest = $this->restockService->toRestockRequest(
+                    $recommendation,
+                    $this->employeeIdFor($actor),
+                    $catatan
+                );
+            } else {
+                $restockRequest = RestockRequest::create([
+                    'product_id' => $productId,
+                    'employee_id' => $this->employeeIdFor($actor),
+                    'jumlah_restock' => max(1, (int) $item['recommended_qty']),
+                    'status' => 'pending',
+                    'catatan' => $catatan,
+                    'supplier_id' => $item['supplier_id'],
+                    'dss_run_id' => $run->id,
+                ]);
+            }
 
-        if ($quantity !== null && $quantity > 0) {
-            $restockRequest->update(['jumlah_restock' => $quantity]);
-        }
+            if ($quantity !== null && $quantity > 0) {
+                $restockRequest->update(['jumlah_restock' => $quantity]);
+            }
 
-        return $restockRequest;
+            return $restockRequest;
+        });
     }
 
     /**
@@ -288,7 +320,7 @@ class DssAnalysisService
      */
     private function employeeIdFor(User $user): int
     {
-        $employeeId = Employee::query()->where('user_id', $user->id)->value('id');
+        $employeeId = $user->employee?->id;
 
         if ($employeeId !== null) {
             return (int) $employeeId;
@@ -321,40 +353,39 @@ class DssAnalysisService
         $criteria = $this->criteria();
         $weights = $this->ahpService->analyze($criteria)['criteria_weights'];
 
-        $run = DssRun::query()
-            ->where('type', 'vikor')
-            ->where('status', 'draft')
-            ->first();
+        return DB::transaction(function () use ($user, $criteria, $scores, $weights) {
+            $run = $this->activeScoringRun();
 
-        if ($run === null) {
-            $run = DssRun::create([
-                'name' => 'Penilaian Pemasok',
-                'type' => 'vikor',
-                'status' => 'draft',
-                'created_by' => $user->id,
-                'criteria_count' => $criteria->count(),
-            ]);
-        }
+            if ($run === null) {
+                $run = DssRun::create([
+                    'name' => 'Penilaian Pemasok',
+                    'type' => 'vikor',
+                    'status' => 'draft',
+                    'created_by' => $user->id,
+                    'criteria_count' => $criteria->count(),
+                ]);
+            }
 
-        $saved = 0;
+            $saved = 0;
 
-        foreach ($scores as $score) {
-            DssSupplierScore::updateOrCreate(
-                [
-                    'dss_run_id' => $run->id,
-                    'supplier_id' => $score['supplier_id'],
-                    'dss_criterion_id' => $score['criterion_id'],
-                ],
-                [
-                    'score' => (float) $score['score'],
-                    'weight' => (float) ($weights[$score['criterion_id']] ?? 0.0),
-                ]
-            );
+            foreach ($scores as $score) {
+                DssSupplierScore::updateOrCreate(
+                    [
+                        'dss_run_id' => $run->id,
+                        'supplier_id' => $score['supplier_id'],
+                        'dss_criterion_id' => $score['criterion_id'],
+                    ],
+                    [
+                        'score' => (float) $score['score'],
+                        'weight' => (float) ($weights[$score['criterion_id']] ?? 0.0),
+                    ]
+                );
 
-            $saved++;
-        }
+                $saved++;
+            }
 
-        return ['run' => $run, 'saved' => $saved];
+            return ['run' => $run, 'saved' => $saved];
+        });
     }
 
     /**
@@ -390,6 +421,7 @@ class DssAnalysisService
         return DssRun::query()
             ->where('type', 'vikor')
             ->where('status', 'draft')
+            ->orderByDesc('id')
             ->first();
     }
 
@@ -398,12 +430,15 @@ class DssAnalysisService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function suppliersWithScores(): array
+    public function suppliersWithScores(?int $runId = null): array
     {
         $criteria = $this->criteria();
         $suppliers = Supplier::query()->orderBy('name')->get();
+        $runId ??= $this->activeScoringRun()?->id;
 
         $scores = DssSupplierScore::query()
+            ->when($runId !== null, fn ($query) => $query->where('dss_run_id', $runId))
+            ->whereIn('supplier_id', $suppliers->pluck('id'))
             ->whereIn('dss_criterion_id', $criteria->pluck('id'))
             ->get();
 

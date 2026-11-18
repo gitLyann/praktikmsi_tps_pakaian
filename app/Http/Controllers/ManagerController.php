@@ -11,6 +11,7 @@ use App\Support\HandlesProductImage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ManagerController extends Controller
 {
@@ -126,7 +127,8 @@ class ManagerController extends Controller
             ->get(['id', 'name'])
             ->keyBy('id');
         $topProduk = $topProduk->map(function ($row) use ($namaProdukTop) {
-            $row->nama = $namaProdukTop->get($row->product_id)->name ?? 'Produk #' . $row->product_id;
+            $row->nama = $namaProdukTop->get($row->product_id)->name ?? 'Produk #'.$row->product_id;
+
             return $row;
         });
 
@@ -164,16 +166,25 @@ class ManagerController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
-        $restock = RestockRequest::findOrFail($id);
-        $restock->status = $request->status;
-        $restock->save();
+        $restock = DB::transaction(function () use ($id, $request) {
+            $restock = RestockRequest::whereKey($id)->lockForUpdate()->firstOrFail();
 
-        // Jika disetujui, otomatis tambahkan stok di tabel products
-        if ($request->status === 'approved') {
-            $product = Product::findOrFail($restock->product_id);
-            $product->stock += $restock->jumlah_restock;
-            $product->save();
-        }
+            if ($restock->status !== 'pending') {
+                abort(409, 'Pengajuan ini sudah diproses.');
+            }
+
+            $restock->status = $request->status;
+            $restock->save();
+
+            if ($request->status === 'approved') {
+                Product::whereKey($restock->product_id)
+                    ->lockForUpdate()
+                    ->firstOrFail()
+                    ->increment('stock', $restock->jumlah_restock);
+            }
+
+            return $restock;
+        });
 
         $namaProduk = $restock->product?->name ?? 'Produk';
         $pesan = $request->status === 'approved'
@@ -184,7 +195,7 @@ class ManagerController extends Controller
         // di dashboard utama. Arahkan eksplisit ke menu Persetujuan Restock
         // supaya approve/reject tidak membuat admin kehilangan posisi halaman.
         return redirect()
-            ->to(route('admin.dashboard') . '#persetujuan-restock')
+            ->to(route('admin.dashboard').'#persetujuan-restock')
             ->with('success', $pesan);
     }
 
@@ -227,8 +238,8 @@ class ManagerController extends Controller
         ]);
 
         return redirect()
-            ->to(route('admin.dashboard') . '#kelola-produk')
-            ->with('success', 'Produk berhasil diperbarui: ' . $product->name . '.');
+            ->to(route('admin.dashboard').'#kelola-produk')
+            ->with('success', 'Produk berhasil diperbarui: '.$product->name.'.');
     }
 
     // Manager menghapus produk. Produk yang sudah pernah terjual tidak boleh dihapus
@@ -242,9 +253,9 @@ class ManagerController extends Controller
 
         if ($sudahTerjual) {
             return redirect()
-                ->to(route('admin.dashboard') . '#kelola-produk')
-                ->with('error', 'Produk "' . $product->name . '" sudah pernah terjual '
-                    . 'sehingga tidak bisa dihapus agar riwayat penjualan tetap utuh.');
+                ->to(route('admin.dashboard').'#kelola-produk')
+                ->with('error', 'Produk "'.$product->name.'" sudah pernah terjual '
+                    .'sehingga tidak bisa dihapus agar riwayat penjualan tetap utuh.');
         }
 
         // Baris restock_requests terhapus otomatis lewat cascade di foreign key.
@@ -256,7 +267,7 @@ class ManagerController extends Controller
         $this->deleteProductImage($image);
 
         return redirect()
-            ->to(route('admin.dashboard') . '#kelola-produk')
-            ->with('success', 'Produk berhasil dihapus: ' . $namaProduk . '.');
+            ->to(route('admin.dashboard').'#kelola-produk')
+            ->with('success', 'Produk berhasil dihapus: '.$namaProduk.'.');
     }
 }
