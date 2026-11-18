@@ -18,9 +18,9 @@ return [
     ],
     'criteria' => [
         'sales' => ['code' => 'sales', 'name' => 'Penjualan', 'type' => 'benefit', 'weight' => 0.35, 'metric' => 'total_sales'],
-        'transactions' => ['code' => 'transaction_count', 'name' => 'Jumlah Transaksi', 'type' => 'benefit', 'weight' => 0.20, 'metric' => 'transactions_count'],
-        'approval' => ['code' => 'restock_approval_rate', 'name' => 'Persen Restock Disetujui', 'type' => 'benefit', 'weight' => 0.20, 'metric' => 'approval_rate'],
-        'evaluations' => ['code' => 'supplier_evaluations', 'name' => 'Penilaian Supplier Diinput', 'type' => 'benefit', 'weight' => 0.10, 'metric' => 'evaluations_count'],
-        'response' => ['code' => 'avg_response_hours', 'name' => 'Waktu Respons rata-rata', 'type' => 'cost', 'weight' => 0.15, 'metric' => 'avg_response_hours'],
+        'transaction_count' => ['code' => 'transaction_count', 'name' => 'Jumlah Transaksi', 'type' => 'benefit', 'weight' => 0.20, 'metric' => 'transactions_count'],
+        'restock_approval_rate' => ['code' => 'restock_approval_rate', 'name' => 'Persen Restock Disetujui', 'type' => 'benefit', 'weight' => 0.20, 'metric' => 'approval_rate'],
+        'supplier_evaluations' => ['code' => 'supplier_evaluations', 'name' => 'Penilaian Supplier Diinput', 'type' => 'benefit', 'weight' => 0.10, 'metric' => 'evaluations_count'],
+        'avg_response_hours' => ['code' => 'avg_response_hours', 'name' => 'Waktu Respons rata-rata', 'type' => 'cost', 'weight' => 0.15, 'metric' => 'avg_response_hours'],
     ],
 ];

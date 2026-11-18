@@ -51,7 +51,7 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>#</th><th>Staf</th><th>Omzet</th><th>Trx</th><th>Approval</th><th>Respons</th><th>Capaian</th><th>Q</th><th>Status</th><th></th>
+                                <th>#</th><th>Staf</th><th>Profil</th><th>Omzet</th><th>Trx</th><th>Approval</th><th>Respons</th><th>Capaian</th><th>Q</th><th>Status</th><th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,6 +59,7 @@
                                 <tr>
                                     <td><strong>{{ $row->rank ?? '-' }}</strong></td>
                                     <td>{{ $row->employee?->name ?? '-' }}</td>
+                                    <td>{{ $row->employee?->position ?? '-' }}</td>
                                     <td>Rp {{ number_format((float) $row->total_sales, 0, ',', '.') }}</td>
                                     <td>{{ $row->transactions_count }}</td>
                                     <td>{{ $row->restock_submitted > 0 ? number_format($row->restock_approved / $row->restock_submitted * 100, 1) : '0,0' }}%</td>
@@ -73,7 +74,7 @@
                                     <td><a href="{{ route('admin.eis.detail', $row->employee_id) }}" class="btn btn-sm btn-outline-primary">Detail</a></td>
                                 </tr>
                             @empty
-                                <tr><td colspan="10"><x-ui.empty-state title="Belum ada snapshot" description="Jalankan php artisan eis:snapshot atau buka halaman ini setelah data demo tersedia." /></td></tr>
+                                <tr><td colspan="11"><x-ui.empty-state title="Belum ada snapshot" description="Jalankan php artisan eis:snapshot atau buka halaman ini setelah data demo tersedia." /></td></tr>
                             @endforelse
                         </tbody>
                     </table>

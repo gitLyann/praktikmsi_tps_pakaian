@@ -33,6 +33,23 @@ class EisBackfillSnapshotTest extends TestCase
         }
     }
 
+    public function test_eis_criteria_map_to_distinct_config_metrics(): void
+    {
+        $criteria = EisCriterion::query()->orderBy('id')->get();
+
+        $this->assertCount(5, $criteria);
+
+        $metrics = $criteria->map(function (EisCriterion $criterion): string {
+            $metric = config('eis.criteria.'.$criterion->code.'.metric');
+
+            $this->assertIsString($metric, 'Kriteria '.$criterion->code.' belum punya metric di config/eis.php');
+
+            return (string) $metric;
+        });
+
+        $this->assertCount(5, $metrics->unique());
+    }
+
     private function customerIdFor(User $user): int
     {
         return (int) (DB::table('customers')->where('user_id', $user->id)->value('id')

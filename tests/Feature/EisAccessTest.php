@@ -57,7 +57,8 @@ class EisAccessTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.eis'))
             ->assertOk()
-            ->assertSee('EIS Kinerja Staf');
+            ->assertSee('EIS Kinerja Staf')
+            ->assertSee('Profil');
         $this->actingAs($admin)->getJson(route('admin.eis.data', ['name' => 'summary']))
             ->assertOk()
             ->assertJsonStructure(['period', 'active_staff', 'avg_target_achievement', 'open_exceptions']);
