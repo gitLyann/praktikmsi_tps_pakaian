@@ -157,8 +157,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    {{-- Global Pengaturan modal (staff/admin). Staff dashboard punya section #pengaturan in-page. --}}
-    @includeWhen(Auth::check() && in_array(Auth::user()->role ?? null, ['staff','admin'], true) && ! (request()->routeIs('staff.dashboard')), 'partials.settings-modal')
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');

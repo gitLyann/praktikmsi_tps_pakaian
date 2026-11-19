@@ -3,7 +3,6 @@
     // halaman lain (DSS, Master Supplier) memakai URL penuh supaya menu
     // sidebar tetap bisa diklik dari halaman mana pun.
     $isStaff = Auth::user()->role === 'staff';
-    $onStaffDashboard = $isStaff && request()->routeIs('staff.dashboard');
     $staffDashboardUrl = route('staff.dashboard');
 @endphp
 
@@ -48,7 +47,7 @@
     @if($isStaff)
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
-            <a href="{{ $staffDashboardUrl }}#monitoring-stok" data-tab="monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
+            <a href="{{ route('staff.riwayat-stok') }}" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok</span>
             </a>
@@ -124,45 +123,9 @@
 
     <div class="nav-section">
         <div class="nav-section-label">Akun</div>
-        <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#profileModal">
-            <i class="bi bi-person-circle"></i>
-            <span>Profil Saya</span>
+        <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.index') ? 'active' : '' }}">
+            <i class="bi bi-gear"></i>
+            <span>Pengaturan</span>
         </a>
-        @if($isStaff && $onStaffDashboard)
-            {{-- Di dashboard staff, Pengaturan adalah section in-page --}}
-            <a href="{{ $staffDashboardUrl }}#pengaturan" data-tab="pengaturan" class="nav-link {{ $activeRoute === 'pengaturan' ? 'active' : '' }}">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan</span>
-            </a>
-        @else
-            <a href="#" class="nav-link" data-open-settings>
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan</span>
-            </a>
-        @endif
     </div>
 </nav>
-
-<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="profileModalLabel"><i class="bi bi-person-circle me-2"></i>Profil Saya</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="mb-3">
-                    <i class="bi bi-person-circle fs-1 text-secondary"></i>
-                </div>
-                <h6 class="mb-1">{{ Auth::user()->name }}</h6>
-                <p class="text-muted mb-1">{{ Auth::user()->email }}</p>
-                <span class="badge bg-primary bg-opacity-10 text-primary">{{ ucfirst(Auth::user()->role ?? 'user') }}</span>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- settings-modal dirender global oleh layout (app.blade.php) --}}

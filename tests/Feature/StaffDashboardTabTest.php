@@ -54,15 +54,13 @@ class StaffDashboardTabTest extends TestCase
 
         foreach ([
             'href="'.route('staff.dashboard').'#dashboard"',
-            'href="'.route('staff.dashboard').'#monitoring-stok"',
             'href="'.route('staff.dashboard').'#pengajuan-restock"',
             'href="'.route('staff.riwayat-stok').'"',
-            'data-tab="pengaturan"',
+            'href="'.route('settings.index').'"',
             'id="dashboard"',
             'id="monitoring-stok"',
             'id="pengajuan-restock"',
             'id="riwayat-stok"',
-            'id="pengaturan"',
             'Total Produk',
             'Stok Kritis',
             'Restock Pending',
@@ -72,8 +70,6 @@ class StaffDashboardTabTest extends TestCase
             'Riwayat Aktivitas Stok',
             '<th>Tipe Aktivitas</th>',
             'Master Data Terdaftar',
-            'Pengaturan & Keamanan Akun',
-            'Logout Akun',
             'id="search-product"',
             '<th>Kategori</th>',
             '<th>Color</th>',
@@ -93,6 +89,9 @@ class StaffDashboardTabTest extends TestCase
             $this->assertStringContainsString($needle, $html, "Missing: {$needle}");
         }
 
+        $this->assertStringNotContainsString('href="'.route('staff.dashboard').'#monitoring-stok"', $html);
+        $this->assertStringNotContainsString('data-tab="monitoring-stok"', $html);
+
         // Form tambah produk kini inline di section Pengajuan Restock, modal lama sudah dihapus
         $this->assertStringContainsString('action="'.route('staff.products.store').'"', $html);
         $this->assertStringNotContainsString('modalTambahProduk', $html);
@@ -104,10 +103,11 @@ class StaffDashboardTabTest extends TestCase
         $this->assertStringNotContainsString('Stok Awal', $html);
         $this->assertStringContainsString('Produk baru akan didaftarkan dengan stok 0', $html);
 
-        // Logout hanya boleh muncul di tab Pengaturan, tidak lagi di bawah sidebar
+        // Logout kini hanya tersedia lewat halaman Pengaturan.
         $this->assertStringNotContainsString('sidebar-footer', $html);
-        $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
-        $this->assertStringContainsString('class="btn btn-outline-danger"', $html);
+        $this->assertSame(0, substr_count($html, 'action="'.route('logout').'"'));
+        $this->assertStringNotContainsString('id="settingsModal"', $html);
+        $this->assertStringNotContainsString('data-bs-target="#profileModal"', $html);
 
         // 2 produk di tabel monitoring stok
         $this->assertSame(2, substr_count($html, '<tr data-product-row '));
@@ -135,10 +135,10 @@ class StaffDashboardTabTest extends TestCase
         $this->assertSame(3, substr_count($riwayatSection, '>Pengajuan Restock</span>'));
         $this->assertStringNotContainsString('<th>Catatan</th>', $riwayatSection);
 
-        // Navigasi section: 5 section, hanya #dashboard yang tampil awal
-        $this->assertSame(5, substr_count($html, 'class="dashboard-section'));
+        // Navigasi section: 4 section, hanya #dashboard yang tampil awal
+        $this->assertSame(4, substr_count($html, 'class="dashboard-section'));
         $this->assertStringContainsString('class="dashboard-section" id="dashboard"', $html);
-        $this->assertSame(4, substr_count($html, 'class="dashboard-section d-none"'));
+        $this->assertSame(3, substr_count($html, 'class="dashboard-section d-none"'));
         $this->assertStringNotContainsString('data-bs-toggle="tab"', $html);
         $this->assertStringNotContainsString('bootstrap.Tab', $html);
     }
@@ -219,14 +219,16 @@ class StaffDashboardTabTest extends TestCase
         $this->assertStringContainsString('>—<', $html);
     }
 
-    public function test_sidebar_tetap_memakai_modal_pengaturan_untuk_role_lain(): void
+    public function test_sidebar_memakai_link_pengaturan_untuk_admin(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
         $html = $this->actingAs($admin)->get('/admin/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('data-open-settings', $html);
-        $this->assertStringContainsString('id="settingsModal"', $html);
+        $this->assertStringContainsString('href="'.route('settings.index').'"', $html);
+        $this->assertStringNotContainsString('data-open-settings', $html);
+        $this->assertStringNotContainsString('id="settingsModal"', $html);
+        $this->assertSame(0, substr_count($html, 'action="'.route('logout').'"'));
         $this->assertStringContainsString('href="'.route('admin.dashboard').'#persetujuan-restock"', $html);
         // Menu admin sudah diubah namanya menjadi "Riwayat Stok"
         $this->assertStringContainsString('href="'.route('admin.dashboard').'#riwayat-stok"', $html);
@@ -249,8 +251,7 @@ class StaffDashboardTabTest extends TestCase
         $html = $this->actingAs($staff)->get('/staff/dashboard')->assertOk()->getContent();
 
         // Regresi div tak seimbang: section yang berada di luar wrapper #staffDashboard
-        // tidak dikenali router tab, sehingga klik "Pengaturan" (untuk logout) jatuh
-        // kembali ke tab Dashboard.
+        // tidak dikenali router tab dashboard.
         $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
         $dom->loadHTML($html);
@@ -258,19 +259,14 @@ class StaffDashboardTabTest extends TestCase
         $xpath = new \DOMXPath($dom);
 
         $this->assertSame(
-            5,
+            4,
             $xpath->query('//div[@id="staffDashboard"]/div[contains(concat(" ", normalize-space(@class), " "), " dashboard-section ")]')->length,
-            'Lima section harus menjadi anak langsung wrapper #staffDashboard.'
+            'Empat section harus menjadi anak langsung wrapper #staffDashboard.'
         );
         $this->assertSame(
             0,
             $xpath->query('//div[contains(concat(" ", normalize-space(@class), " "), " dashboard-section ")][not(ancestor::div[@id="staffDashboard"])]')->length,
             'Tidak boleh ada section yang berada di luar wrapper #staffDashboard.'
-        );
-        $this->assertSame(
-            1,
-            $xpath->query('//div[@id="staffDashboard"]//div[@id="pengaturan"]')->length,
-            'Section #pengaturan (tempat tombol logout) harus berada di dalam wrapper.'
         );
         $this->assertSame(
             1,

@@ -37,7 +37,7 @@ class StaffRiwayatStokTest extends TestCase
         $response->assertSee('Riwayat Stok');
         $response->assertSee('Riwayat Pengajuan');
         $response->assertSee('Kaos Test');
-        $response->assertSee('data-open-settings'); // pengaturan modal available on this page
+        $response->assertSee('href="'.route('settings.index').'"', false);
     }
 
     public function test_staff_riwayat_stok_supports_search_and_filter(): void
@@ -76,18 +76,28 @@ class StaffRiwayatStokTest extends TestCase
         $this->get(route('staff.riwayat-stok'))->assertRedirect(route('login'));
     }
 
-    public function test_settings_link_and_modal_present_on_all_staff_pages(): void
+    public function test_settings_link_present_on_all_staff_pages(): void
     {
         $staff = User::factory()->create(['role' => 'staff']);
 
-        foreach ([route('staff.dashboard'), route('staff.riwayat-stok'), route('staff.dss'), route('supplier.master')] as $url) {
+        $urls = [
+            route('staff.dashboard'),
+            route('staff.riwayat-stok'),
+            route('staff.dss'),
+            route('supplier.master'),
+            route('settings.index'),
+        ];
+
+        foreach ($urls as $url) {
             $html = $this->actingAs($staff)->get($url)->assertOk()->getContent();
-            $hasSettings = str_contains($html, 'data-open-settings') || str_contains($html, 'data-tab="pengaturan"');
-            $this->assertTrue($hasSettings, "Pengaturan trigger missing on {$url}");
-            if ($url !== route('staff.dashboard')) {
-                $this->assertStringContainsString('id="settingsModal"', $html, "settingsModal missing on {$url}");
-                $this->assertStringContainsString('action="'.route('logout').'"', $html);
-            }
+
+            $this->assertStringContainsString('href="'.route('settings.index').'"', $html, "Pengaturan link missing on {$url}");
+            $this->assertStringNotContainsString('id="settingsModal"', $html, "settingsModal still present on {$url}");
+            $this->assertStringNotContainsString('data-open-settings', $html, "Legacy settings trigger present on {$url}");
+            $this->assertStringNotContainsString('data-bs-target="#profileModal"', $html, "Legacy profile modal present on {$url}");
+
+            $expectedLogoutForms = $url === route('settings.index') ? 1 : 0;
+            $this->assertSame($expectedLogoutForms, substr_count($html, 'action="'.route('logout').'"'), "Unexpected logout form count on {$url}");
         }
     }
 }

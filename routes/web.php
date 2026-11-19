@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Admin\EisController as AdminEisController;
+use App\Http\Controllers\Admin\EsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatbotController;
-use App\Http\Controllers\Admin\EisController as AdminEisController;
-use App\Http\Controllers\Admin\EsController;
 use App\Http\Controllers\DssAnalysisController;
 use App\Http\Controllers\DssScoreController;
 use App\Http\Controllers\DssSupplierController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Staff\EisController as StaffEisController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SupplierMasterController;
@@ -57,6 +58,11 @@ Route::middleware(['auth'])->group(function () {
     // Produk Favorit: daftar & aksi tambah/hapus favorit
     Route::get('/toko/favorit', [TokoController::class, 'favorit'])->name('toko.favorit');
     Route::post('/toko/favorit/{product}', [TokoController::class, 'toggleFavorite'])->name('toko.favorit.toggle');
+
+    // Pengaturan akun untuk staff & admin.
+    Route::middleware(['role:staff,admin'])->group(function () {
+        Route::get('/pengaturan', [SettingsController::class, 'index'])->name('settings.index');
+    });
 
     // Dashboard Kasir & Form Restock
     Route::middleware(['role:staff,admin'])->group(function () {
@@ -108,11 +114,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/dss/pemasok/{supplier}/aktif', [DssSupplierController::class, 'toggle'])->name('admin.dss.suppliers.toggle');
         Route::post('/admin/dss/pemasok/{supplier}/penawaran', [DssSupplierController::class, 'storeOffer'])->name('admin.dss.suppliers.offers.store');
         Route::delete('/admin/dss/pemasok/{supplier}/penawaran/{offer}', [DssSupplierController::class, 'destroyOffer'])->name('admin.dss.suppliers.offers.destroy');
-        
+
         // Executive System (ES) - dashboard & data JSON
         Route::get('/admin/es', [EsController::class, 'index'])->name('admin.es');
         Route::get('/admin/es/data/summary', [EsController::class, 'summary'])->name('admin.es.data.summary');
-        Route::get('/admin/es/data/charts/{name}', [EsController::class, 'chart'])->name('admin.es.data.chart')->where('name','[a-z0-9\-]+');
+        Route::get('/admin/es/data/charts/{name}', [EsController::class, 'chart'])->name('admin.es.data.chart')->where('name', '[a-z0-9\-]+');
         Route::get('/admin/es/data/alerts', [EsController::class, 'alerts'])->name('admin.es.data.alerts');
         Route::get('/admin/es/data/integration', [EsController::class, 'integration'])->name('admin.es.data.integration');
         Route::get('/admin/es/data/target', [EsController::class, 'target'])->name('admin.es.data.target');

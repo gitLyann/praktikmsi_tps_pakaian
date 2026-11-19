@@ -25,11 +25,9 @@ class DssSidebarNavigationTest extends TestCase
 
         $html = $this->actingAs($staff)->get(route('staff.dss'))->assertOk()->getContent();
 
-        // Semua menu staff harus menuju URL penuh supaya tetap bisa diklik
-        // dari halaman lain (DSS / Master Supplier).
+        // Menu staff tetap memakai URL penuh supaya bisa diklik dari halaman lain.
         foreach ([
             'dashboard',
-            'monitoring-stok',
             'pengajuan-restock',
         ] as $section) {
             $this->assertStringContainsString(
@@ -38,14 +36,15 @@ class DssSidebarNavigationTest extends TestCase
                 "Link sidebar staff #{$section} harus memakai URL penuh."
             );
         }
+        $this->assertStringNotContainsString('href="'.route('staff.dashboard').'#monitoring-stok"', $html);
         $this->assertStringContainsString('href="'.route('staff.riwayat-stok').'"', $html);
 
-        // Pengaturan dan logout harus tetap bisa diakses dari halaman DSS.
-        $this->assertStringContainsString('data-open-settings', $html);
-        $this->assertStringContainsString('id="settingsModal"', $html);
-        $this->assertStringContainsString('data-bs-target="#profileModal"', $html);
-        $this->assertStringContainsString('action="'.route('logout').'"', $html);
-        $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
+        // Pengaturan sekarang memakai satu halaman canonical untuk staff & admin.
+        $this->assertStringContainsString('href="'.route('settings.index').'"', $html);
+        $this->assertStringNotContainsString('data-open-settings', $html);
+        $this->assertStringNotContainsString('id="settingsModal"', $html);
+        $this->assertStringNotContainsString('data-bs-target="#profileModal"', $html);
+        $this->assertSame(0, substr_count($html, 'action="'.route('logout').'"'));
     }
 
     public function test_halaman_dss_admin_memuat_link_sidebar_lengkap(): void
@@ -71,10 +70,10 @@ class DssSidebarNavigationTest extends TestCase
 
         $this->assertStringContainsString('href="'.route('admin.es').'"', $html);
         $this->assertStringContainsString('href="'.route('staff.dss').'"', $html);
-        $this->assertStringContainsString('data-open-settings', $html);
-        $this->assertStringContainsString('id="settingsModal"', $html);
-        $this->assertStringContainsString('action="'.route('logout').'"', $html);
-        $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
+        $this->assertStringContainsString('href="'.route('settings.index').'"', $html);
+        $this->assertStringNotContainsString('data-open-settings', $html);
+        $this->assertStringNotContainsString('id="settingsModal"', $html);
+        $this->assertSame(0, substr_count($html, 'action="'.route('logout').'"'));
     }
 
     public function test_dashboard_admin_dan_staff_selalu_dibuka_dari_paling_atas(): void
@@ -95,19 +94,16 @@ class DssSidebarNavigationTest extends TestCase
         $this->assertStringContainsString('scrollRestoration', $html);
     }
 
-    public function test_modal_profil_tidak_ditahan_js_section_dashboard(): void
+    public function test_pengaturan_memakai_link_halaman_di_dashboard_staff(): void
     {
         $staff = User::factory()->create(['role' => 'staff']);
 
         $html = $this->actingAs($staff)->get(route('staff.dashboard'))->assertOk()->getContent();
 
-        // Link modal harus tetap punya trigger Bootstrap (tidak di-preventDefault).
-        $this->assertStringContainsString('data-bs-toggle="modal" data-bs-target="#profileModal"', $html);
-
-        // Di dashboard staff, Pengaturan memakai section in-page supaya hanya
-        // ada satu form logout di halaman itu.
-        $this->assertStringContainsString('data-tab="pengaturan"', $html);
+        $this->assertStringContainsString('href="'.route('settings.index').'"', $html);
+        $this->assertStringNotContainsString('data-bs-toggle="modal" data-bs-target="#profileModal"', $html);
+        $this->assertStringNotContainsString('data-tab="pengaturan"', $html);
         $this->assertStringNotContainsString('data-open-settings', $html);
-        $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
+        $this->assertSame(0, substr_count($html, 'action="'.route('logout').'"'));
     }
 }

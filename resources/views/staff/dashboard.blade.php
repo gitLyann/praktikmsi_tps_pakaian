@@ -600,55 +600,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- ================= SECTION: PENGATURAN ================= --}}
-        <div class="dashboard-section d-none" id="pengaturan" data-lm-title="Pengaturan">
-            <div class="row g-4">
-                <div class="col-12 col-lg-6">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-secondary text-white fw-bold">
-                            <i class="bi bi-person-circle me-2"></i>Informasi Akun
-                        </div>
-                        <div class="card-body">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span class="text-muted">Nama</span>
-                                    <span class="fw-semibold">{{ Auth::user()->name }}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span class="text-muted">Email</span>
-                                    <span class="fw-semibold">{{ Auth::user()->email }}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span class="text-muted">Role</span>
-                                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ ucfirst(Auth::user()->role ?? 'user') }}</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-lg-6">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-danger text-white fw-bold">
-                            <i class="bi bi-shield-lock me-2"></i>Pengaturan & Keamanan Akun
-                        </div>
-                        <div class="card-body d-flex flex-column">
-                            <p class="text-muted small">
-                                Mengakhiri sesi aktif pada perangkat ini. Anda akan diarahkan kembali ke halaman login
-                                dan perlu melakukan login ulang untuk mengakses dashboard staff.
-                            </p>
-                            <form action="{{ route('logout') }}" method="POST" class="mt-auto">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-danger">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Logout Akun
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     {{-- ================= OVERLAY EDIT PRODUK =================
