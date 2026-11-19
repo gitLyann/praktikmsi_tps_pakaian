@@ -47,7 +47,7 @@
     @if($isStaff)
         <div class="nav-section">
             <div class="nav-section-label">OAS & Stok</div>
-            <a href="{{ route('staff.riwayat-stok') }}" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
+            <a href="{{ $staffDashboardUrl }}#monitoring-stok" data-tab="monitoring-stok" class="nav-link {{ $activeRoute === 'monitoring' ? 'active' : '' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Monitoring Stok</span>
             </a>

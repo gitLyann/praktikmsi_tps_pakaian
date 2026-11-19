@@ -54,6 +54,7 @@ class StaffDashboardTabTest extends TestCase
 
         foreach ([
             'href="'.route('staff.dashboard').'#dashboard"',
+            'href="'.route('staff.dashboard').'#monitoring-stok"',
             'href="'.route('staff.dashboard').'#pengajuan-restock"',
             'href="'.route('staff.riwayat-stok').'"',
             'href="'.route('settings.index').'"',
@@ -89,8 +90,7 @@ class StaffDashboardTabTest extends TestCase
             $this->assertStringContainsString($needle, $html, "Missing: {$needle}");
         }
 
-        $this->assertStringNotContainsString('href="'.route('staff.dashboard').'#monitoring-stok"', $html);
-        $this->assertStringNotContainsString('data-tab="monitoring-stok"', $html);
+        $this->assertStringContainsString('data-tab="monitoring-stok"', $html);
 
         // Form tambah produk kini inline di section Pengajuan Restock, modal lama sudah dihapus
         $this->assertStringContainsString('action="'.route('staff.products.store').'"', $html);

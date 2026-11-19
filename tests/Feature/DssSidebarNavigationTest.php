@@ -28,6 +28,7 @@ class DssSidebarNavigationTest extends TestCase
         // Menu staff tetap memakai URL penuh supaya bisa diklik dari halaman lain.
         foreach ([
             'dashboard',
+            'monitoring-stok',
             'pengajuan-restock',
         ] as $section) {
             $this->assertStringContainsString(
@@ -36,7 +37,6 @@ class DssSidebarNavigationTest extends TestCase
                 "Link sidebar staff #{$section} harus memakai URL penuh."
             );
         }
-        $this->assertStringNotContainsString('href="'.route('staff.dashboard').'#monitoring-stok"', $html);
         $this->assertStringContainsString('href="'.route('staff.riwayat-stok').'"', $html);
 
         // Pengaturan sekarang memakai satu halaman canonical untuk staff & admin.
